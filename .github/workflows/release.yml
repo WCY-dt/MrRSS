@@ -186,8 +186,6 @@ jobs:
       - name: Create installer (Windows)
         if: matrix.platform == 'windows'
         run: |
-          # Ensure build/windows directory exists
-          New-Item -ItemType Directory -Force -Path build/windows
           # Update version in installer script
           $version = "${{ needs.create-release.outputs.version }}"
           (Get-Content build/windows/installer.nsi) -replace '!define APP_VERSION ".*"', "!define APP_VERSION `"$version`"" | Set-Content build/windows/installer.nsi
@@ -195,24 +193,34 @@ jobs:
           # Use full path since chocolatey doesn't refresh PATH in current session
           & "C:\Program Files (x86)\NSIS\makensis.exe" build/windows/installer.nsi
         shell: pwsh
+        continue-on-error: true
       
       - name: Create installer (Linux)
         if: matrix.platform == 'linux'
         run: |
           chmod +x build/linux/create-appimage.sh
           ./build/linux/create-appimage.sh
+        continue-on-error: true
       
       - name: Create installer (macOS)
         if: matrix.platform == 'darwin'
         run: |
           chmod +x build/macos/create-dmg.sh
           ./build/macos/create-dmg.sh
+        continue-on-error: true
       
       - name: Package application (Linux - tar.gz fallback)
         if: matrix.platform == 'linux'
         run: |
           cd build/bin
           tar -czf MrRSS-${{ needs.create-release.outputs.version }}-linux-amd64.tar.gz MrRSS
+      
+      - name: Package application (macOS - zip fallback)
+        if: matrix.platform == 'darwin'
+        run: |
+          cd build/bin
+          # Create zip from the .app bundle
+          zip -r MrRSS-${{ needs.create-release.outputs.version }}-darwin-universal.zip MrRSS.app
       
       - name: Package application (Windows - zip fallback)
         if: matrix.platform == 'windows'
