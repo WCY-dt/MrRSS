@@ -8,10 +8,11 @@ const props = defineProps({
     updateInfo: { type: Object, default: null },
     checkingUpdates: { type: Boolean, default: false },
     downloadingUpdate: { type: Boolean, default: false },
-    installingUpdate: { type: Boolean, default: false }
+    installingUpdate: { type: Boolean, default: false },
+    downloadProgress: { type: Number, default: 0 }
 });
 
-const appVersion = ref('1.1.3');
+const appVersion = ref('1.1.4');
 
 onMounted(async () => {
     // Fetch current version from API
@@ -71,10 +72,15 @@ function handleDownloadInstall() {
                             <i v-if="downloadingUpdate" class="ph ph-circle-notch animate-spin"></i>
                             <i v-else-if="installingUpdate" class="ph ph-gear animate-spin"></i>
                             <i v-else class="ph ph-download-simple"></i>
-                            <span v-if="downloadingUpdate">{{ store.i18n.t('downloading') }}</span>
+                            <span v-if="downloadingUpdate">{{ store.i18n.t('downloading') }} {{ downloadProgress }}%</span>
                             <span v-else-if="installingUpdate">{{ store.i18n.t('installingUpdate') }}</span>
                             <span v-else>{{ store.i18n.t('downloadUpdate') }}</span>
                         </button>
+                        
+                        <!-- Progress bar -->
+                        <div v-if="downloadingUpdate" class="mt-2 w-full bg-bg-tertiary rounded-full h-2 overflow-hidden">
+                            <div class="bg-accent h-full transition-all duration-300" :style="{ width: downloadProgress + '%' }"></div>
+                        </div>
                     </div>
                     
                     <!-- Fallback to GitHub if no download URL -->

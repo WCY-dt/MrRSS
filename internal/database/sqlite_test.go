@@ -260,16 +260,14 @@ func TestCleanupOldArticles(t *testing.T) {
 	// Insert test articles with different ages and statuses
 	now := time.Now()
 	articles := []*models.Article{
-		// Old (>1 month) not favorited - should be deleted
+		// Old (>30 days) not favorited - should be deleted
 		{FeedID: feedID, Title: "Old 1", URL: "https://example.com/old1", PublishedAt: now.AddDate(0, -2, 0), IsRead: false, IsFavorite: false},
 		{FeedID: feedID, Title: "Old 2", URL: "https://example.com/old2", PublishedAt: now.AddDate(0, -2, 0), IsRead: true, IsFavorite: false},
-		// Old (>1 month) favorited - should be kept
+		// Old (>30 days) favorited - should be kept
 		{FeedID: feedID, Title: "Old Fav", URL: "https://example.com/oldfav", PublishedAt: now.AddDate(0, -2, 0), IsRead: false, IsFavorite: true},
-		// Week old unread not favorited - should be deleted
+		// Within 30 days - should all be kept
 		{FeedID: feedID, Title: "Week Old Unread", URL: "https://example.com/weekold", PublishedAt: now.AddDate(0, 0, -8), IsRead: false, IsFavorite: false},
-		// Week old read - should be kept
 		{FeedID: feedID, Title: "Week Old Read", URL: "https://example.com/weekoldread", PublishedAt: now.AddDate(0, 0, -8), IsRead: true, IsFavorite: false},
-		// Recent - should be kept
 		{FeedID: feedID, Title: "Recent", URL: "https://example.com/recent", PublishedAt: now.AddDate(0, 0, -1), IsRead: false, IsFavorite: false},
 	}
 
@@ -289,7 +287,7 @@ func TestCleanupOldArticles(t *testing.T) {
 		t.Logf("Before cleanup: %s (read: %v, fav: %v, published: %v)", a.Title, a.IsRead, a.IsFavorite, a.PublishedAt)
 	}
 
-	// Run cleanup
+	// Run cleanup (default is 30 days)
 	count, err := db.CleanupOldArticles()
 	if err != nil {
 		t.Fatalf("Failed to cleanup articles: %v", err)
@@ -301,9 +299,10 @@ func TestCleanupOldArticles(t *testing.T) {
 	remainingArticles, _ := db.GetArticles("", feedID, "", 100, 0)
 	t.Logf("Remaining articles: %d", len(remainingArticles))
 
-	// Should have: Old Fav (1) + Week Old Read (1) + Recent (1) = 3
-	if len(remainingArticles) != 3 {
-		t.Errorf("Expected 3 articles after cleanup, got %d", len(remainingArticles))
+	// Should have: Old Fav (1) + Week Old Unread (1) + Week Old Read (1) + Recent (1) = 4
+	// Old 1 and Old 2 should be deleted (>30 days and not favorited)
+	if len(remainingArticles) != 4 {
+		t.Errorf("Expected 4 articles after cleanup, got %d", len(remainingArticles))
 		for _, a := range remainingArticles {
 			t.Logf("  - %s (read: %v, fav: %v, published: %v)", a.Title, a.IsRead, a.IsFavorite, a.PublishedAt)
 		}
@@ -315,7 +314,7 @@ func TestCleanupOldArticles(t *testing.T) {
 		titles[a.Title] = true
 	}
 
-	expectedTitles := []string{"Old Fav", "Week Old Read", "Recent"}
+	expectedTitles := []string{"Old Fav", "Week Old Unread", "Week Old Read", "Recent"}
 	for _, expected := range expectedTitles {
 		if !titles[expected] {
 			t.Errorf("Expected article '%s' to remain after cleanup", expected)

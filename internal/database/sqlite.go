@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -71,6 +72,8 @@ func (db *DB) Init() error {
 		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('translation_provider', 'google')`)
 		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('deepl_api_key', '')`)
 		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_cleanup_enabled', 'false')`)
+		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('max_cache_size_mb', '20')`)
+		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('max_article_age_days', '30')`)
 		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'en')`)
 		_, _ = db.Exec(`INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'auto')`)
 	})
@@ -316,44 +319,38 @@ func (db *DB) SetSetting(key, value string) error {
 }
 
 // CleanupOldArticles removes articles based on age and status
-// - Articles older than 1 week: delete except read OR favorited
-// - Articles older than 1 month: delete except favorited
+// - Articles older than configured days: delete except read OR favorited
+// - Also checks database size against max_cache_size_mb setting
 func (db *DB) CleanupOldArticles() (int64, error) {
 	db.WaitForReady()
 	
-	oneWeekAgo := time.Now().AddDate(0, 0, -7)
-	oneMonthAgo := time.Now().AddDate(0, -1, 0)
+	// Get max article age from settings (default 30 days)
+	maxAgeDaysStr, err := db.GetSetting("max_article_age_days")
+	maxAgeDays := 30
+	if err == nil {
+		if days, err := strconv.Atoi(maxAgeDaysStr); err == nil && days > 0 {
+			maxAgeDays = days
+		}
+	}
 	
-	// Delete articles older than 1 month that are not favorited
-	result1, err := db.Exec(`
+	cutoffDate := time.Now().AddDate(0, 0, -maxAgeDays)
+	
+	// Delete articles older than configured age that are not favorited
+	result, err := db.Exec(`
 		DELETE FROM articles 
 		WHERE published_at < ? 
 		AND is_favorite = 0
-	`, oneMonthAgo)
+	`, cutoffDate)
 	if err != nil {
 		return 0, err
 	}
 	
-	count1, _ := result1.RowsAffected()
-	
-	// Delete articles older than 1 week (but less than 1 month) that are not read and not favorited
-	result2, err := db.Exec(`
-		DELETE FROM articles 
-		WHERE published_at < ? 
-		AND published_at >= ?
-		AND is_read = 0 
-		AND is_favorite = 0
-	`, oneWeekAgo, oneMonthAgo)
-	if err != nil {
-		return count1, err
-	}
-	
-	count2, _ := result2.RowsAffected()
+	count, _ := result.RowsAffected()
 	
 	// Run VACUUM to reclaim space
 	_, _ = db.Exec("VACUUM")
 	
-	return count1 + count2, nil
+	return count, nil
 }
 
 // CleanupUnimportantArticles removes all articles except read and favorited ones
@@ -382,4 +379,25 @@ func (db *DB) UpdateArticleTranslation(id int64, translatedTitle string) error {
 	db.WaitForReady()
 	_, err := db.Exec("UPDATE articles SET translated_title = ? WHERE id = ?", translatedTitle, id)
 	return err
+}
+
+// GetDatabaseSizeMB returns the current database size in megabytes
+func (db *DB) GetDatabaseSizeMB() (float64, error) {
+	db.WaitForReady()
+	
+	var pageCount, pageSize int64
+	err := db.QueryRow("PRAGMA page_count").Scan(&pageCount)
+	if err != nil {
+		return 0, err
+	}
+	
+	err = db.QueryRow("PRAGMA page_size").Scan(&pageSize)
+	if err != nil {
+		return 0, err
+	}
+	
+	sizeBytes := pageCount * pageSize
+	sizeMB := float64(sizeBytes) / (1024 * 1024)
+	
+	return sizeMB, nil
 }

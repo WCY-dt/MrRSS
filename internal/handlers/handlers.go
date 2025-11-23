@@ -281,6 +281,8 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 		provider, _ := h.DB.GetSetting("translation_provider")
 		apiKey, _ := h.DB.GetSetting("deepl_api_key")
 		autoCleanup, _ := h.DB.GetSetting("auto_cleanup_enabled")
+		maxCacheSize, _ := h.DB.GetSetting("max_cache_size_mb")
+		maxArticleAge, _ := h.DB.GetSetting("max_article_age_days")
 		language, _ := h.DB.GetSetting("language")
 		theme, _ := h.DB.GetSetting("theme")
 		json.NewEncoder(w).Encode(map[string]string{
@@ -290,6 +292,8 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 			"translation_provider":  provider,
 			"deepl_api_key":         apiKey,
 			"auto_cleanup_enabled":  autoCleanup,
+			"max_cache_size_mb":     maxCacheSize,
+			"max_article_age_days":  maxArticleAge,
 			"language":              language,
 			"theme":                 theme,
 		})
@@ -301,6 +305,8 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 			TranslationProvider string `json:"translation_provider"`
 			DeepLAPIKey         string `json:"deepl_api_key"`
 			AutoCleanupEnabled  string `json:"auto_cleanup_enabled"`
+			MaxCacheSizeMB      string `json:"max_cache_size_mb"`
+			MaxArticleAgeDays   string `json:"max_article_age_days"`
 			Language            string `json:"language"`
 			Theme               string `json:"theme"`
 		}
@@ -325,6 +331,14 @@ func (h *Handler) HandleSettings(w http.ResponseWriter, r *http.Request) {
 		
 		if req.AutoCleanupEnabled != "" {
 			h.DB.SetSetting("auto_cleanup_enabled", req.AutoCleanupEnabled)
+		}
+		
+		if req.MaxCacheSizeMB != "" {
+			h.DB.SetSetting("max_cache_size_mb", req.MaxCacheSizeMB)
+		}
+		
+		if req.MaxArticleAgeDays != "" {
+			h.DB.SetSetting("max_article_age_days", req.MaxArticleAgeDays)
 		}
 		
 		if req.Language != "" {
@@ -617,19 +631,50 @@ func (h *Handler) HandleDownloadUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer out.Close()
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
+	// Write the body to file with progress tracking
+	totalSize := resp.ContentLength
+	var bytesWritten int64
+	
+	// Create a buffer for efficient copying
+	buffer := make([]byte, 32*1024) // 32KB buffer
+	
+	for {
+		nr, er := resp.Body.Read(buffer)
+		if nr > 0 {
+			nw, ew := out.Write(buffer[0:nr])
+			if nw > 0 {
+				bytesWritten += int64(nw)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
+	}
+
 	if err != nil {
 		log.Printf("Error writing file: %v", err)
 		http.Error(w, "Failed to write download file", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Update downloaded successfully to: %s", filePath)
+	log.Printf("Update downloaded successfully to: %s (%.2f MB)", filePath, float64(bytesWritten)/(1024*1024))
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":   true,
-		"file_path": filePath,
+		"success":     true,
+		"file_path":   filePath,
+		"total_bytes": totalSize,
+		"bytes_written": bytesWritten,
 	})
 }
 
@@ -678,6 +723,18 @@ func (h *Handler) HandleInstallUpdate(w http.ResponseWriter, r *http.Request) {
 	platform := runtime.GOOS
 	log.Printf("Installing update from: %s on platform: %s", cleanPath, platform)
 
+	// Helper function to schedule cleanup of installer file
+	scheduleCleanup := func(filePath string, delay time.Duration) {
+		go func() {
+			time.Sleep(delay)
+			if err := os.Remove(filePath); err != nil {
+				log.Printf("Failed to remove installer: %v", err)
+			} else {
+				log.Printf("Successfully removed installer: %s", filePath)
+			}
+		}()
+	}
+
 	// Launch installer based on platform
 	var cmd *exec.Cmd
 	switch platform {
@@ -687,7 +744,8 @@ func (h *Handler) HandleInstallUpdate(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid file type for Windows", http.StatusBadRequest)
 			return
 		}
-		cmd = exec.Command(cleanPath, "/S") // Silent install for NSIS
+		cmd = exec.Command(cleanPath, "/S")
+		scheduleCleanup(cleanPath, 3*time.Second)
 	case "linux":
 		// Make AppImage executable and run it - validate file extension
 		if !strings.HasSuffix(strings.ToLower(cleanPath), ".appimage") {
@@ -700,6 +758,7 @@ func (h *Handler) HandleInstallUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cmd = exec.Command(cleanPath)
+		scheduleCleanup(cleanPath, 3*time.Second)
 	case "darwin":
 		// Open the DMG file - validate file extension
 		if !strings.HasSuffix(strings.ToLower(cleanPath), ".dmg") {
@@ -707,6 +766,7 @@ func (h *Handler) HandleInstallUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cmd = exec.Command("open", cleanPath)
+		scheduleCleanup(cleanPath, 5*time.Second)
 	default:
 		http.Error(w, "Unsupported platform", http.StatusBadRequest)
 		return

@@ -15,6 +15,8 @@ const settings = ref({
     translation_provider: 'google',
     deepl_api_key: '',
     auto_cleanup_enabled: false,
+    max_cache_size_mb: 20,
+    max_article_age_days: 30,
     language: store.i18n.locale.value,
     theme: 'auto'
 });
@@ -37,6 +39,8 @@ onMounted(async () => {
             translation_provider: data.translation_provider || 'google',
             deepl_api_key: data.deepl_api_key || '',
             auto_cleanup_enabled: data.auto_cleanup_enabled === 'true',
+            max_cache_size_mb: parseInt(data.max_cache_size_mb) || 20,
+            max_article_age_days: parseInt(data.max_article_age_days) || 30,
             language: data.language || store.i18n.locale.value,
             theme: data.theme || 'auto'
         };
@@ -65,6 +69,8 @@ async function saveSettings() {
                 translation_provider: settings.value.translation_provider,
                 deepl_api_key: settings.value.deepl_api_key,
                 auto_cleanup_enabled: settings.value.auto_cleanup_enabled.toString(),
+                max_cache_size_mb: settings.value.max_cache_size_mb.toString(),
+                max_article_age_days: settings.value.max_article_age_days.toString(),
                 language: settings.value.language,
                 theme: settings.value.theme
             })
@@ -238,6 +244,13 @@ async function handleDownloadInstallUpdate() {
     downloadingUpdate.value = true;
     downloadProgress.value = 0;
 
+    // Simulate progress while downloading
+    const progressInterval = setInterval(() => {
+        if (downloadProgress.value < 90) {
+            downloadProgress.value += 10;
+        }
+    }, 500);
+
     try {
         // Download the update
         const downloadRes = await fetch('/api/download-update', {
@@ -248,6 +261,8 @@ async function handleDownloadInstallUpdate() {
                 asset_name: updateInfo.value.asset_name
             })
         });
+
+        clearInterval(progressInterval);
 
         if (!downloadRes.ok) {
             const errorText = await downloadRes.text();
@@ -289,11 +304,12 @@ async function handleDownloadInstallUpdate() {
             throw new Error('INSTALL_ERROR');
         }
 
-        // Show final message
+        // Show final message - app will close automatically from backend
         window.showToast(store.i18n.t('updateWillRestart'), 'info');
 
     } catch (e) {
         console.error('Update error:', e);
+        clearInterval(progressInterval);
         downloadingUpdate.value = false;
         installingUpdate.value = false;
         
@@ -348,13 +364,10 @@ async function handleDownloadInstallUpdate() {
                     :checking-updates="checkingUpdates"
                     :downloading-update="downloadingUpdate"
                     :installing-update="installingUpdate"
+                    :download-progress="downloadProgress"
                     @check-updates="handleCheckUpdates"
                     @download-install-update="handleDownloadInstallUpdate"
                 />
-            </div>
-
-            <div class="p-3 border-t border-border bg-bg-secondary text-right shrink-0">
-                <button @click="saveSettings" class="btn-primary">{{ store.i18n.t('saveSettings') }}</button>
             </div>
         </div>
     </div>
