@@ -13,33 +13,45 @@ import (
 
 // HandleDiscoverBlogs discovers blogs from a feed's friend links (SSE with progress)
 func (h *Handler) HandleDiscoverBlogs(w http.ResponseWriter, r *http.Request) {
+	log.Printf("HandleDiscoverBlogs: Request received, method=%s", r.Method)
+
 	if r.Method != http.MethodGet {
+		log.Printf("HandleDiscoverBlogs: Invalid method: %s", r.Method)
 		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	feedID, err := parseInt64QueryParam(r, "feed_id")
 	if err != nil {
+		log.Printf("HandleDiscoverBlogs: Invalid feed_id parameter: %v", err)
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	log.Printf("HandleDiscoverBlogs: Setting up SSE for feed_id=%d", feedID)
+
 	// Set up SSE
 	flusher, err := h.setupSSE(w)
 	if err != nil {
+		log.Printf("HandleDiscoverBlogs: Failed to setup SSE: %v", err)
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	log.Printf("HandleDiscoverBlogs: SSE established, sending initial ping")
 	// Send initial ping to establish connection
 	sendSSEProgress(w, flusher, "Connected, starting discovery...")
 
 	// Get the target feed
+	log.Printf("HandleDiscoverBlogs: Fetching feed from database")
 	targetFeed, err := h.DB.GetFeedByID(feedID)
 	if err != nil {
+		log.Printf("HandleDiscoverBlogs: Feed not found: %v", err)
 		sendSSEError(w, flusher, "Feed not found")
 		return
 	}
+
+	log.Printf("HandleDiscoverBlogs: Found feed: %s", targetFeed.Title)
 
 	// Get existing feed URLs for deduplication
 	subscribedURLs, err := h.DB.GetAllFeedURLs()
@@ -84,24 +96,33 @@ func (h *Handler) HandleDiscoverBlogs(w http.ResponseWriter, r *http.Request) {
 
 // HandleDiscoverAllFeeds discovers feeds from all subscriptions that haven't been discovered yet
 func (h *Handler) HandleDiscoverAllFeeds(w http.ResponseWriter, r *http.Request) {
+	log.Printf("HandleDiscoverAllFeeds: Request received, method=%s", r.Method)
+
 	if r.Method != http.MethodGet {
+		log.Printf("HandleDiscoverAllFeeds: Invalid method: %s", r.Method)
 		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
+	log.Printf("HandleDiscoverAllFeeds: Setting up SSE")
+
 	// Set up SSE
 	flusher, err := h.setupSSE(w)
 	if err != nil {
+		log.Printf("HandleDiscoverAllFeeds: Failed to setup SSE: %v", err)
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	log.Printf("HandleDiscoverAllFeeds: SSE established, sending initial ping")
 	// Send initial ping to establish connection
 	sendSSEProgress(w, flusher, "Connected, preparing batch discovery...")
 
 	// Get feeds that need discovery
+	log.Printf("HandleDiscoverAllFeeds: Fetching feeds for discovery")
 	feedsToDiscover, err := h.getFeedsForDiscovery()
 	if err != nil {
+		log.Printf("HandleDiscoverAllFeeds: Error getting feeds: %v", err)
 		sendSSEError(w, flusher, err.Error())
 		return
 	}
@@ -141,12 +162,19 @@ func (h *Handler) setupSSE(w http.ResponseWriter) (http.Flusher, error) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // Disable nginx buffering
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return nil, fmt.Errorf("streaming unsupported")
 	}
+
+	// Write initial comment to establish connection
+	// This ensures the browser knows it's a valid SSE stream
+	fmt.Fprintf(w, ": SSE connection established\n\n")
+	flusher.Flush()
+
 	return flusher, nil
 }
 
@@ -252,28 +280,43 @@ func (h *Handler) flattenDiscoveredFeeds(discovered map[string][]discovery.Disco
 
 // SSE helper functions for sending progress updates
 func sendSSEProgress(w http.ResponseWriter, flusher http.Flusher, message string) {
-	data, _ := json.Marshal(map[string]string{
+	data, err := json.Marshal(map[string]string{
 		"type":    "progress",
 		"message": message,
 	})
+	if err != nil {
+		log.Printf("sendSSEProgress: JSON marshal error: %v", err)
+		return
+	}
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
+	log.Printf("sendSSEProgress: Sent progress message: %s", message)
 }
 
 func sendSSEError(w http.ResponseWriter, flusher http.Flusher, message string) {
-	data, _ := json.Marshal(map[string]string{
+	log.Printf("sendSSEError: Sending error: %s", message)
+	data, err := json.Marshal(map[string]string{
 		"type":    "error",
 		"message": message,
 	})
+	if err != nil {
+		log.Printf("sendSSEError: JSON marshal error: %v", err)
+		return
+	}
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
 }
 
 func sendSSEComplete(w http.ResponseWriter, flusher http.Flusher, feeds []discovery.DiscoveredBlog) {
-	data, _ := json.Marshal(map[string]interface{}{
+	log.Printf("sendSSEComplete: Sending %d feeds", len(feeds))
+	data, err := json.Marshal(map[string]interface{}{
 		"type":  "complete",
 		"feeds": feeds,
 	})
+	if err != nil {
+		log.Printf("sendSSEComplete: JSON marshal error: %v", err)
+		return
+	}
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
 }
