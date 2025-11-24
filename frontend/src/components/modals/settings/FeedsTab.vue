@@ -42,51 +42,65 @@ async function handleDiscoverAll() {
     discoveryProgress.value = { message: store.i18n.t('preparingDiscovery'), detail: '' };
     
     try {
-        // Simulate progress updates
-        const progressSteps = [
-            { delay: 500, message: store.i18n.t('loadingFeeds'), detail: '' },
-            { delay: 2000, message: store.i18n.t('analyzingFeeds'), detail: store.i18n.t('scanningFriendLinks') },
-            { delay: 4000, message: store.i18n.t('checkingFeeds'), detail: store.i18n.t('validatingRSS') },
-        ];
+        console.log('Opening SSE connection for batch discovery');
         
-        let currentStep = 0;
-        const progressInterval = setInterval(() => {
-            if (currentStep < progressSteps.length) {
-                discoveryProgress.value = progressSteps[currentStep];
-                currentStep++;
+        // Use EventSource for Server-Sent Events
+        const eventSource = new EventSource('/api/feeds/discover-all');
+        
+        eventSource.onmessage = async (event) => {
+            console.log('SSE message received:', event.data);
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'progress') {
+                // Parse main message and detail if the message starts with spaces (detail)
+                if (data.message.startsWith('  ')) {
+                    // This is a detail message
+                    discoveryProgress.value.detail = data.message.trim();
+                } else {
+                    // This is a main message
+                    discoveryProgress.value.message = data.message;
+                    discoveryProgress.value.detail = '';
+                }
+            } else if (data.type === 'complete') {
+                console.log('Batch discovery complete:', data.feeds);
+                const feedCount = Array.isArray(data.feeds) ? data.feeds.length : 0;
+                
+                // Refresh feeds to show updated discovery status
+                await store.fetchFeeds();
+                
+                if (feedCount > 0) {
+                    window.showToast(
+                        store.i18n.t('discoveryComplete') + ': ' + 
+                        store.i18n.t('foundFeeds', { count: feedCount }),
+                        'success'
+                    );
+                } else {
+                    window.showToast(store.i18n.t('noFriendLinksFound'), 'info');
+                }
+                
+                eventSource.close();
+                isDiscoveringAll.value = false;
+                discoveryProgress.value = { message: '', detail: '' };
+            } else if (data.type === 'error') {
+                console.error('Batch discovery error from SSE:', data.message);
+                window.showToast(store.i18n.t('discoveryFailed') + ': ' + data.message, 'error');
+                eventSource.close();
+                isDiscoveringAll.value = false;
+                discoveryProgress.value = { message: '', detail: '' };
             }
-        }, 2000);
+        };
         
-        const response = await fetch('/api/feeds/discover-all', {
-            method: 'POST'
-        });
-
-        clearInterval(progressInterval);
+        eventSource.onerror = (error) => {
+            console.error('SSE connection error:', error);
+            window.showToast(store.i18n.t('discoveryFailed'), 'error');
+            eventSource.close();
+            isDiscoveringAll.value = false;
+            discoveryProgress.value = { message: '', detail: '' };
+        };
         
-        if (!response.ok) {
-            throw new Error('Failed to discover feeds');
-        }
-
-        const result = await response.json();
-        
-        // Refresh feeds to show updated discovery status
-        await store.fetchFeeds();
-        
-        if (result.feeds_found > 0) {
-            window.showToast(
-                store.i18n.t('discoveryComplete') + ': ' + 
-                store.i18n.t('foundFeeds', { count: result.feeds_found }) +
-                ' ' + store.i18n.t('fromFeed') + ' ' + result.discovered_from + ' ' +
-                store.i18n.t('feeds'),
-                'success'
-            );
-        } else {
-            window.showToast(store.i18n.t('noFriendLinksFound'), 'info');
-        }
     } catch (error) {
         console.error('Discovery error:', error);
         window.showToast(store.i18n.t('discoveryFailed'), 'error');
-    } finally {
         isDiscoveringAll.value = false;
         discoveryProgress.value = { message: '', detail: '' };
     }

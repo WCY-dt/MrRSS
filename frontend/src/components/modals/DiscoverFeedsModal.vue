@@ -26,50 +26,46 @@ async function startDiscovery() {
     progressMessage.value = store.i18n.t('fetchingHomepage');
 
     try {
-        console.log('startDiscovery: Sending request to /api/feeds/discover with feed_id:', props.feed.id);
+        console.log('startDiscovery: Opening SSE connection for feed_id:', props.feed.id);
         
-        // Simulate progress updates (since backend doesn't stream progress)
-        const progressSteps = [
-            { delay: 500, message: store.i18n.t('searchingFriendLinks') },
-            { delay: 2000, message: store.i18n.t('analyzingLinks') },
-            { delay: 3000, message: store.i18n.t('checkingFeeds') },
-        ];
+        // Use EventSource for Server-Sent Events
+        const eventSource = new EventSource(`/api/feeds/discover?feed_id=${props.feed.id}`);
         
-        let currentStep = 0;
-        const progressInterval = setInterval(() => {
-            if (currentStep < progressSteps.length) {
-                progressMessage.value = progressSteps[currentStep].message;
-                currentStep++;
+        eventSource.onmessage = (event) => {
+            console.log('SSE message received:', event.data);
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'progress') {
+                progressMessage.value = data.message;
+            } else if (data.type === 'complete') {
+                console.log('Discovery complete, received feeds:', data.feeds);
+                discoveredFeeds.value = data.feeds || [];
+                if (discoveredFeeds.value.length === 0) {
+                    errorMessage.value = store.i18n.t('noFriendLinksFound');
+                }
+                eventSource.close();
+                isDiscovering.value = false;
+                progressMessage.value = '';
+            } else if (data.type === 'error') {
+                console.error('Discovery error from SSE:', data.message);
+                errorMessage.value = store.i18n.t('discoveryFailed') + ': ' + data.message;
+                eventSource.close();
+                isDiscovering.value = false;
+                progressMessage.value = '';
             }
-        }, 1500);
+        };
         
-        const response = await fetch('/api/feeds/discover', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ feed_id: props.feed.id })
-        });
-
-        clearInterval(progressInterval);
+        eventSource.onerror = (error) => {
+            console.error('SSE connection error:', error);
+            errorMessage.value = store.i18n.t('discoveryFailed') + ': Connection error';
+            eventSource.close();
+            isDiscovering.value = false;
+            progressMessage.value = '';
+        };
         
-        console.log('startDiscovery: Response status:', response.status);
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('startDiscovery: Error response:', errorText);
-            throw new Error(errorText || 'Failed to discover feeds');
-        }
-
-        const feeds = await response.json();
-        console.log('startDiscovery: Received feeds:', feeds);
-        discoveredFeeds.value = feeds || [];
-
-        if (discoveredFeeds.value.length === 0) {
-            errorMessage.value = store.i18n.t('noFriendLinksFound');
-        }
     } catch (error) {
         console.error('Discovery error:', error);
         errorMessage.value = store.i18n.t('discoveryFailed') + ': ' + error.message;
-    } finally {
-        console.log('startDiscovery: Discovery completed, isDiscovering set to false');
         isDiscovering.value = false;
         progressMessage.value = '';
     }
