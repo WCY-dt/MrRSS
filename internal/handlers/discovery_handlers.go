@@ -31,6 +31,9 @@ func (h *Handler) HandleDiscoverBlogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Send initial ping to establish connection
+	sendSSEProgress(w, flusher, "Connected, starting discovery...")
+
 	// Get the target feed
 	targetFeed, err := h.DB.GetFeedByID(feedID)
 	if err != nil {
@@ -92,6 +95,9 @@ func (h *Handler) HandleDiscoverAllFeeds(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// Send initial ping to establish connection
+	sendSSEProgress(w, flusher, "Connected, preparing batch discovery...")
 
 	// Get feeds that need discovery
 	feedsToDiscover, err := h.getFeedsForDiscovery()
