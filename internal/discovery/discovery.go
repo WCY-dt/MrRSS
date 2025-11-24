@@ -57,19 +57,29 @@ func NewService() *Service {
 }
 
 // DiscoverFromFeed discovers blogs from a feed's homepage
-func (s *Service) DiscoverFromFeed(ctx context.Context, feedURL string, progress ProgressCallback) ([]DiscoveredBlog, error) {
-	if progress != nil {
-		progress(fmt.Sprintf("Fetching feed homepage: %s", feedURL))
+// If homepage is empty, tries to extract it from the feedURL
+func (s *Service) DiscoverFromFeed(ctx context.Context, feedURL string, homepage string, progress ProgressCallback) ([]DiscoveredBlog, error) {
+	// If no homepage provided, try to extract from feed
+	if homepage == "" {
+		if progress != nil {
+			progress(fmt.Sprintf("Fetching feed homepage from: %s", feedURL))
+		}
+
+		var err error
+		homepage, err = s.getFeedHomepage(ctx, feedURL)
+		if err != nil {
+			log.Printf("Failed to get homepage from feed URL, using base URL: %v", err)
+			// Fallback: use base URL from feed URL
+			u, parseErr := url.Parse(feedURL)
+			if parseErr != nil {
+				return nil, fmt.Errorf("invalid feed URL: %w", parseErr)
+			}
+			homepage = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+		}
 	}
 
-	// First, try to parse the feed to get the homepage link
-	homepage, err := s.getFeedHomepage(ctx, feedURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get homepage from feed: %w", err)
-	}
-
 	if progress != nil {
-		progress(fmt.Sprintf("Found homepage: %s", homepage))
+		progress(fmt.Sprintf("Searching homepage: %s", homepage))
 	}
 
 	// Fetch the homepage HTML
