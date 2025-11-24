@@ -31,9 +31,6 @@ type RecentArticle struct {
 	Date  string `json:"date"` // ISO 8601 format or relative time
 }
 
-// ProgressCallback is called with progress messages during discovery
-type ProgressCallback func(message string)
-
 // Service handles blog discovery operations
 type Service struct {
 	client     *http.Client
@@ -57,54 +54,25 @@ func NewService() *Service {
 }
 
 // DiscoverFromFeed discovers blogs from a feed's homepage
-// If homepage is empty, tries to extract it from the feedURL
-func (s *Service) DiscoverFromFeed(ctx context.Context, feedURL string, homepage string, progress ProgressCallback) ([]DiscoveredBlog, error) {
-	// If no homepage provided, try to extract from feed
-	if homepage == "" {
-		if progress != nil {
-			progress(fmt.Sprintf("Fetching feed homepage from: %s", feedURL))
-		}
-
-		var err error
-		homepage, err = s.getFeedHomepage(ctx, feedURL)
-		if err != nil {
-			log.Printf("Failed to get homepage from feed URL, using base URL: %v", err)
-			// Fallback: use base URL from feed URL
-			u, parseErr := url.Parse(feedURL)
-			if parseErr != nil {
-				return nil, fmt.Errorf("invalid feed URL: %w", parseErr)
-			}
-			homepage = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
-		}
-	}
-
-	if progress != nil {
-		progress(fmt.Sprintf("Searching homepage: %s", homepage))
+func (s *Service) DiscoverFromFeed(ctx context.Context, feedURL string) ([]DiscoveredBlog, error) {
+	// First, try to parse the feed to get the homepage link
+	homepage, err := s.getFeedHomepage(ctx, feedURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get homepage from feed: %w", err)
 	}
 
 	// Fetch the homepage HTML
-	friendLinks, err := s.findFriendLinks(ctx, homepage, progress)
+	friendLinks, err := s.findFriendLinks(ctx, homepage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find friend links: %w", err)
 	}
 
 	if len(friendLinks) == 0 {
-		if progress != nil {
-			progress("No friend links found")
-		}
 		return []DiscoveredBlog{}, nil
 	}
 
-	if progress != nil {
-		progress(fmt.Sprintf("Found %d potential blogs to check", len(friendLinks)))
-	}
-
 	// Discover RSS feeds from friend links (concurrent)
-	discovered := s.discoverRSSFeeds(ctx, friendLinks, progress)
-
-	if progress != nil {
-		progress(fmt.Sprintf("Completed: Found %d feeds with RSS", len(discovered)))
-	}
+	discovered := s.discoverRSSFeeds(ctx, friendLinks)
 
 	return discovered, nil
 }
@@ -130,27 +98,12 @@ func (s *Service) getFeedHomepage(ctx context.Context, feedURL string) (string, 
 }
 
 // findFriendLinks searches for friend link pages and extracts links
-func (s *Service) findFriendLinks(ctx context.Context, homepage string, progress ProgressCallback) ([]string, error) {
-	if progress != nil {
-		progress(fmt.Sprintf("Searching for friend links on: %s", homepage))
-	}
-
+func (s *Service) findFriendLinks(ctx context.Context, homepage string) ([]string, error) {
 	// Try to find friend link page
 	friendPageURL, err := s.findFriendLinkPage(ctx, homepage)
 	if err != nil {
 		log.Printf("Could not find friend link page, trying homepage: %v", err)
 		friendPageURL = homepage
-		if progress != nil {
-			progress("No dedicated friend link page found, checking homepage")
-		}
-	} else if friendPageURL != homepage {
-		if progress != nil {
-			progress(fmt.Sprintf("Found friend link page: %s", friendPageURL))
-		}
-	}
-
-	if progress != nil {
-		progress(fmt.Sprintf("Extracting links from: %s", friendPageURL))
 	}
 
 	// Fetch and parse the friend link page
@@ -313,15 +266,12 @@ func (s *Service) resolveURL(base, href string) string {
 }
 
 // discoverRSSFeeds discovers RSS feeds from a list of blog URLs
-func (s *Service) discoverRSSFeeds(ctx context.Context, blogURLs []string, progress ProgressCallback) []DiscoveredBlog {
+func (s *Service) discoverRSSFeeds(ctx context.Context, blogURLs []string) []DiscoveredBlog {
 	var wg sync.WaitGroup
 	results := make(chan DiscoveredBlog, len(blogURLs))
 	sem := make(chan struct{}, 10) // Limit concurrency to 10
 
-	var mu sync.Mutex
-	checked := 0
-
-	for i, blogURL := range blogURLs {
+	for _, blogURL := range blogURLs {
 		select {
 		case <-ctx.Done():
 			break
@@ -331,25 +281,14 @@ func (s *Service) discoverRSSFeeds(ctx context.Context, blogURLs []string, progr
 		wg.Add(1)
 		sem <- struct{}{}
 
-		go func(u string, index int) {
+		go func(u string) {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			if progress != nil {
-				mu.Lock()
-				checked++
-				currentChecked := checked
-				mu.Unlock()
-				progress(fmt.Sprintf("Checking blog %d/%d: %s", currentChecked, len(blogURLs), u))
-			}
-
 			if blog, err := s.discoverBlogRSS(ctx, u); err == nil {
-				if progress != nil {
-					progress(fmt.Sprintf("✓ Discovered RSS feed: %s (%s)", blog.Name, u))
-				}
 				results <- blog
 			}
-		}(blogURL, i)
+		}(blogURL)
 	}
 
 	go func() {

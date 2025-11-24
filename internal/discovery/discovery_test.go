@@ -92,7 +92,7 @@ func TestDiscoverFromFeedWithTimeout(t *testing.T) {
 	defer cancel()
 
 	// Test with a non-existent feed URL (should fail gracefully)
-	_, err := service.DiscoverFromFeed(ctx, "https://nonexistent-feed-url-12345.com/feed", "", nil)
+	_, err := service.DiscoverFromFeed(ctx, "https://nonexistent-feed-url-12345.com/feed")
 	if err == nil {
 		t.Log("Expected error for non-existent feed, but got none (this is acceptable)")
 	}
