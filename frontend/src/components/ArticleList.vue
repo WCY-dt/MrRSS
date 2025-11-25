@@ -19,18 +19,24 @@ const props = defineProps(['isSidebarOpen']);
 const emit = defineEmits(['toggleSidebar']);
 
 // Virtual scrolling configuration
-const ITEM_HEIGHT = 80; // Estimated height of each article card in pixels
+const ITEM_HEIGHT_MOBILE = 70; // Estimated height of each article card on mobile
+const ITEM_HEIGHT_DESKTOP = 80; // Estimated height on desktop (sm: breakpoint and above)
 const BUFFER_SIZE = 10; // Number of extra items to render above/below viewport
 
 // Virtual scrolling state
 const scrollTop = ref(0);
 const containerHeight = ref(600); // Will be updated on mount and resize
+const isMobile = ref(window.innerWidth < 640); // 640px is Tailwind's sm: breakpoint
 
-// Update container height for virtual scrolling
+// Computed item height based on screen size
+const itemHeight = computed(() => isMobile.value ? ITEM_HEIGHT_MOBILE : ITEM_HEIGHT_DESKTOP);
+
+// Update container height and mobile detection for virtual scrolling
 function updateContainerHeight() {
     if (listRef.value) {
         containerHeight.value = listRef.value.clientHeight;
     }
+    isMobile.value = window.innerWidth < 640;
 }
 
 // Load translation settings
@@ -104,6 +110,7 @@ function handleTranslationSettingsChange(e) {
 let observer = null;
 
 function setupIntersectionObserver() {
+    // Use listRef if available, otherwise fall back to viewport (null)
     observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -117,7 +124,7 @@ function setupIntersectionObserver() {
             }
         });
     }, {
-        root: listRef.value,
+        root: listRef.value || null,
         rootMargin: '100px',
         threshold: 0.1
     });
@@ -207,8 +214,9 @@ const filteredArticles = computed(() => {
 
 // Virtual scrolling computed properties
 const visibleRange = computed(() => {
-    const startIndex = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - BUFFER_SIZE);
-    const visibleCount = Math.ceil(containerHeight.value / ITEM_HEIGHT) + 2 * BUFFER_SIZE;
+    const height = itemHeight.value;
+    const startIndex = Math.max(0, Math.floor(scrollTop.value / height) - BUFFER_SIZE);
+    const visibleCount = Math.ceil(containerHeight.value / height) + 2 * BUFFER_SIZE;
     const endIndex = Math.min(filteredArticles.value.length, startIndex + visibleCount);
     return { startIndex, endIndex };
 });
@@ -218,9 +226,9 @@ const visibleArticles = computed(() => {
     return filteredArticles.value.slice(startIndex, endIndex);
 });
 
-const paddingTop = computed(() => visibleRange.value.startIndex * ITEM_HEIGHT);
+const paddingTop = computed(() => visibleRange.value.startIndex * itemHeight.value);
 const paddingBottom = computed(() => 
-    Math.max(0, (filteredArticles.value.length - visibleRange.value.endIndex) * ITEM_HEIGHT)
+    Math.max(0, (filteredArticles.value.length - visibleRange.value.endIndex) * itemHeight.value)
 );
 
 // Reset scroll position when filter/feed changes
