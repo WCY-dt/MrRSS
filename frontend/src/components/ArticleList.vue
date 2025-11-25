@@ -1,6 +1,6 @@
 <script setup>
 import { store } from '../store.js';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { BrowserOpenURL } from '../wailsjs/wailsjs/runtime/runtime.js';
 import { 
     PhCheckCircle, PhArrowClockwise, PhList, PhMagnifyingGlass, 
@@ -18,8 +18,29 @@ const defaultViewMode = ref('original'); // Track default view mode for context 
 const props = defineProps(['isSidebarOpen']);
 const emit = defineEmits(['toggleSidebar']);
 
+// Virtual scrolling configuration
+const ITEM_HEIGHT = 80; // Estimated height of each article card in pixels
+const BUFFER_SIZE = 10; // Number of extra items to render above/below viewport
+
+// Virtual scrolling state
+const scrollTop = ref(0);
+const containerHeight = ref(600); // Will be updated on mount and resize
+
+// Update container height for virtual scrolling
+function updateContainerHeight() {
+    if (listRef.value) {
+        containerHeight.value = listRef.value.clientHeight;
+    }
+}
+
 // Load translation settings
 onMounted(async () => {
+    // Initialize container height for virtual scrolling
+    nextTick(() => {
+        updateContainerHeight();
+    });
+    window.addEventListener('resize', updateContainerHeight);
+    
     try {
         const res = await fetch('/api/settings');
         const data = await res.json();
@@ -48,6 +69,7 @@ onBeforeUnmount(() => {
         observer.disconnect();
         observer = null;
     }
+    window.removeEventListener('resize', updateContainerHeight);
     window.removeEventListener('translation-settings-changed', handleTranslationSettingsChange);
     window.removeEventListener('default-view-mode-changed', handleDefaultViewModeChange);
 });
@@ -135,15 +157,13 @@ function observeArticle(el) {
     }
 }
 
-onBeforeUnmount(() => {
-    if (observer) {
-        observer.disconnect();
-    }
-});
-
 function handleScroll(e) {
-    const { scrollTop, clientHeight, scrollHeight } = e.target;
-    if (scrollTop + clientHeight >= scrollHeight - 200) {
+    const target = e.target;
+    // Update scroll position for virtual scrolling
+    scrollTop.value = target.scrollTop;
+    
+    // Load more when near bottom
+    if (target.scrollTop + target.clientHeight >= target.scrollHeight - 200) {
         store.loadMore();
     }
 }
@@ -183,6 +203,32 @@ const filteredArticles = computed(() => {
         (a.title && a.title.toLowerCase().includes(lower)) || 
         (a.feed_title && a.feed_title.toLowerCase().includes(lower))
     );
+});
+
+// Virtual scrolling computed properties
+const visibleRange = computed(() => {
+    const startIndex = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - BUFFER_SIZE);
+    const visibleCount = Math.ceil(containerHeight.value / ITEM_HEIGHT) + 2 * BUFFER_SIZE;
+    const endIndex = Math.min(filteredArticles.value.length, startIndex + visibleCount);
+    return { startIndex, endIndex };
+});
+
+const visibleArticles = computed(() => {
+    const { startIndex, endIndex } = visibleRange.value;
+    return filteredArticles.value.slice(startIndex, endIndex);
+});
+
+const paddingTop = computed(() => visibleRange.value.startIndex * ITEM_HEIGHT);
+const paddingBottom = computed(() => 
+    Math.max(0, (filteredArticles.value.length - visibleRange.value.endIndex) * ITEM_HEIGHT)
+);
+
+// Reset scroll position when filter/feed changes
+watch(() => [store.currentFilter, store.currentFeedId, store.currentCategory], () => {
+    scrollTop.value = 0;
+    if (listRef.value) {
+        listRef.value.scrollTop = 0;
+    }
 });
 
 function onArticleContextMenu(e, article) {
@@ -331,30 +377,33 @@ async function markAllAsRead() {
                 {{ store.i18n.t('noArticles') }}
             </div>
             
-            <div v-for="article in filteredArticles" :key="article.id" 
-                 :data-article-id="article.id"
-                 :ref="el => observeArticle(el)"
-                 @click="selectArticle(article)"
-                 @contextmenu="onArticleContextMenu($event, article)"
-                 :class="['article-card', article.is_read ? 'read' : '', article.is_favorite ? 'favorite' : '', article.is_hidden ? 'hidden' : '', store.currentArticleId === article.id ? 'active' : '']">
-                
-                <img v-if="article.image_url" :src="article.image_url" class="w-16 h-12 sm:w-20 sm:h-[60px] object-cover rounded bg-bg-tertiary shrink-0 border border-border" @error="$event.target.style.display='none'">
-                
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-start gap-1.5 sm:gap-2">
-                        <h4 v-if="!article.translated_title || article.translated_title === article.title" class="flex-1 m-0 mb-1 sm:mb-1.5 text-sm sm:text-base font-semibold leading-snug text-text-primary">{{ article.title }}</h4>
-                        <div v-else class="flex-1">
-                            <h4 class="m-0 mb-0.5 sm:mb-1 text-sm sm:text-base font-semibold leading-snug text-text-primary">{{ article.translated_title }}</h4>
-                            <div class="text-[10px] sm:text-xs text-text-secondary italic mb-0.5 sm:mb-1">{{ article.title }}</div>
+            <!-- Virtual scroll container -->
+            <div v-else :style="{ paddingTop: paddingTop + 'px', paddingBottom: paddingBottom + 'px' }">
+                <div v-for="article in visibleArticles" :key="article.id" 
+                     :data-article-id="article.id"
+                     :ref="el => observeArticle(el)"
+                     @click="selectArticle(article)"
+                     @contextmenu="onArticleContextMenu($event, article)"
+                     :class="['article-card', article.is_read ? 'read' : '', article.is_favorite ? 'favorite' : '', article.is_hidden ? 'hidden' : '', store.currentArticleId === article.id ? 'active' : '']">
+                    
+                    <img v-if="article.image_url" :src="article.image_url" class="w-16 h-12 sm:w-20 sm:h-[60px] object-cover rounded bg-bg-tertiary shrink-0 border border-border" @error="$event.target.style.display='none'">
+                    
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start gap-1.5 sm:gap-2">
+                            <h4 v-if="!article.translated_title || article.translated_title === article.title" class="flex-1 m-0 mb-1 sm:mb-1.5 text-sm sm:text-base font-semibold leading-snug text-text-primary">{{ article.title }}</h4>
+                            <div v-else class="flex-1">
+                                <h4 class="m-0 mb-0.5 sm:mb-1 text-sm sm:text-base font-semibold leading-snug text-text-primary">{{ article.translated_title }}</h4>
+                                <div class="text-[10px] sm:text-xs text-text-secondary italic mb-0.5 sm:mb-1">{{ article.title }}</div>
+                            </div>
+                            <PhEyeSlash v-if="article.is_hidden" :size="18" class="text-text-secondary flex-shrink-0 sm:w-5 sm:h-5" :title="store.i18n.t('hideArticle')" />
                         </div>
-                        <PhEyeSlash v-if="article.is_hidden" :size="18" class="text-text-secondary flex-shrink-0 sm:w-5 sm:h-5" :title="store.i18n.t('hideArticle')" />
-                    </div>
 
-                    <div class="flex justify-between items-center text-[10px] sm:text-xs text-text-secondary mt-1.5 sm:mt-2">
-                        <span class="font-medium text-accent truncate flex-1 min-w-0 mr-2">{{ article.feed_title }}</span>
-                        <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-                            <PhStar v-if="article.is_favorite" :size="14" class="text-yellow-500 sm:w-[18px] sm:h-[18px]" weight="fill" />
-                            <span class="whitespace-nowrap">{{ formatDate(article.published_at) }}</span>
+                        <div class="flex justify-between items-center text-[10px] sm:text-xs text-text-secondary mt-1.5 sm:mt-2">
+                            <span class="font-medium text-accent truncate flex-1 min-w-0 mr-2">{{ article.feed_title }}</span>
+                            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                                <PhStar v-if="article.is_favorite" :size="14" class="text-yellow-500 sm:w-[18px] sm:h-[18px]" weight="fill" />
+                                <span class="whitespace-nowrap">{{ formatDate(article.published_at) }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
