@@ -238,6 +238,36 @@ export const translations = {
         enterCategoryName: 'Enter new category name:',
         moveFeeds: 'Move Feeds',
         move: 'Move',
+        
+        // Article Filter
+        filter: 'Filter',
+        filterArticles: 'Filter Articles',
+        addCondition: 'Add Condition',
+        clearFilters: 'Clear Filters',
+        applyFilters: 'Apply Filters',
+        noFiltersApplied: 'No filters applied',
+        feedName: 'Feed Name',
+        feedCategory: 'Feed Category',
+        articleTitle: 'Article Title',
+        dateRange: 'Date Range',
+        publishedAfter: 'Published On/After',
+        publishedBefore: 'Published On/Before',
+        readStatus: 'Read Status',
+        favoriteStatus: 'Favorite Status',
+        yes: 'Yes',
+        no: 'No',
+        contains: 'Contains',
+        exactMatch: 'Is',
+        and: 'AND',
+        or: 'OR',
+        not: 'NOT',
+        filterCondition: 'Condition',
+        filterField: 'Field',
+        filterOperator: 'Operator',
+        filterValue: 'Value',
+        removeCondition: 'Remove',
+        filtersActive: '{count} filter(s) active',
+        andNMore: 'and {count} more',
     },
     zh: {
         // App
@@ -478,6 +508,36 @@ export const translations = {
         enterCategoryName: '输入新的分类名称：',
         moveFeeds: '移动订阅',
         move: '移动',
+        
+        // Article Filter
+        filter: '过滤',
+        filterArticles: '过滤文章',
+        addCondition: '添加条件',
+        clearFilters: '清除过滤',
+        applyFilters: '应用过滤',
+        noFiltersApplied: '未应用过滤条件',
+        feedName: '订阅源名称',
+        feedCategory: '订阅源分类',
+        articleTitle: '文章标题',
+        dateRange: '日期范围',
+        publishedAfter: '发布于此日期及之后',
+        publishedBefore: '发布于此日期及之前',
+        readStatus: '已读状态',
+        favoriteStatus: '收藏状态',
+        yes: '是',
+        no: '否',
+        contains: '包含',
+        exactMatch: '是',
+        and: '且',
+        or: '或',
+        not: '非',
+        filterCondition: '条件',
+        filterField: '字段',
+        filterOperator: '运算符',
+        filterValue: '值',
+        removeCondition: '删除',
+        filtersActive: '已启用 {count} 个过滤条件',
+        andNMore: '等 {count} 个',
     }
 };
 
@@ -487,11 +547,22 @@ export function createI18n() {
     const t = (key, params = {}) => {
         let text = translations[locale.value]?.[key] || translations.en[key] || key;
         
+        // Special-case: for Chinese, the "andNMore" wording should include the
+        // currently-shown item as well (display n+1). Adjust the parameter
+        // before replacing placeholders so translations stay simple.
+        const paramValues = { ...params };
+        if (locale.value === 'zh' && key === 'andNMore' && paramValues.count !== undefined) {
+            const n = Number(paramValues.count);
+            if (!Number.isNaN(n)) {
+                paramValues.count = String(n + 1);
+            }
+        }
+
         // Replace placeholders like {count}, {name}, {error}
-        Object.keys(params).forEach(param => {
-            text = text.replace(`{${param}}`, params[param]);
+        Object.keys(paramValues).forEach(param => {
+            text = text.replace(`{${param}}`, paramValues[param]);
         });
-        
+
         return text;
     };
     

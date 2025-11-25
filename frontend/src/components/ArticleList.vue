@@ -4,8 +4,9 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { BrowserOpenURL } from '../wailsjs/wailsjs/runtime/runtime.js';
 import { 
     PhCheckCircle, PhArrowClockwise, PhList, PhMagnifyingGlass, 
-    PhEyeSlash, PhStar, PhSpinner 
+    PhEyeSlash, PhStar, PhSpinner, PhFunnel 
 } from "@phosphor-icons/vue";
+import ArticleFilterModal from './modals/ArticleFilterModal.vue';
 
 const listRef = ref(null);
 const translationSettings = ref({
@@ -14,6 +15,15 @@ const translationSettings = ref({
 });
 const translatingArticles = ref(new Set());
 const defaultViewMode = ref('original'); // Track default view mode for context menu
+
+// Filter state
+const showFilterModal = ref(false);
+const activeFilters = ref([]);
+const filteredArticlesFromServer = ref([]);
+const isFilterLoading = ref(false);
+const filterPage = ref(1);
+const filterHasMore = ref(true);
+const filterTotal = ref(0);
 
 const props = defineProps(['isSidebarOpen']);
 const emit = defineEmits(['toggleSidebar']);
@@ -171,7 +181,12 @@ function handleScroll(e) {
     
     // Load more when near bottom
     if (target.scrollTop + target.clientHeight >= target.scrollHeight - 200) {
-        store.loadMore();
+        // If filters are active, load more filtered results, otherwise use store's loadMore
+        if (activeFilters.value.length > 0) {
+            loadMoreFilteredArticles();
+        } else {
+            store.loadMore();
+        }
     }
 }
 
@@ -204,12 +219,19 @@ function formatDate(dateStr) {
 // Search filtering
 const searchQuery = ref('');
 const filteredArticles = computed(() => {
-    if (!searchQuery.value) return store.articles;
-    const lower = searchQuery.value.toLowerCase();
-    return store.articles.filter(a => 
-        (a.title && a.title.toLowerCase().includes(lower)) || 
-        (a.feed_title && a.feed_title.toLowerCase().includes(lower))
-    );
+    // If filters are active, use server-filtered articles
+    let articles = activeFilters.value.length > 0 ? filteredArticlesFromServer.value : store.articles;
+    
+    // Apply search query filter (client-side, on top of server filter)
+    if (searchQuery.value) {
+        const lower = searchQuery.value.toLowerCase();
+        articles = articles.filter(a => 
+            (a.title && a.title.toLowerCase().includes(lower)) || 
+            (a.feed_title && a.feed_title.toLowerCase().includes(lower))
+        );
+    }
+    
+    return articles;
 });
 
 // Virtual scrolling computed properties
@@ -238,6 +260,95 @@ watch(() => [store.currentFilter, store.currentFeedId, store.currentCategory], (
         listRef.value.scrollTop = 0;
     }
 });
+
+// Reset filter state
+function resetFilterState() {
+    filteredArticlesFromServer.value = [];
+    filterPage.value = 1;
+    filterHasMore.value = true;
+    filterTotal.value = 0;
+}
+
+// Fetch filtered articles from server with pagination
+async function fetchFilteredArticles(filters, append = false) {
+    if (filters.length === 0) {
+        resetFilterState();
+        return;
+    }
+    
+    isFilterLoading.value = true;
+    try {
+        const page = append ? filterPage.value : 1;
+        const res = await fetch('/api/articles/filter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                conditions: filters,
+                page: page,
+                limit: 50
+            })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            const articles = data.articles || [];
+            
+            if (append) {
+                filteredArticlesFromServer.value = [...filteredArticlesFromServer.value, ...articles];
+            } else {
+                filteredArticlesFromServer.value = articles;
+                filterPage.value = 1;
+            }
+            
+            filterHasMore.value = data.has_more;
+            filterTotal.value = data.total;
+        } else {
+            console.error('Error fetching filtered articles');
+            if (!append) {
+                filteredArticlesFromServer.value = [];
+            }
+        }
+    } catch (e) {
+        console.error('Error fetching filtered articles:', e);
+        if (!append) {
+            filteredArticlesFromServer.value = [];
+        }
+    } finally {
+        isFilterLoading.value = false;
+    }
+}
+
+// Load more filtered articles
+async function loadMoreFilteredArticles() {
+    if (isFilterLoading.value || !filterHasMore.value) return;
+    
+    filterPage.value++;
+    await fetchFilteredArticles(activeFilters.value, true);
+}
+
+// Filter handlers
+async function handleApplyFilters(filters) {
+    activeFilters.value = filters;
+    // Reset scroll position when filters change
+    scrollTop.value = 0;
+    if (listRef.value) {
+        listRef.value.scrollTop = 0;
+    }
+    
+    if (filters.length === 0) {
+        // When clearing filters, reset to normal article list by refreshing store
+        resetFilterState();
+        store.page = 1;
+        await store.fetchArticles(false);
+    } else {
+        await fetchFilteredArticles(filters, false);
+    }
+}
+
+function clearAllFilters() {
+    activeFilters.value = [];
+    resetFilterState();
+}
 
 function onArticleContextMenu(e, article) {
     e.preventDefault();
@@ -374,14 +485,24 @@ async function markAllAsRead() {
                     </button>
                 </div>
             </div>
-            <div class="flex items-center bg-bg-secondary border border-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 focus-within:border-accent transition-colors">
-                <PhMagnifyingGlass :size="18" class="text-text-secondary sm:w-5 sm:h-5" />
-                <input type="text" v-model="searchQuery" :placeholder="store.i18n.t('search')" class="bg-transparent border-none outline-none w-full ml-1.5 sm:ml-2 text-text-primary text-xs sm:text-sm">
+            <div class="flex items-center gap-2">
+                <div class="flex-1 flex items-center bg-bg-secondary border border-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 focus-within:border-accent transition-colors">
+                    <PhMagnifyingGlass :size="18" class="text-text-secondary sm:w-5 sm:h-5" />
+                    <input type="text" v-model="searchQuery" :placeholder="store.i18n.t('search')" class="bg-transparent border-none outline-none w-full ml-1.5 sm:ml-2 text-text-primary text-xs sm:text-sm">
+                </div>
+                <div class="relative">
+                    <button @click="showFilterModal = true" class="filter-btn p-1.5 sm:p-2 rounded-lg transition-colors" :class="activeFilters.length > 0 ? 'filter-active' : ''" :title="store.i18n.t('filter')">
+                        <PhFunnel :size="18" class="sm:w-5 sm:h-5" />
+                    </button>
+                    <div v-if="activeFilters.length > 0" class="absolute -top-1 -right-1 bg-accent text-white text-[9px] sm:text-[10px] font-bold rounded-full min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 px-0.5 sm:px-1 flex items-center justify-center">
+                        {{ activeFilters.length }}
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="flex-1 overflow-y-auto" @scroll="handleScroll" ref="listRef">
-            <div v-if="filteredArticles.length === 0 && !store.isLoading" class="p-4 sm:p-5 text-center text-text-secondary text-sm sm:text-base">
+            <div v-if="filteredArticles.length === 0 && !store.isLoading && !isFilterLoading" class="p-4 sm:p-5 text-center text-text-secondary text-sm sm:text-base">
                 {{ store.i18n.t('noArticles') }}
             </div>
             
@@ -417,10 +538,18 @@ async function markAllAsRead() {
                 </div>
             </div>
             
-            <div v-if="store.isLoading" class="p-3 sm:p-4 text-center text-text-secondary">
+            <div v-if="store.isLoading || isFilterLoading" class="p-3 sm:p-4 text-center text-text-secondary">
                 <PhSpinner :size="20" class="animate-spin sm:w-6 sm:h-6" />
             </div>
         </div>
+        
+        <!-- Filter Modal -->
+        <ArticleFilterModal 
+            :show="showFilterModal" 
+            :currentFilters="activeFilters"
+            @close="showFilterModal = false"
+            @apply="handleApplyFilters"
+        />
     </section>
 </template>
 
@@ -450,6 +579,13 @@ async function markAllAsRead() {
 }
 .article-card.hidden:hover {
     @apply opacity-80;
+}
+.filter-btn {
+    @apply text-text-secondary hover:text-text-primary hover:bg-bg-tertiary border border-border bg-bg-secondary;
+}
+.filter-btn.filter-active {
+    @apply text-accent border-accent;
+    background-color: rgba(59, 130, 246, 0.1);
 }
 .animate-spin {
     animation: spin 1s linear infinite;

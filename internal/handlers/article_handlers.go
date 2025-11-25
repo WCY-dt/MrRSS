@@ -6,10 +6,38 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"MrRSS/internal/models"
 )
+
+// FilterCondition represents a single filter condition from the frontend
+type FilterCondition struct {
+	ID       int64    `json:"id"`
+	Logic    string   `json:"logic"`    // "and", "or" (null for first condition)
+	Negate   bool     `json:"negate"`   // NOT modifier for this condition
+	Field    string   `json:"field"`    // "feed_name", "feed_category", "article_title", "published_after", "published_before"
+	Operator string   `json:"operator"` // "contains", "exact" (null for date fields and multi-select)
+	Value    string   `json:"value"`    // Single value for text/date fields
+	Values   []string `json:"values"`   // Multiple values for feed_name and feed_category
+}
+
+// FilterRequest represents the request body for filtered articles
+type FilterRequest struct {
+	Conditions []FilterCondition `json:"conditions"`
+	Page       int               `json:"page"`
+	Limit      int               `json:"limit"`
+}
+
+// FilterResponse represents the response for filtered articles with pagination info
+type FilterResponse struct {
+	Articles   []models.Article `json:"articles"`
+	Total      int              `json:"total"`
+	Page       int              `json:"page"`
+	Limit      int              `json:"limit"`
+	HasMore    bool             `json:"has_more"`
+}
 
 // HandleArticles returns articles with filtering and pagination.
 func (h *Handler) HandleArticles(w http.ResponseWriter, r *http.Request) {
@@ -261,4 +289,219 @@ func (h *Handler) HandleGetArticleContent(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(map[string]string{
 		"content": content,
 	})
+}
+
+// HandleFilteredArticles returns articles filtered by advanced conditions from the database.
+func (h *Handler) HandleFilteredArticles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req FilterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Set default pagination values
+	page := req.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := req.Limit
+	if limit < 1 {
+		limit = 50
+	}
+
+	// Get show_hidden_articles setting
+	showHiddenStr, _ := h.DB.GetSetting("show_hidden_articles")
+	showHidden := showHiddenStr == "true"
+
+	// Get all articles from database
+	// Note: Using a high limit to fetch all articles for filtering
+	// For very large datasets, consider implementing database-level filtering
+	articles, err := h.DB.GetArticles("", 0, "", showHidden, 50000, 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get feeds for category lookup
+	feeds, err := h.DB.GetFeeds()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a map of feed ID to category
+	feedCategories := make(map[int64]string)
+	for _, feed := range feeds {
+		feedCategories[feed.ID] = feed.Category
+	}
+
+	// Apply filter conditions
+	if len(req.Conditions) > 0 {
+		var filteredArticles []models.Article
+		for _, article := range articles {
+			if evaluateArticleConditions(article, req.Conditions, feedCategories) {
+				filteredArticles = append(filteredArticles, article)
+			}
+		}
+		articles = filteredArticles
+	}
+
+	// Apply pagination
+	total := len(articles)
+	offset := (page - 1) * limit
+	end := offset + limit
+
+	// Handle edge cases for pagination
+	var paginatedArticles []models.Article
+	if offset >= total {
+		// No more articles to show
+		paginatedArticles = []models.Article{}
+	} else {
+		if end > total {
+			end = total
+		}
+		paginatedArticles = articles[offset:end]
+	}
+	
+	hasMore := end < total
+
+	response := FilterResponse{
+		Articles: paginatedArticles,
+		Total:    total,
+		Page:     page,
+		Limit:    limit,
+		HasMore:  hasMore,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// evaluateArticleConditions evaluates all filter conditions for an article
+func evaluateArticleConditions(article models.Article, conditions []FilterCondition, feedCategories map[int64]string) bool {
+	if len(conditions) == 0 {
+		return true
+	}
+
+	result := evaluateSingleCondition(article, conditions[0], feedCategories)
+
+	for i := 1; i < len(conditions); i++ {
+		condition := conditions[i]
+		conditionResult := evaluateSingleCondition(article, condition, feedCategories)
+
+		switch condition.Logic {
+		case "and":
+			result = result && conditionResult
+		case "or":
+			result = result || conditionResult
+		}
+	}
+
+	return result
+}
+
+// matchMultiSelectContains checks if fieldValue matches any of the selected values using contains logic
+func matchMultiSelectContains(fieldValue string, values []string, singleValue string) bool {
+	if len(values) > 0 {
+		lowerField := strings.ToLower(fieldValue)
+		for _, val := range values {
+			if strings.Contains(lowerField, strings.ToLower(val)) {
+				return true
+			}
+		}
+		return false
+	} else if singleValue != "" {
+		return strings.Contains(strings.ToLower(fieldValue), strings.ToLower(singleValue))
+	}
+	return true
+}
+
+// evaluateSingleCondition evaluates a single filter condition for an article
+func evaluateSingleCondition(article models.Article, condition FilterCondition, feedCategories map[int64]string) bool {
+	var result bool
+
+	switch condition.Field {
+	case "feed_name":
+		result = matchMultiSelectContains(article.FeedTitle, condition.Values, condition.Value)
+
+	case "feed_category":
+		feedCategory := feedCategories[article.FeedID]
+		result = matchMultiSelectContains(feedCategory, condition.Values, condition.Value)
+
+	case "article_title":
+		if condition.Value == "" {
+			result = true
+		} else {
+			lowerValue := strings.ToLower(condition.Value)
+			lowerTitle := strings.ToLower(article.Title)
+			if condition.Operator == "exact" {
+				result = lowerTitle == lowerValue
+			} else {
+				result = strings.Contains(lowerTitle, lowerValue)
+			}
+		}
+
+	case "published_after":
+		if condition.Value == "" {
+			result = true
+		} else {
+			afterDate, err := time.Parse("2006-01-02", condition.Value)
+			if err != nil {
+				log.Printf("Invalid date format for published_after filter: %s", condition.Value)
+				result = true
+			} else {
+				result = article.PublishedAt.After(afterDate) || article.PublishedAt.Equal(afterDate)
+			}
+		}
+
+	case "published_before":
+		if condition.Value == "" {
+			result = true
+		} else {
+			beforeDate, err := time.Parse("2006-01-02", condition.Value)
+			if err != nil {
+				log.Printf("Invalid date format for published_before filter: %s", condition.Value)
+				result = true
+			} else {
+				// For "before Dec 24 (inclusive)", we want articles published on Dec 24 or earlier
+				// We compare dates only (not times) - any article from Dec 24 should be included
+				// Truncate to remove time component, preserving date in local timezone context
+				articleDateOnly := article.PublishedAt.UTC().Truncate(24 * time.Hour)
+				beforeDateOnly := beforeDate.Truncate(24 * time.Hour)
+				// Include articles on the selected date or before
+				result = !articleDateOnly.After(beforeDateOnly)
+			}
+		}
+
+	case "is_read":
+		// Filter by read/unread status
+		if condition.Value == "" {
+			result = true
+		} else {
+			wantRead := condition.Value == "true"
+			result = article.IsRead == wantRead
+		}
+
+	case "is_favorite":
+		// Filter by favorite/unfavorite status
+		if condition.Value == "" {
+			result = true
+		} else {
+			wantFavorite := condition.Value == "true"
+			result = article.IsFavorite == wantFavorite
+		}
+
+	default:
+		result = true
+	}
+
+	// Apply NOT modifier
+	if condition.Negate {
+		return !result
+	}
+	return result
 }

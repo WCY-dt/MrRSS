@@ -98,6 +98,7 @@ func main() {
 	apiMux.HandleFunc("/api/feeds/discover-all/progress", h.HandleGetBatchDiscoveryProgress)
 	apiMux.HandleFunc("/api/feeds/discover-all/clear", h.HandleClearBatchDiscovery)
 	apiMux.HandleFunc("/api/articles", h.HandleArticles)
+	apiMux.HandleFunc("/api/articles/filter", h.HandleFilteredArticles)
 	apiMux.HandleFunc("/api/articles/read", h.HandleMarkRead)
 	apiMux.HandleFunc("/api/articles/favorite", h.HandleToggleFavorite)
 	apiMux.HandleFunc("/api/articles/cleanup", h.HandleCleanupArticles)
