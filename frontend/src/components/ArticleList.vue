@@ -234,12 +234,22 @@ const filteredArticles = computed(() => {
     return articles;
 });
 
+// Total height of all articles for stable scrollbar
+const totalHeight = computed(() => filteredArticles.value.length * itemHeight.value);
+
 // Virtual scrolling computed properties
 const visibleRange = computed(() => {
     const height = itemHeight.value;
-    const startIndex = Math.max(0, Math.floor(scrollTop.value / height) - BUFFER_SIZE);
-    const visibleCount = Math.ceil(containerHeight.value / height) + 2 * BUFFER_SIZE;
-    const endIndex = Math.min(filteredArticles.value.length, startIndex + visibleCount);
+    const total = filteredArticles.value.length;
+    
+    // Calculate the first visible item based on scroll position
+    const firstVisibleIndex = Math.floor(scrollTop.value / height);
+    
+    // Calculate start and end with buffer
+    const startIndex = Math.max(0, firstVisibleIndex - BUFFER_SIZE);
+    const visibleCount = Math.ceil(containerHeight.value / height);
+    const endIndex = Math.min(total, firstVisibleIndex + visibleCount + BUFFER_SIZE);
+    
     return { startIndex, endIndex };
 });
 
@@ -249,9 +259,11 @@ const visibleArticles = computed(() => {
 });
 
 const paddingTop = computed(() => visibleRange.value.startIndex * itemHeight.value);
-const paddingBottom = computed(() => 
-    Math.max(0, (filteredArticles.value.length - visibleRange.value.endIndex) * itemHeight.value)
-);
+const paddingBottom = computed(() => {
+    const total = filteredArticles.value.length;
+    const { endIndex } = visibleRange.value;
+    return Math.max(0, (total - endIndex) * itemHeight.value);
+});
 
 // Reset scroll position when filter/feed changes
 watch(() => [store.currentFilter, store.currentFeedId, store.currentCategory], () => {
@@ -559,6 +571,26 @@ async function markAllAsRead() {
         width: var(--article-list-width, 400px);
     }
 }
+
+/* Custom thin scrollbar for article list */
+.article-list :deep(.overflow-y-auto) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+.article-list :deep(.overflow-y-auto)::-webkit-scrollbar {
+    width: 6px;
+}
+.article-list :deep(.overflow-y-auto)::-webkit-scrollbar-track {
+    background: transparent;
+}
+.article-list :deep(.overflow-y-auto)::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 3px;
+}
+.article-list :deep(.overflow-y-auto)::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-text-secondary);
+}
+
 .article-card {
     @apply p-2 sm:p-3 border-b border-border cursor-pointer transition-colors flex gap-2 sm:gap-3 relative hover:bg-bg-tertiary;
 }
