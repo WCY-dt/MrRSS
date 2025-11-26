@@ -173,9 +173,17 @@ function handleExplicitRenderAction(e) {
     pendingRenderAction.value = e.detail?.action;
 }
 
+// Handle toggle content view from keyboard shortcut
+function handleToggleContentView() {
+    if (article.value) {
+        toggleContentView();
+    }
+}
+
 onMounted(async () => {
     window.addEventListener('render-article-content', handleRenderContent);
     window.addEventListener('explicit-render-action', handleExplicitRenderAction);
+    window.addEventListener('toggle-content-view', handleToggleContentView);
     
     // Load default view mode from settings
     try {
@@ -190,6 +198,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
     window.removeEventListener('render-article-content', handleRenderContent);
     window.removeEventListener('explicit-render-action', handleExplicitRenderAction);
+    window.removeEventListener('toggle-content-view', handleToggleContentView);
 });
 </script>
 

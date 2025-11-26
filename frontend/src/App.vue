@@ -11,7 +11,8 @@ import ContextMenu from './components/ContextMenu.vue';
 import ConfirmDialog from './components/modals/ConfirmDialog.vue';
 import InputDialog from './components/modals/InputDialog.vue';
 import Toast from './components/Toast.vue';
-import { onMounted, ref } from 'vue';
+import { BrowserOpenURL } from './wailsjs/wailsjs/runtime/runtime.js';
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
 
 const showAddFeed = ref(false);
 const showEditFeed = ref(false);
@@ -25,6 +26,32 @@ const isSidebarOpen = ref(false);
 const confirmDialog = ref(null);
 const inputDialog = ref(null);
 const toasts = ref([]);
+
+// Computed property to check if any modal is open (for keyboard shortcut handling)
+const isAnyModalOpen = computed(() => {
+    return showSettings.value || showAddFeed.value || showEditFeed.value || 
+           showDiscoverBlogs.value || confirmDialog.value || inputDialog.value;
+});
+
+// Keyboard shortcuts
+const shortcuts = ref({
+    nextArticle: 'j',
+    previousArticle: 'k',
+    openArticle: 'Enter',
+    closeArticle: 'Escape',
+    toggleReadStatus: 'r',
+    toggleFavoriteStatus: 's',
+    openInBrowser: 'o',
+    toggleContentView: 'v',
+    refreshFeeds: 'Shift+r',
+    markAllRead: 'Shift+a',
+    openSettings: ',',
+    addFeed: 'a',
+    focusSearch: '/',
+    goToAllArticles: '1',
+    goToUnread: '2',
+    goToFavorites: '3'
+});
 
 function showConfirm(options) {
     return new Promise((resolve) => {
@@ -132,9 +159,244 @@ const contextMenu = ref({
     data: null
 });
 
+// Keyboard shortcut handler
+function buildKeyCombo(e) {
+    let key = '';
+    if (e.ctrlKey) key += 'Ctrl+';
+    if (e.altKey) key += 'Alt+';
+    if (e.shiftKey) key += 'Shift+';
+    if (e.metaKey) key += 'Meta+';
+    
+    let actualKey = e.key;
+    if (actualKey === ' ') actualKey = 'Space';
+    else if (actualKey.length === 1) actualKey = actualKey.toLowerCase();
+    
+    key += actualKey;
+    return key;
+}
+
+function handleKeyboardShortcut(e) {
+    // Skip if we're in an input field, textarea, or contenteditable
+    const target = e.target;
+    const tagName = target.tagName.toLowerCase();
+    const isEditable = target.isContentEditable;
+    const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    
+    // Allow certain shortcuts even in input fields
+    const key = buildKeyCombo(e);
+    
+    // Check for escape key to close modals first (always allow)
+    if (key === shortcuts.value.closeArticle) {
+        // Close modals in order of priority
+        if (showSettings.value) {
+            showSettings.value = false;
+            e.preventDefault();
+            return;
+        }
+        if (showAddFeed.value) {
+            showAddFeed.value = false;
+            e.preventDefault();
+            return;
+        }
+        if (showEditFeed.value) {
+            showEditFeed.value = false;
+            e.preventDefault();
+            return;
+        }
+        if (showDiscoverBlogs.value) {
+            showDiscoverBlogs.value = false;
+            e.preventDefault();
+            return;
+        }
+        if (contextMenu.value.show) {
+            contextMenu.value.show = false;
+            e.preventDefault();
+            return;
+        }
+        if (store.currentArticleId) {
+            store.currentArticleId = null;
+            e.preventDefault();
+            return;
+        }
+        return;
+    }
+    
+    // Skip shortcuts if in input field (except escape)
+    if (isInput || isEditable) {
+        return;
+    }
+    
+    // Skip if a modal is open (except escape which is handled above)
+    if (isAnyModalOpen.value) {
+        return;
+    }
+    
+    // Match the key combination to a shortcut action
+    const action = Object.entries(shortcuts.value).find(([, shortcut]) => shortcut === key)?.[0];
+    
+    if (!action) return;
+    
+    e.preventDefault();
+    
+    // Execute the action
+    switch (action) {
+        case 'nextArticle':
+            navigateArticle(1);
+            break;
+        case 'previousArticle':
+            navigateArticle(-1);
+            break;
+        case 'openArticle':
+            if (store.articles.length > 0 && !store.currentArticleId) {
+                selectArticleByIndex(0);
+            }
+            break;
+        case 'toggleReadStatus':
+            toggleCurrentArticleRead();
+            break;
+        case 'toggleFavoriteStatus':
+            toggleCurrentArticleFavorite();
+            break;
+        case 'openInBrowser':
+            openCurrentArticleInBrowser();
+            break;
+        case 'toggleContentView':
+            window.dispatchEvent(new CustomEvent('toggle-content-view'));
+            break;
+        case 'refreshFeeds':
+            store.refreshFeeds();
+            break;
+        case 'markAllRead':
+            markAllAsRead();
+            break;
+        case 'openSettings':
+            showSettings.value = true;
+            break;
+        case 'addFeed':
+            showAddFeed.value = true;
+            break;
+        case 'focusSearch':
+            focusSearchInput();
+            break;
+        case 'goToAllArticles':
+            store.setFilter('all');
+            break;
+        case 'goToUnread':
+            store.setFilter('unread');
+            break;
+        case 'goToFavorites':
+            store.setFilter('favorites');
+            break;
+    }
+}
+
+function navigateArticle(direction) {
+    const articles = store.articles;
+    if (!articles || articles.length === 0) return;
+    
+    const currentIndex = store.currentArticleId 
+        ? articles.findIndex(a => a.id === store.currentArticleId)
+        : -1;
+    
+    let newIndex;
+    if (currentIndex === -1) {
+        // No article selected, select first or last based on direction
+        newIndex = direction > 0 ? 0 : articles.length - 1;
+    } else {
+        newIndex = currentIndex + direction;
+        // Clamp to valid range
+        if (newIndex < 0) newIndex = 0;
+        if (newIndex >= articles.length) newIndex = articles.length - 1;
+    }
+    
+    selectArticleByIndex(newIndex);
+}
+
+function selectArticleByIndex(index) {
+    const article = store.articles[index];
+    if (!article) return;
+    
+    store.currentArticleId = article.id;
+    
+    // Mark as read
+    if (!article.is_read) {
+        article.is_read = true;
+        fetch(`/api/articles/read?id=${article.id}&read=true`, { method: 'POST' })
+            .then(() => store.fetchUnreadCounts())
+            .catch(e => console.error('Error marking as read:', e));
+    }
+    
+    // Scroll the article into view
+    setTimeout(() => {
+        const articleEl = document.querySelector(`[data-article-id="${article.id}"]`);
+        if (articleEl) {
+            articleEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, 50);
+}
+
+function toggleCurrentArticleRead() {
+    const article = store.articles.find(a => a.id === store.currentArticleId);
+    if (!article) return;
+    
+    const newState = !article.is_read;
+    article.is_read = newState;
+    fetch(`/api/articles/read?id=${article.id}&read=${newState}`, { method: 'POST' })
+        .then(() => store.fetchUnreadCounts())
+        .catch(e => {
+            console.error('Error toggling read:', e);
+            article.is_read = !newState;
+        });
+}
+
+function toggleCurrentArticleFavorite() {
+    const article = store.articles.find(a => a.id === store.currentArticleId);
+    if (!article) return;
+    
+    const newState = !article.is_favorite;
+    article.is_favorite = newState;
+    fetch(`/api/articles/favorite?id=${article.id}`, { method: 'POST' })
+        .catch(e => {
+            console.error('Error toggling favorite:', e);
+            article.is_favorite = !newState;
+        });
+}
+
+function openCurrentArticleInBrowser() {
+    const article = store.articles.find(a => a.id === store.currentArticleId);
+    if (article && article.url) {
+        BrowserOpenURL(article.url);
+    }
+}
+
+async function markAllAsRead() {
+    await store.markAllAsRead();
+    window.showToast(store.i18n.t('markedAllAsRead'), 'success');
+}
+
+function focusSearchInput() {
+    const searchInput = document.querySelector('[data-search-input]');
+    if (searchInput) {
+        searchInput.focus();
+    }
+}
+
+// Handle shortcuts changed event
+function handleShortcutsChanged(e) {
+    if (e.detail && e.detail.shortcuts) {
+        shortcuts.value = { ...shortcuts.value, ...e.detail.shortcuts };
+    }
+}
+
 onMounted(async () => {
     // Initialize theme system immediately (lightweight)
     store.initTheme();
+    
+    // Add keyboard shortcut listener
+    window.addEventListener('keydown', handleKeyboardShortcut);
+    
+    // Listen for shortcuts changes
+    window.addEventListener('shortcuts-changed', handleShortcutsChanged);
     
     // Defer heavy operations to allow UI to render first
     setTimeout(() => {
@@ -159,6 +421,15 @@ onMounted(async () => {
             // Apply saved theme preference
             if (data.theme) {
                 store.setTheme(data.theme);
+            }
+            // Load saved shortcuts
+            if (data.shortcuts) {
+                try {
+                    const parsed = JSON.parse(data.shortcuts);
+                    shortcuts.value = { ...shortcuts.value, ...parsed };
+                } catch (e) {
+                    console.error('Error parsing shortcuts:', e);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -188,6 +459,11 @@ onMounted(async () => {
             callback: e.detail.callback
         };
     });
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyboardShortcut);
+    window.removeEventListener('shortcuts-changed', handleShortcutsChanged);
 });
 
 function toggleSidebar() {

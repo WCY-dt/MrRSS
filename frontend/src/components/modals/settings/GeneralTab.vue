@@ -62,7 +62,8 @@ async function autoSave() {
                 theme: props.settings.theme,
                 show_hidden_articles: props.settings.show_hidden_articles.toString(),
                 default_view_mode: props.settings.default_view_mode,
-                startup_on_boot: props.settings.startup_on_boot.toString()
+                startup_on_boot: props.settings.startup_on_boot.toString(),
+                shortcuts: props.settings.shortcuts || ''
             })
         });
         

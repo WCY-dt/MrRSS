@@ -3,6 +3,7 @@ import { store } from '../../store.js';
 import { ref, onMounted } from 'vue';
 import GeneralTab from './settings/GeneralTab.vue';
 import FeedsTab from './settings/FeedsTab.vue';
+import ShortcutsTab from './settings/ShortcutsTab.vue';
 import AboutTab from './settings/AboutTab.vue';
 import DiscoverAllFeedsModal from './DiscoverAllFeedsModal.vue';
 import { PhGear } from "@phosphor-icons/vue";
@@ -25,7 +26,8 @@ const settings = ref({
     last_article_update: '',
     show_hidden_articles: false,
     default_view_mode: 'original',
-    startup_on_boot: false
+    startup_on_boot: false,
+    shortcuts: ''
 });
 
 const updateInfo = ref(null);
@@ -53,7 +55,8 @@ onMounted(async () => {
             last_article_update: data.last_article_update || '',
             show_hidden_articles: data.show_hidden_articles === 'true',
             default_view_mode: data.default_view_mode || 'original',
-            startup_on_boot: data.startup_on_boot === 'true'
+            startup_on_boot: data.startup_on_boot === 'true',
+            shortcuts: data.shortcuts || ''
         };
         // Apply the saved language
         if (data.language) {
@@ -62,6 +65,17 @@ onMounted(async () => {
         // Apply the saved theme
         if (data.theme) {
             store.setTheme(data.theme);
+        }
+        // Initialize shortcuts in store
+        if (data.shortcuts) {
+            try {
+                const parsed = JSON.parse(data.shortcuts);
+                window.dispatchEvent(new CustomEvent('shortcuts-changed', {
+                    detail: { shortcuts: parsed }
+                }));
+            } catch (e) {
+                console.error('Error parsing shortcuts:', e);
+            }
         }
     } catch (e) {
         console.error(e);
@@ -337,6 +351,7 @@ async function handleDownloadInstallUpdate() {
             <div class="flex border-b border-border bg-bg-secondary shrink-0 overflow-x-auto scrollbar-hide">
                 <button @click="activeTab = 'general'" :class="['tab-btn', activeTab === 'general' ? 'active' : '']">{{ store.i18n.t('general') }}</button>
                 <button @click="activeTab = 'feeds'" :class="['tab-btn', activeTab === 'feeds' ? 'active' : '']">{{ store.i18n.t('feeds') }}</button>
+                <button @click="activeTab = 'shortcuts'" :class="['tab-btn', activeTab === 'shortcuts' ? 'active' : '']">{{ store.i18n.t('shortcuts') }}</button>
                 <button @click="activeTab = 'about'" :class="['tab-btn', activeTab === 'about' ? 'active' : '']">{{ store.i18n.t('about') }}</button>
             </div>
 
@@ -355,6 +370,8 @@ async function handleDownloadInstallUpdate() {
                     @batch-move="handleBatchMove"
                     @discover-all="handleDiscoverAll"
                 />
+                
+                <ShortcutsTab v-if="activeTab === 'shortcuts'" :settings="settings" />
                 
                 <AboutTab 
                     v-if="activeTab === 'about'"

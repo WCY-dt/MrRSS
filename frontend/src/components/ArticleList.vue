@@ -500,7 +500,7 @@ async function markAllAsRead() {
             <div class="flex items-center gap-2">
                 <div class="flex-1 flex items-center bg-bg-secondary border border-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 focus-within:border-accent transition-colors">
                     <PhMagnifyingGlass :size="18" class="text-text-secondary sm:w-5 sm:h-5" />
-                    <input type="text" v-model="searchQuery" :placeholder="store.i18n.t('search')" class="bg-transparent border-none outline-none w-full ml-1.5 sm:ml-2 text-text-primary text-xs sm:text-sm">
+                    <input type="text" v-model="searchQuery" :placeholder="store.i18n.t('search')" class="search-input bg-transparent border-none outline-none w-full ml-1.5 sm:ml-2 text-text-primary text-xs sm:text-sm" data-search-input>
                 </div>
                 <div class="relative">
                     <button @click="showFilterModal = true" class="filter-btn p-1.5 sm:p-2 rounded-lg transition-colors" :class="activeFilters.length > 0 ? 'filter-active' : ''" :title="store.i18n.t('filter')">
