@@ -107,6 +107,19 @@ export function useSettingsAutoSave(settings: Ref<SettingsData>) {
           summary_ai_model: settings.value.summary_ai_model ?? settingsDefaults.summary_ai_model,
           summary_ai_system_prompt:
             settings.value.summary_ai_system_prompt ?? settingsDefaults.summary_ai_system_prompt,
+          label_enabled: (
+            settings.value.label_enabled ?? settingsDefaults.label_enabled
+          ).toString(),
+          label_provider: settings.value.label_provider ?? settingsDefaults.label_provider,
+          label_ai_api_key: settings.value.label_ai_api_key ?? settingsDefaults.label_ai_api_key,
+          label_ai_endpoint: settings.value.label_ai_endpoint ?? settingsDefaults.label_ai_endpoint,
+          label_ai_model: settings.value.label_ai_model ?? settingsDefaults.label_ai_model,
+          label_ai_system_prompt:
+            settings.value.label_ai_system_prompt ?? settingsDefaults.label_ai_system_prompt,
+          label_show_in_list: (
+            settings.value.label_show_in_list ?? settingsDefaults.label_show_in_list
+          ).toString(),
+          label_max_count: settings.value.label_max_count ?? settingsDefaults.label_max_count,
         }),
       });
 

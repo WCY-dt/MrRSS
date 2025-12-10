@@ -50,9 +50,10 @@ async function handleGenerateLabels() {
     // Emit event to parent to update article data instead of mutating prop directly
     // Note: For now, we just update the local state. Parent component refresh will sync data.
     window.showToast(t('generateLabels') + ' - ' + t('success'), 'success');
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('Failed to generate labels:', error);
-    window.showToast(error.message || t('generateLabels') + ' - ' + t('failed'), 'error');
+    window.showToast(message || t('generateLabels') + ' - ' + t('failed'), 'error');
   }
 }
 </script>
@@ -92,7 +93,12 @@ async function handleGenerateLabels() {
 
   <!-- Labels Section -->
   <div v-if="labelEnabled" class="mb-4 flex flex-wrap items-center gap-2">
-    <ArticleLabels v-if="currentLabels.length > 0" :labelsJson="JSON.stringify(currentLabels)" :maxDisplay="10" size="md" />
+    <ArticleLabels
+      v-if="currentLabels.length > 0"
+      :labelsJson="JSON.stringify(currentLabels)"
+      :maxDisplay="10"
+      size="md"
+    />
     <button
       @click="handleGenerateLabels"
       :disabled="isGeneratingLabels"
@@ -101,7 +107,9 @@ async function handleGenerateLabels() {
     >
       <PhSpinnerGap v-if="isGeneratingLabels" :size="14" class="animate-spin" />
       <PhTag v-else :size="14" />
-      <span class="text-xs">{{ isGeneratingLabels ? t('generatingLabels') : t('generateLabels') }}</span>
+      <span class="text-xs">{{
+        isGeneratingLabels ? t('generatingLabels') : t('generateLabels')
+      }}</span>
     </button>
   </div>
 </template>

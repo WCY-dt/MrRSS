@@ -71,7 +71,15 @@ onUnmounted(() => {
         :src="videoUrl"
         :title="articleTitle"
         class="absolute top-0 left-0 w-full h-full border-none"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allow="
+          accelerometer;
+          autoplay;
+          clipboard-write;
+          encrypted-media;
+          gyroscope;
+          picture-in-picture;
+          web-share;
+        "
         allowfullscreen
       />
 
