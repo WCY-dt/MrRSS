@@ -183,6 +183,7 @@ export interface TranslationMessages {
   translatingContent: string;
   autoTranslateEnabled: string;
   originalContent: string;
+  generatingLabels: string;
 
   // Languages
   english: string;

@@ -104,10 +104,7 @@ onMounted(async () => {
     onTranslationSettingsChanged as EventListener
   );
   // Listen for label settings changes
-  window.addEventListener(
-    'label-settings-changed',
-    onLabelSettingsChanged as EventListener
-  );
+  window.addEventListener('label-settings-changed', onLabelSettingsChanged as EventListener);
   // Listen for default view mode changes
   window.addEventListener('default-view-mode-changed', onDefaultViewModeChanged as EventListener);
   // Listen for refresh articles events
@@ -149,10 +146,7 @@ onBeforeUnmount(() => {
     'translation-settings-changed',
     onTranslationSettingsChanged as EventListener
   );
-  window.removeEventListener(
-    'label-settings-changed',
-    onLabelSettingsChanged as EventListener
-  );
+  window.removeEventListener('label-settings-changed', onLabelSettingsChanged as EventListener);
   window.removeEventListener(
     'default-view-mode-changed',
     onDefaultViewModeChanged as EventListener

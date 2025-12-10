@@ -1,5 +1,4 @@
 import { ref, type Ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import type { Article } from '@/types/models';
 
 interface LabelSettings {
@@ -9,7 +8,6 @@ interface LabelSettings {
 }
 
 export function useArticleLabels() {
-  const { t } = useI18n();
   const labelSettings = ref<LabelSettings>({
     enabled: false,
     provider: 'local',

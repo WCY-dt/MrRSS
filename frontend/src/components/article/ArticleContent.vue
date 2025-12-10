@@ -11,6 +11,7 @@ import VideoPlayer from './parts/VideoPlayer.vue';
 import { useArticleSummary } from '@/composables/article/useArticleSummary';
 import { useArticleTranslation } from '@/composables/article/useArticleTranslation';
 import { useArticleRendering } from '@/composables/article/useArticleRendering';
+import { useArticleLabels } from '@/composables/article/useArticleLabels';
 import {
   extractTextWithPlaceholders,
   restorePreservedElements,
@@ -45,6 +46,9 @@ const {
 
 const { translationSettings, loadTranslationSettings } = useArticleTranslation();
 
+// Use composable for labels
+const { labelSettings, loadLabelSettings, labelArticle, labelingArticles } = useArticleLabels();
+
 // Use composable for enhanced rendering (math formulas, etc.)
 const { enhanceRendering, renderMathFormulas, highlightCodeBlocks } = useArticleRendering();
 
@@ -52,11 +56,17 @@ const { enhanceRendering, renderMathFormulas, highlightCodeBlocks } = useArticle
 const summaryEnabled = computed(() => summarySettings.value.enabled);
 const translationEnabled = computed(() => translationSettings.value.enabled);
 const targetLanguage = computed(() => translationSettings.value.targetLang);
+const labelEnabled = computed(() => labelSettings.value.enabled);
 
 // Current article summary
 const summaryResult = ref<SummaryResult | null>(null);
 const isLoadingSummary = computed(() =>
   props.article ? isSummaryLoading(props.article.id) : false
+);
+
+// Computed to check if article is being labeled
+const isLabelingArticle = computed(() =>
+  props.article ? labelingArticles.value.has(props.article.id) : false
 );
 
 // Additional state for summary translation
@@ -73,6 +83,7 @@ const lastTranslatedArticleId = ref<number | null>(null);
 async function loadSettings() {
   await loadSummarySettings();
   await loadTranslationSettings();
+  await loadLabelSettings();
 }
 
 // Translate text using the API
@@ -101,6 +112,17 @@ async function translateText(text: string): Promise<string> {
     window.showToast(t('errorTranslating'), 'error');
   }
   return '';
+}
+
+// Check if article has labels
+function hasLabels(labelsJson: string | undefined): boolean {
+  if (!labelsJson) return false;
+  try {
+    const parsed = JSON.parse(labelsJson);
+    return Array.isArray(parsed) && parsed.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 // Generate summary for the current article
@@ -270,6 +292,11 @@ watch(
       lastTranslatedArticleId.value = null; // Reset translation tracking
 
       if (props.article) {
+        // Auto-generate labels if enabled and article has no labels
+        if (labelEnabled.value && !hasLabels(props.article.labels)) {
+          labelArticle(props.article);
+        }
+
         if (summaryEnabled.value) {
           generateSummary(props.article);
         }
@@ -310,6 +337,11 @@ onMounted(async () => {
       enhanceRendering('.prose-content');
     }
 
+    // Auto-generate labels if enabled and article has no labels
+    if (labelEnabled.value && !hasLabels(props.article.labels)) {
+      labelArticle(props.article);
+    }
+
     if (summaryEnabled.value && props.articleContent) {
       generateSummary(props.article);
     }
@@ -331,6 +363,8 @@ onMounted(async () => {
         :translated-title="translatedTitle"
         :is-translating-title="isTranslatingTitle"
         :translation-enabled="translationEnabled"
+        :label-enabled="labelEnabled"
+        :is-labeling="isLabelingArticle"
       />
 
       <!-- Audio Player (if article has audio) -->

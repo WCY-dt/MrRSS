@@ -12,6 +12,8 @@ interface Props {
   translatedTitle: string;
   isTranslatingTitle: boolean;
   translationEnabled: boolean;
+  labelEnabled: boolean;
+  isLabeling: boolean;
 }
 
 const props = defineProps<Props>();
@@ -19,7 +21,7 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 const { parseLabels } = useArticleLabels();
 
-const labelEnabled = ref(false);
+const labelShowInList = ref(false);
 const currentLabels = ref<string[]>([]);
 
 // Computed: check if we should show bilingual title
@@ -36,7 +38,7 @@ onMounted(async () => {
   try {
     const res = await fetch('/api/settings');
     const settings = await res.json();
-    labelEnabled.value = settings.label_enabled === 'true';
+    labelShowInList.value = settings.label_show_in_list === 'true';
     currentLabels.value = parseLabels(props.article.labels);
   } catch (e) {
     console.error('Failed to load label settings:', e);
@@ -78,19 +80,23 @@ watch(
   >
     <span>{{ article.feed_title }}</span>
     <span class="hidden sm:inline">•</span>
-    <span>{{ formatDate(article.published_at, $i18n.locale.value) }}</span>
+    <span>{{ formatDate(article.published_at, $i18n.locale) }}</span>
     <span v-if="translationEnabled" class="flex items-center gap-1 text-accent">
       <PhTranslate :size="14" />
       <span class="text-xs">{{ t('autoTranslateEnabled') }}</span>
     </span>
+    <!-- Label generation indicator -->
+    <div v-if="isLabeling" class="flex items-center gap-1 text-text-secondary">
+      <PhSpinnerGap :size="12" class="animate-spin" />
+      <span class="text-xs">{{ t('generatingLabels') }}</span>
+    </div>
   </div>
 
   <!-- Labels Section -->
-  <div v-if="labelEnabled && currentLabels.length > 0" class="mb-4 flex flex-wrap items-center gap-2">
-    <ArticleLabels
-      :labelsJson="JSON.stringify(currentLabels)"
-      :maxDisplay="10"
-      size="md"
-    />
+  <div
+    v-if="labelEnabled && currentLabels.length > 0"
+    class="mb-4 flex flex-wrap items-center gap-2"
+  >
+    <ArticleLabels :labelsJson="JSON.stringify(currentLabels)" :maxDisplay="10" size="md" />
   </div>
 </template>
