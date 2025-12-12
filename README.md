@@ -105,12 +105,18 @@ sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3
 3. **Build the application**
 
    ```bash
-   # Using Makefile (recommended)
+   # Using Makefile (recommended - auto-detects platform)
    make build
 
-   # Or manually with wails (requires -skipbindings flag)
+   # Or manually with wails
+   # Linux/Windows:
    wails build -skipbindings
+
+   # macOS (IMPORTANT - use -tags nosystray):
+   wails build -skipbindings -tags nosystray
    ```
+
+   > **⚠️ macOS**: Always use `make build` or add `-tags nosystray` to prevent build errors.
 
    The executable will be created in the `build/bin` directory.
 
@@ -153,6 +159,8 @@ Start the application with hot reloading:
 ```bash
 wails dev
 ```
+
+> **⚠️ Important for macOS Developers**: Always use `make dev` or add `-tags nosystray` flag when building on macOS to prevent AppDelegate conflicts. See [Build Requirements](docs/BUILD_REQUIREMENTS.md#macos) for details.
 
 ### Code Quality Tools
 

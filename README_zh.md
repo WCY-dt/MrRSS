@@ -154,6 +154,8 @@ sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3
 wails dev
 ```
 
+> **⚠️ macOS 开发者注意**：在 macOS 上构建时，请始终使用 `make dev` 或添加 `-tags nosystray` 标签以避免 AppDelegate 冲突。详见[构建要求](docs/BUILD_REQUIREMENTS.md#macos)。
+
 ### 代码质量工具
 
 #### 使用 Make

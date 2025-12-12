@@ -1,4 +1,4 @@
-//go:build !nosystray && !darwin && (windows || linux)
+//go:build !darwin && (windows || linux)
 
 package tray
 
@@ -7,6 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	// IMPORTANT: This package MUST NOT be imported on macOS due to AppDelegate conflicts with Wails.
+	// The build tag above ensures this file is excluded on macOS.
+	// macOS uses manager_darwin.go with DarwinKit instead.
 	"fyne.io/systray"
 
 	"MrRSS/internal/handlers/core"

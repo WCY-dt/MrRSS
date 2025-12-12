@@ -1,5 +1,15 @@
-//go:build darwin && !nosystray
+//go:build darwin
 
+// Package tray provides macOS-specific system tray integration using DarwinKit.
+//
+// IMPORTANT: This file uses DarwinKit instead of fyne.io/systray to avoid
+// AppDelegate symbol conflicts with Wails on macOS.
+//
+// Build Requirements:
+//   - Always use `-tags nosystray` when building on macOS
+//   - This prevents fyne.io/systray's Objective-C code from being compiled
+//
+// The Makefile and GitHub Actions workflow automatically apply the correct tags.
 package tray
 
 import (

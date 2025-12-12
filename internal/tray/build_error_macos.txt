@@ -1,0 +1,19 @@
+❌ BUILD ERROR: macOS build without -tags nosystray
+
+You are building on macOS without the required build tag.
+This will cause AppDelegate symbol conflicts with Wails.
+
+SOLUTION:
+  Always use ONE of these commands on macOS:
+
+  ✅ make build          (recommended - auto-detects platform)
+  ✅ make dev            (for development with hot reload)
+  ✅ wails build -skipbindings -tags nosystray
+  ✅ wails dev -tags nosystray
+
+  Or use the wrapper script:
+  ✅ ./wails.dev.sh
+
+DO NOT use plain `wails build` or `wails dev` on macOS!
+
+For more information, see: docs/BUILD_REQUIREMENTS.md#macos

@@ -127,16 +127,16 @@ xcode-select --install
 
 #### Building on macOS
 
-No special build tags are required for macOS:
+macOS requires the `-tags nosystray` build tag to exclude `fyne.io/systray` package (which conflicts with Wails' AppDelegate):
 
 ```bash
 # Development
-wails dev
+wails dev -tags nosystray
 
 # Production build
-wails build -skipbindings
+wails build -skipbindings -tags nosystray
 
-# Or use make
+# Or use make (automatically uses correct tags)
 make build
 ```
 

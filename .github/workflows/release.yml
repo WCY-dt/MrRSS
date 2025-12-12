@@ -327,8 +327,9 @@ jobs:
           # macOS runners can build universal binaries natively
           # Universal binaries include both Intel (amd64) and Apple Silicon (arm64)
           # MrRSS uses HTTP API instead of Wails bindings, so skip bindings generation
-          # macOS uses DarwinKit for system tray, no special build tags needed
-          wails build -clean -ldflags "-s -w" -skipbindings -platform ${{ matrix.platform }}/${{ matrix.arch }}
+          # Use -tags nosystray to exclude fyne.io/systray (conflicts with Wails AppDelegate)
+          # macOS uses DarwinKit for system tray which is selected by build constraints
+          wails build -clean -ldflags "-s -w" -skipbindings -tags nosystray -platform ${{ matrix.platform }}/${{ matrix.arch }}
 
       - name: Create installer (Windows)
         if: steps.check_artifacts.outputs.skip_build == 'false' && matrix.platform == 'windows'

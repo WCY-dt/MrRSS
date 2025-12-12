@@ -10,8 +10,13 @@ ifeq ($(OS),Windows_NT)
 else
     DETECTED_OS := $(shell uname -s)
     SHELL := /bin/bash
-    # macOS now uses DarwinKit for system tray, no special build tags needed
-    EXTRA_BUILD_FLAGS :=
+    ifeq ($(DETECTED_OS),Darwin)
+        # macOS uses -tags nosystray to exclude fyne.io/systray (conflicts with Wails AppDelegate)
+        # macOS uses DarwinKit for system tray which is selected by build constraints
+        EXTRA_BUILD_FLAGS := -tags nosystray
+    else
+        EXTRA_BUILD_FLAGS :=
+    endif
 endif
 
 # Default target
@@ -22,8 +27,14 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 # Development
-dev: ## Start development server
+dev: ## Start development server (auto-detects platform and applies correct tags)
+ifeq ($(DETECTED_OS),Darwin)
+	@echo "🚀 Starting Wails dev for macOS with -tags nosystray..."
+	wails dev -tags nosystray
+else
+	@echo "🚀 Starting Wails dev..."
 	wails dev
+endif
 
 # Building
 build: build-frontend build-backend ## Build both frontend and backend

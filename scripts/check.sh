@@ -39,8 +39,13 @@ echo "✅ Frontend tests passed"
 echo "🔨 Checking build..."
 cd ..
 
-# macOS now uses DarwinKit for system tray, no special build tags needed
-go build -v ./...
+# On macOS, use -tags nosystray to exclude fyne.io/systray
+# macOS uses DarwinKit for system tray which is selected by build constraints
+if [ "$(uname -s)" = "Darwin" ]; then
+    go build -v -tags nosystray ./...
+else
+    go build -v ./...
+fi
 echo "✅ Build successful"
 
 echo "🎉 All checks passed!"

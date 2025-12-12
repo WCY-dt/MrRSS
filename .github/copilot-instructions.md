@@ -477,9 +477,10 @@ When updating version, modify ALL of these files:
 ## Quick Reference
 
 **Build Commands**:
-- Development: `wails dev`
-- Production Build: `make build` or `wails build -skipbindings`
+- Development: `wails dev` (Linux/Windows) or `wails dev -tags nosystray` (macOS)
+- Production Build: `make build` (recommended, auto-detects platform) or `wails build -skipbindings -tags nosystray` (macOS only)
 - Important: Always use `-skipbindings` flag with `wails build` (MrRSS uses HTTP API, not Wails bindings)
+- **⚠️ CRITICAL for macOS**: Always use `-tags nosystray` to prevent AppDelegate conflicts between Wails and fyne.io/systray
 
 **Store Access**: `const store = useAppStore()`
 **i18n**: `const { t } = useI18n()`
