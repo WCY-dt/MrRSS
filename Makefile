@@ -6,9 +6,12 @@ ifeq ($(OS),Windows_NT)
     DETECTED_OS := Windows
     SHELL := pwsh.exe
     .SHELLFLAGS := -Command
+    EXTRA_BUILD_FLAGS :=
 else
     DETECTED_OS := $(shell uname -s)
     SHELL := /bin/bash
+    # macOS now uses DarwinKit for system tray, no special build tags needed
+    EXTRA_BUILD_FLAGS :=
 endif
 
 # Default target
@@ -24,7 +27,7 @@ dev: ## Start development server
 
 # Building
 build: build-frontend build-backend ## Build both frontend and backend
-	wails build -skipbindings
+	wails build -skipbindings $(EXTRA_BUILD_FLAGS)
 
 build-frontend: ## Build frontend only
 	cd frontend && npm run build

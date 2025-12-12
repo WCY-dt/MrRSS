@@ -123,7 +123,22 @@ Install Xcode Command Line Tools (if not already installed):
 xcode-select --install
 ```
 
-**Note**: macOS has native support for systray through AppKit, but due to AppDelegate symbol conflicts with Wails v2, system tray is currently disabled on macOS.
+**Note**: macOS uses [DarwinKit](https://github.com/progrium/darwinkit) for native system tray support via NSStatusItem. This avoids the AppDelegate symbol conflicts that occur with `fyne.io/systray` on macOS.
+
+#### Building on macOS
+
+No special build tags are required for macOS:
+
+```bash
+# Development
+wails dev
+
+# Production build
+wails build -skipbindings
+
+# Or use make
+make build
+```
 
 #### Application Bundle
 

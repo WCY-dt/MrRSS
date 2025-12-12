@@ -38,6 +38,8 @@ echo "✅ Frontend tests passed"
 # Build check
 echo "🔨 Checking build..."
 cd ..
+
+# macOS now uses DarwinKit for system tray, no special build tags needed
 go build -v ./...
 echo "✅ Build successful"
 

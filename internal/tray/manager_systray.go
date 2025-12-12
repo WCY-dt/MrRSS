@@ -1,4 +1,4 @@
-//go:build windows || linux
+//go:build !nosystray && !darwin && (windows || linux)
 
 package tray
 
