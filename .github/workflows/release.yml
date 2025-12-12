@@ -289,7 +289,8 @@ jobs:
         env:
           CGO_ENABLED: 1
         run: |
-          wails build -clean -ldflags "-s -w" -platform ${{ matrix.platform }}/${{ matrix.arch }}
+          # MrRSS uses HTTP API instead of Wails bindings, so skip bindings generation
+          wails build -clean -ldflags "-s -w" -skipbindings -platform ${{ matrix.platform }}/${{ matrix.arch }}
 
           # Verify the build
           if [ ! -f "build/bin/MrRSS" ]; then
@@ -307,7 +308,8 @@ jobs:
         env:
           CGO_ENABLED: 1
         run: |
-          wails build -clean -ldflags "-s -w" -platform ${{ matrix.platform }}/${{ matrix.arch }}
+          # MrRSS uses HTTP API instead of Wails bindings, so skip bindings generation
+          wails build -clean -ldflags "-s -w" -skipbindings -platform ${{ matrix.platform }}/${{ matrix.arch }}
 
           # Verify the build
           if (-not (Test-Path "build/bin/MrRSS.exe")) {
@@ -324,7 +326,8 @@ jobs:
         run: |
           # macOS runners can build universal binaries natively
           # Universal binaries include both Intel (amd64) and Apple Silicon (arm64)
-          wails build -clean -ldflags "-s -w" -platform ${{ matrix.platform }}/${{ matrix.arch }}
+          # MrRSS uses HTTP API instead of Wails bindings, so skip bindings generation
+          wails build -clean -ldflags "-s -w" -skipbindings -platform ${{ matrix.platform }}/${{ matrix.arch }}
 
       - name: Create installer (Windows)
         if: steps.check_artifacts.outputs.skip_build == 'false' && matrix.platform == 'windows'

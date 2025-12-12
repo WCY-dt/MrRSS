@@ -8,7 +8,7 @@
 
 ### Tech Stack
 
-- **Backend**: Go 1.24+ with Wails v2.11+ framework, SQLite with `modernc.org/sqlite`, `fyne.io/systray` for system tray
+- **Backend**: Go 1.24+ with Wails v2.11+ framework, SQLite with `modernc.org/sqlite`, `fyne.io/systray` for system tray (disabled on macOS)
 - **Frontend**: Vue 3.5+ Composition API, Pinia, Tailwind CSS 3.3+, Vite 5+, TypeScript
 - **Communication**: HTTP REST API (not Wails bindings)
 - **Icons**: Phosphor Icons | **I18n**: vue-i18n (English/Chinese)
@@ -88,7 +88,7 @@ MrRSS/
 
 - **Framework**: Wails v2.11+ with HTTP API endpoints (not Wails bindings)
 - **Database**: SQLite with `modernc.org/sqlite`, WAL mode enabled
-- **System Tray**: `fyne.io/systray` for cross-platform tray integration (compatible with Wails)
+- **System Tray**: `fyne.io/systray` for cross-platform tray integration (compatible with Wails, disabled on macOS)
 - **RSS Parsing**: `gofeed` library with concurrent fetching
 - **Translation**: Google Translate + DeepL + Baidu Translation + AI-based translation
 - **Concurrency**: Goroutines for parallel operations

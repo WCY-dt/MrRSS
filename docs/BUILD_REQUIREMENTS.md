@@ -123,7 +123,7 @@ Install Xcode Command Line Tools (if not already installed):
 xcode-select --install
 ```
 
-**Note**: macOS has native support for systray through AppKit, so no additional libraries are needed.
+**Note**: macOS has native support for systray through AppKit, but due to AppDelegate symbol conflicts with Wails v2, system tray is currently disabled on macOS.
 
 #### Application Bundle
 

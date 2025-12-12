@@ -10,7 +10,7 @@ MrRSS is a modern, privacy-focused, cross-platform desktop RSS reader built with
 
 ## Tech Stack
 
-- **Backend**: Go 1.24+ with Wails v2.11+ framework, SQLite with `modernc.org/sqlite`, `fyne.io/systray` for system tray
+- **Backend**: Go 1.24+ with Wails v2.11+ framework, SQLite with `modernc.org/sqlite`, `fyne.io/systray` for system tray (disabled on macOS)
 - **Frontend**: Vue 3.5+ Composition API, Pinia, Tailwind CSS 3.3+, Vite 5+
 - **Tools**: Wails CLI v2.11+, npm, Go modules
 - **Icons**: Phosphor Icons | **I18n**: vue-i18n (English/Chinese)
