@@ -7,12 +7,12 @@ This document describes the system-level dependencies required for building MrRS
 MrRSS uses several native libraries that require CGO (C bindings for Go):
 
 - **Wails v2**: For the desktop application framework
-- **systray**: For system tray integration (cross-platform)
+- **fyne.io/systray**: For system tray integration (cross-platform, compatible with Wails)
 - **SQLite**: Pure Go implementation (`modernc.org/sqlite`), no C dependencies
 
 ## Important: CGO Requirement
 
-⚠️ **CRITICAL**: `systray` requires CGO to be enabled. You must set:
+⚠️ **CRITICAL**: `fyne.io/systray` requires CGO to be enabled. You must set:
 
 ```bash
 export CGO_ENABLED=1
