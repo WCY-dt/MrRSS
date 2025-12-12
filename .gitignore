@@ -53,3 +53,5 @@ package.json.md5
 
 # log
 *.log
+
+.DS_Store

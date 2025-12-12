@@ -330,12 +330,12 @@ func (db *DB) MarkAllAsReadForCategory(category string) error {
 	// Handle empty category (uncategorized) by matching NULL or empty string
 	var query string
 	if category == "" {
-		query = `UPDATE articles SET is_read = 1 
+		query = `UPDATE articles SET is_read = 1
 			WHERE feed_id IN (SELECT id FROM feeds WHERE category IS NULL OR category = '') AND is_hidden = 0`
 		_, err := db.Exec(query)
 		return err
 	}
-	query = `UPDATE articles SET is_read = 1 
+	query = `UPDATE articles SET is_read = 1
 		WHERE feed_id IN (SELECT id FROM feeds WHERE category = ?) AND is_hidden = 0`
 	_, err := db.Exec(query, category)
 	return err

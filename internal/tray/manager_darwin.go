@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 
 	"github.com/progrium/darwinkit/dispatch"
+	"github.com/progrium/darwinkit/helper/action"
 	"github.com/progrium/darwinkit/macos/appkit"
 	"github.com/progrium/darwinkit/macos/foundation"
 	"github.com/progrium/darwinkit/objc"
@@ -98,7 +99,7 @@ func (m *Manager) setupStatusBar(ctx context.Context, onQuit func(), onShow func
 
 	// Create a status item with variable length
 	m.statusItem = statusBar.StatusItemWithLength(appkit.VariableStatusItemLength)
-	objc.Retain(&m.statusItem)
+	objc.Retain(m.statusItem)
 
 	// Set up the button
 	button := m.statusItem.Button()
@@ -107,23 +108,20 @@ func (m *Manager) setupStatusBar(ctx context.Context, onQuit func(), onShow func
 
 		// Try to set image from icon bytes
 		if len(m.icon) > 0 {
-			data := foundation.NewDataWithBytesLength(m.icon, uint(len(m.icon)))
-			if data.Ptr() != nil {
-				image := appkit.NewImageWithData(data)
-				if image.Ptr() != nil {
-					// Scale image to appropriate size for menu bar (16x16 or 18x18)
-					image.SetSize(foundation.Size{Width: 18, Height: 18})
-					image.SetTemplate(true) // Makes it adapt to light/dark mode
-					button.SetImage(image)
-					button.SetTitle("") // Clear title when we have an image
-				}
+			image := appkit.NewImageWithData(m.icon)
+			if image.Ptr() != nil {
+				// Scale image to appropriate size for menu bar (16x16 or 18x18)
+				image.SetSize(foundation.Size{Width: 18, Height: 18})
+				image.SetTemplate(true) // Makes it adapt to light/dark mode
+				button.SetImage(image)
+				button.SetTitle("") // Clear title when we have an image
 			}
 		}
 	}
 
 	// Create menu
 	menu := appkit.NewMenu()
-	objc.Retain(&menu)
+	objc.Retain(menu)
 
 	// Show item
 	showItem := appkit.NewMenuItemWithTitleActionKeyEquivalent(labels.show, objc.Sel(""), "")
@@ -163,21 +161,9 @@ func (m *Manager) setupStatusBar(ctx context.Context, onQuit func(), onShow func
 
 // setMenuItemAction sets up an action handler for a menu item using a closure wrapper
 func (m *Manager) setMenuItemAction(item appkit.MenuItem, handler func()) {
-	// Create a custom target class that calls our handler
-	actionClass := objc.NewClass("MrRSSMenuAction"+randomSuffix(), "NSObject")
-	actionClass.AddMethod("doAction:", func(_ objc.Object) {
+	action.Set(item, func(obj objc.Object) {
 		handler()
 	})
-	objc.RegisterClass(actionClass)
-
-	target := actionClass.CreateInstance(0)
-	objc.Retain(&target)
-	item.SetTarget(target)
-	item.SetAction(objc.Sel("doAction:"))
-}
-
-func randomSuffix() string {
-	return foundation.NewUUID().UUIDString()
 }
 
 func (m *Manager) cleanup() {
@@ -185,7 +171,7 @@ func (m *Manager) cleanup() {
 		if m.statusItem.Ptr() != nil {
 			statusBar := appkit.StatusBar_SystemStatusBar()
 			statusBar.RemoveStatusItem(m.statusItem)
-			objc.Release(&m.statusItem)
+			m.statusItem.Release()
 		}
 		m.running.Store(false)
 	})

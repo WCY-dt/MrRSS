@@ -56,7 +56,7 @@ type Defaults struct {
 	LastArticleUpdate        string `json:"last_article_update"`
 	GoogleTranslateEndpoint  string `json:"google_translate_endpoint"`
 	ShowArticlePreviewImages bool   `json:"show_article_preview_images"`
-  WindowX                  string `json:"window_x"`
+	WindowX                  string `json:"window_x"`
 	WindowY                  string `json:"window_y"`
 	WindowWidth              string `json:"window_width"`
 	WindowHeight             string `json:"window_height"`
