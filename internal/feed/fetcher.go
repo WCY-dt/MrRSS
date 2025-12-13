@@ -29,6 +29,9 @@ type Fetcher struct {
 	progress          Progress
 	mu                sync.Mutex
 	refreshCalculator *IntelligentRefreshCalculator
+	// Queue tracking for individual feed refreshes
+	queuedFeeds       map[int64]bool // Tracks feeds that are queued for refresh
+	queueMu           sync.Mutex
 }
 
 func NewFetcher(db *database.DB, translator translation.Translator) *Fetcher {
@@ -45,6 +48,7 @@ func NewFetcher(db *database.DB, translator translation.Translator) *Fetcher {
 		translator:        translator,
 		scriptExecutor:    executor,
 		refreshCalculator: NewIntelligentRefreshCalculator(db),
+		queuedFeeds:       make(map[int64]bool),
 	}
 }
 
@@ -136,6 +140,11 @@ func (f *Fetcher) FetchAll(ctx context.Context) {
 	f.progress.IsRunning = true
 	f.progress.Current = 0
 	f.mu.Unlock()
+
+	// Clear any queued individual feeds since we're doing a full refresh
+	f.queueMu.Lock()
+	f.queuedFeeds = make(map[int64]bool)
+	f.queueMu.Unlock()
 
 	// Setup translator based on settings
 	f.setupTranslator()
@@ -283,21 +292,31 @@ func (f *Fetcher) FetchFeed(ctx context.Context, feed models.Feed) {
 }
 
 // FetchSingleFeed fetches a single feed with progress tracking.
-// This is used when adding a new feed or refreshing a single feed from the context menu.
+// This is used when adding a new feed, refreshing a single feed from the context menu,
+// or when the scheduler triggers individual feed refreshes.
 func (f *Fetcher) FetchSingleFeed(ctx context.Context, feed models.Feed) {
-	f.mu.Lock()
-	if f.progress.IsRunning {
-		f.mu.Unlock()
-		// Wait for current operation to complete with timeout
-		if !f.waitForProgressComplete(5 * time.Minute) {
-			log.Println("FetchSingleFeed: Timeout waiting for previous operation")
-			return
-		}
-		f.mu.Lock()
+	// Add feed to queue
+	f.queueMu.Lock()
+	if f.queuedFeeds[feed.ID] {
+		// Feed is already queued, skip duplicate
+		f.queueMu.Unlock()
+		log.Printf("Feed %s is already queued for refresh, skipping", feed.Title)
+		return
 	}
-	f.progress.IsRunning = true
-	f.progress.Total = 1
-	f.progress.Current = 0
+	f.queuedFeeds[feed.ID] = true
+	queuedCount := len(f.queuedFeeds)
+	f.queueMu.Unlock()
+
+	// Update progress to reflect the new queue state
+	f.mu.Lock()
+	if !f.progress.IsRunning {
+		f.progress.IsRunning = true
+		f.progress.Total = queuedCount
+		f.progress.Current = 0
+	} else {
+		// Already running, just update total to include this new feed
+		f.progress.Total = f.progress.Current + queuedCount
+	}
 	f.mu.Unlock()
 
 	// Setup translator based on settings
@@ -306,14 +325,30 @@ func (f *Fetcher) FetchSingleFeed(ctx context.Context, feed models.Feed) {
 	// Fetch the feed
 	f.FetchFeed(ctx, feed)
 
+	// Remove from queue and update progress
+	f.queueMu.Lock()
+	delete(f.queuedFeeds, feed.ID)
+	remainingCount := len(f.queuedFeeds)
+	f.queueMu.Unlock()
+
 	f.mu.Lock()
-	f.progress.Current = 1
-	f.progress.IsRunning = false
+	f.progress.Current++
+	if remainingCount == 0 {
+		// No more feeds in queue, mark as complete
+		f.progress.IsRunning = false
+	} else {
+		// Update total to reflect current queue state
+		f.progress.Total = f.progress.Current + remainingCount
+	}
 	f.mu.Unlock()
 
-	// Update last article update time
-	f.db.SetSetting("last_article_update", time.Now().Format(time.RFC3339))
-	log.Printf("Single feed update complete: %s", feed.Title)
+	// Update last article update time when queue is empty
+	if remainingCount == 0 {
+		f.db.SetSetting("last_article_update", time.Now().Format(time.RFC3339))
+		log.Printf("All queued feed updates complete")
+	} else {
+		log.Printf("Feed update complete: %s (%d remaining)", feed.Title, remainingCount)
+	}
 }
 
 // FetchFeedsByIDs fetches multiple feeds by their IDs with progress tracking.
@@ -333,6 +368,11 @@ func (f *Fetcher) FetchFeedsByIDs(ctx context.Context, feedIDs []int64) {
 	f.progress.Total = len(feedIDs)
 	f.progress.Current = 0
 	f.mu.Unlock()
+
+	// Clear any queued individual feeds since we're doing a batch refresh
+	f.queueMu.Lock()
+	f.queuedFeeds = make(map[int64]bool)
+	f.queueMu.Unlock()
 
 	// Setup translator based on settings
 	f.setupTranslator()
