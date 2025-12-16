@@ -52,6 +52,9 @@ windowState.init();
 // Detect platform for MacOS-specific styles
 const { isMacOS } = usePlatform();
 
+// Track fullscreen state for macOS
+const isFullscreen = ref(false);
+
 // Initialize keyboard shortcuts
 const { shortcuts } = useKeyboardShortcuts({
   onOpenSettings: () => {
@@ -69,6 +72,21 @@ const { shortcuts } = useKeyboardShortcuts({
 onMounted(async () => {
   // Install global notification handlers
   installGlobalHandlers();
+
+  // Track fullscreen state for macOS (to hide title bar padding)
+  if (isMacOS.value) {
+    const checkFullscreen = () => {
+      isFullscreen.value =
+        document.fullscreenElement !== null || (document as any).webkitFullscreenElement !== null;
+    };
+
+    // Check on load
+    checkFullscreen();
+
+    // Listen for fullscreen changes
+    document.addEventListener('fullscreenchange', checkFullscreen);
+    document.addEventListener('webkitfullscreenchange', checkFullscreen);
+  }
 
   // Initialize theme system immediately (lightweight)
   store.initTheme();
@@ -182,7 +200,7 @@ function onFeedUpdated(): void {
 <template>
   <div
     class="app-container flex h-screen w-full bg-bg-primary text-text-primary overflow-hidden"
-    :class="{ 'macos-padding': isMacOS }"
+    :class="{ 'macos-padding': isMacOS && !isFullscreen, 'macos-fullscreen': isMacOS && isFullscreen }"
     :style="{
       '--sidebar-width': sidebarWidth + 'px',
       '--article-list-width': articleListWidth + 'px',
@@ -273,6 +291,11 @@ function onFeedUpdated(): void {
 /* MacOS-specific styles */
 .app-container.macos-padding {
   padding-top: 28px; /* Space for MacOS window controls */
+}
+
+/* MacOS fullscreen mode - hide the title bar padding */
+.app-container.macos-fullscreen {
+  padding-top: 0;
 }
 
 /* MacOS window dragging support - enable drag on top sections only */

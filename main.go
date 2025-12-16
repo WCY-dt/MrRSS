@@ -279,6 +279,13 @@ func main() {
 			return
 		}
 
+		// Don't store window state if in fullscreen mode (macOS issue workaround)
+		isFullscreen := runtime.WindowIsFullscreen(ctx)
+		if isFullscreen {
+			log.Println("Window is in fullscreen mode, skipping state storage")
+			return
+		}
+
 		w, h := runtime.WindowGetSize(ctx)
 		x, y := runtime.WindowGetPosition(ctx)
 
@@ -489,7 +496,19 @@ func main() {
 				return false
 			}
 
-			if shouldCloseToTray() {
+			// Check if window is in fullscreen mode
+			isFullscreen := runtime.WindowIsFullscreen(ctx)
+
+			// On macOS, if closing from fullscreen, exit fullscreen first
+			// This prevents the black screen issue
+			if utils.IsMacOS() && isFullscreen {
+				log.Println("Exiting fullscreen before closing on macOS")
+				runtime.WindowUnfullscreen(ctx)
+				// Don't prevent close, let it proceed normally
+				// The minimize-to-tray logic will be skipped since we're in fullscreen
+			}
+
+			if shouldCloseToTray() && !isFullscreen {
 				storeWindowState(ctx)
 				// Fallback start in case tray failed to start on startup
 				startTray(ctx)
