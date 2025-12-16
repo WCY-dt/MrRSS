@@ -326,7 +326,7 @@ func main() {
 		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 1},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{
-				TitlebarAppearsTransparent: false, // Set to false to fix dragging issues on dual-screen setups
+				TitlebarAppearsTransparent: false, // Set to false to fix window dragging issues on macOS
 				HideTitle:                  true,
 				HideTitleBar:               false,
 				FullSizeContent:            true,

@@ -263,13 +263,15 @@ After removing workarounds, test on the latest macOS version to ensure:
 
 1. **macOS Versions**: macOS 15 is referred to as "Sequoia" or "macOS 26" in some contexts. The internal version number is 15.x.
 
-2. **Build Tags**: The macOS version detection uses Go build tags (`// +build darwin` and `// +build !darwin`) to compile different code on different platforms.
+2. **Build Tags**: The macOS version detection uses Go build tags (`//go:build darwin` and `//go:build !darwin`) to compile different code on different platforms.
 
 3. **Thread Safety**: All platform detection code uses caching to avoid repeated API calls, which could cause performance issues.
 
 4. **Fallback Behavior**: If platform detection fails, the code safely defaults to non-throttled intervals (original behavior).
 
 5. **Other Platforms**: All fixes are macOS-specific and don't affect Windows or Linux behavior.
+
+6. **Code Duplication**: The throttling logic is intentionally duplicated in each file rather than using the centralized `useThrottledInterval.ts` utility. This design decision prioritizes easy removal over DRY principles - all workaround code can be found by searching for "TEMPORARY WORKAROUND" comments. The utility file exists only as a reference implementation and is marked as unused.
 
 ---
 
