@@ -23,7 +23,7 @@
     "highlight.js": "^11.11.1",
     "katex": "^0.16.27",
     "pinia": "^3.0.4",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.1.18",
     "vue": "^3.5.25",
     "vue-i18n": "^11.2.2"
   },
