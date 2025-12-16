@@ -3,6 +3,33 @@ import { useI18n } from 'vue-i18n';
 import type { Feed } from '@/types/models';
 import type { DiscoveredFeed, ProgressCounts, ProgressState } from '@/types/discovery';
 
+// TEMPORARY WORKAROUND: Helper to get optimized interval for macOS Sequoia
+let platformInfoCache: { needsUIThrottling: boolean } | null = null;
+async function getPlatformInfo() {
+  if (platformInfoCache) {
+    return platformInfoCache;
+  }
+  try {
+    const response = await fetch('/api/platform/info');
+    if (response.ok) {
+      const data = await response.json();
+      platformInfoCache = { needsUIThrottling: data.needs_ui_throttling || false };
+      return platformInfoCache;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch platform info:', error);
+  }
+  platformInfoCache = { needsUIThrottling: false };
+  return platformInfoCache;
+}
+
+function getOptimizedInterval(baseInterval: number): number {
+  if (platformInfoCache?.needsUIThrottling) {
+    return Math.max(baseInterval * 2, 1000);
+  }
+  return baseInterval;
+}
+
 export function useFeedDiscovery(feed: Feed) {
   const { t } = useI18n();
 
@@ -36,6 +63,9 @@ export function useFeedDiscovery(feed: Feed) {
       pollInterval = null;
     }
 
+    // TEMPORARY WORKAROUND: Initialize platform info for macOS Sequoia throttling
+    await getPlatformInfo();
+
     try {
       // Validate feed ID
       if (!feed?.id) {
@@ -57,6 +87,8 @@ export function useFeedDiscovery(feed: Feed) {
         throw new Error(errorText || 'Failed to start discovery');
       }
 
+      // TEMPORARY WORKAROUND: Use optimized interval for macOS Sequoia
+      const pollIntervalMs = getOptimizedInterval(500);
       // Start polling for progress
       pollInterval = setInterval(async () => {
         try {
@@ -128,7 +160,7 @@ export function useFeedDiscovery(feed: Feed) {
           console.error('Polling error:', pollError);
           // Don't stop polling on transient errors
         }
-      }, 500); // Poll every 500ms
+      }, pollIntervalMs);
     } catch (error) {
       console.error('Discovery error:', error);
       errorMessage.value = t('discoveryFailed') + ': ' + (error as Error).message;

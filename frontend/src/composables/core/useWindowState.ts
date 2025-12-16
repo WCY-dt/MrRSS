@@ -8,6 +8,33 @@ interface WindowState {
   maximized: boolean;
 }
 
+// TEMPORARY WORKAROUND: Helper to get optimized interval for macOS Sequoia
+let platformInfoCache: { needsUIThrottling: boolean } | null = null;
+async function getPlatformInfo() {
+  if (platformInfoCache) {
+    return platformInfoCache;
+  }
+  try {
+    const response = await fetch('/api/platform/info');
+    if (response.ok) {
+      const data = await response.json();
+      platformInfoCache = { needsUIThrottling: data.needs_ui_throttling || false };
+      return platformInfoCache;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch platform info:', error);
+  }
+  platformInfoCache = { needsUIThrottling: false };
+  return platformInfoCache;
+}
+
+function getOptimizedInterval(baseInterval: number): number {
+  if (platformInfoCache?.needsUIThrottling) {
+    return Math.max(baseInterval * 2, 2000); // 2x interval, minimum 2 seconds
+  }
+  return baseInterval;
+}
+
 export function useWindowState() {
   let saveTimeout: NodeJS.Timeout | null = null;
   let isRestoringState = false;
@@ -120,9 +147,11 @@ export function useWindowState() {
 
     // 3. Periodic check as fallback for position changes
     // (position changes don't trigger browser events)
+    // TEMPORARY WORKAROUND: Use optimized interval for macOS Sequoia
+    const intervalMs = getOptimizedInterval(2000);
     const checkInterval = setInterval(() => {
       debouncedSave();
-    }, 2000); // Check every 2 seconds
+    }, intervalMs);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -142,6 +171,9 @@ export function useWindowState() {
 
     onMounted(async () => {
       console.log('Window state management initialized');
+
+      // TEMPORARY WORKAROUND: Initialize platform info for macOS Sequoia throttling
+      await getPlatformInfo();
 
       // Load state for logging
       await restoreWindowState();

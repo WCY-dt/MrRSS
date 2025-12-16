@@ -5,6 +5,33 @@ import { ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { UpdateInfo, DownloadResponse, InstallResponse } from '@/types/settings';
 
+// TEMPORARY WORKAROUND: Helper to get optimized interval for macOS Sequoia
+let platformInfoCache: { needsUIThrottling: boolean } | null = null;
+async function getPlatformInfo() {
+  if (platformInfoCache) {
+    return platformInfoCache;
+  }
+  try {
+    const response = await fetch('/api/platform/info');
+    if (response.ok) {
+      const data = await response.json();
+      platformInfoCache = { needsUIThrottling: data.needs_ui_throttling || false };
+      return platformInfoCache;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch platform info:', error);
+  }
+  platformInfoCache = { needsUIThrottling: false };
+  return platformInfoCache;
+}
+
+function getOptimizedInterval(baseInterval: number): number {
+  if (platformInfoCache?.needsUIThrottling) {
+    return Math.max(baseInterval * 2, 1000);
+  }
+  return baseInterval;
+}
+
 export function useAppUpdates() {
   const { t } = useI18n();
 
@@ -57,12 +84,17 @@ export function useAppUpdates() {
     downloadingUpdate.value = true;
     downloadProgress.value = 0;
 
+    // TEMPORARY WORKAROUND: Initialize platform info for macOS Sequoia throttling
+    await getPlatformInfo();
+
     // Simulate progress while downloading
+    // TEMPORARY WORKAROUND: Use optimized interval for macOS Sequoia
+    const progressIntervalMs = getOptimizedInterval(500);
     const progressInterval = setInterval(() => {
       if (downloadProgress.value < 90) {
         downloadProgress.value += 10;
       }
-    }, 500);
+    }, progressIntervalMs);
 
     try {
       // Download the update

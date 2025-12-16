@@ -2,6 +2,33 @@ import { ref, computed, onUnmounted, type Ref } from 'vue';
 import { useAppStore } from '@/stores/app';
 import { useI18n } from 'vue-i18n';
 
+// TEMPORARY WORKAROUND: Helper to get optimized interval for macOS Sequoia
+let platformInfoCache: { needsUIThrottling: boolean } | null = null;
+async function getPlatformInfo() {
+  if (platformInfoCache) {
+    return platformInfoCache;
+  }
+  try {
+    const response = await fetch('/api/platform/info');
+    if (response.ok) {
+      const data = await response.json();
+      platformInfoCache = { needsUIThrottling: data.needs_ui_throttling || false };
+      return platformInfoCache;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch platform info:', error);
+  }
+  platformInfoCache = { needsUIThrottling: false };
+  return platformInfoCache;
+}
+
+function getOptimizedInterval(baseInterval: number): number {
+  if (platformInfoCache?.needsUIThrottling) {
+    return Math.max(baseInterval * 2, 1000);
+  }
+  return baseInterval;
+}
+
 export interface DiscoveredFeed {
   name: string;
   homepage: string;
@@ -77,6 +104,9 @@ export function useDiscoverAllFeeds() {
       pollInterval = null;
     }
 
+    // TEMPORARY WORKAROUND: Initialize platform info for macOS Sequoia throttling
+    await getPlatformInfo();
+
     try {
       // Clear any previous discovery state
       await fetch('/api/feeds/discover-all/clear', { method: 'POST' });
@@ -102,6 +132,8 @@ export function useDiscoverAllFeeds() {
 
       progressCounts.value.total = startResult.total || 0;
 
+      // TEMPORARY WORKAROUND: Use optimized interval for macOS Sequoia
+      const pollIntervalMs = getOptimizedInterval(500);
       // Start polling for progress
       pollInterval = setInterval(async () => {
         try {
@@ -185,7 +217,7 @@ export function useDiscoverAllFeeds() {
           console.error('Polling error:', pollError);
           // Don't stop polling on transient errors
         }
-      }, 500); // Poll every 500ms
+      }, pollIntervalMs);
     } catch (error) {
       console.error('Batch discovery error:', error);
       errorMessage.value = t('discoveryFailed') + ': ' + (error as Error).message;

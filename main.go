@@ -29,6 +29,7 @@ import (
 	media "MrRSS/internal/handlers/media"
 	networkhandlers "MrRSS/internal/handlers/network"
 	opml "MrRSS/internal/handlers/opml"
+	platform "MrRSS/internal/handlers/platform"
 	rules "MrRSS/internal/handlers/rules"
 	script "MrRSS/internal/handlers/script"
 	settings "MrRSS/internal/handlers/settings"
@@ -206,6 +207,7 @@ func main() {
 	apiMux.HandleFunc("/api/window/save", func(w http.ResponseWriter, r *http.Request) { window.HandleSaveWindowState(h, w, r) })
 	apiMux.HandleFunc("/api/network/detect", func(w http.ResponseWriter, r *http.Request) { networkhandlers.HandleDetectNetwork(h, w, r) })
 	apiMux.HandleFunc("/api/network/info", func(w http.ResponseWriter, r *http.Request) { networkhandlers.HandleGetNetworkInfo(h, w, r) })
+	apiMux.HandleFunc("/api/platform/info", func(w http.ResponseWriter, r *http.Request) { platform.HandleGetPlatformInfo(h, w, r) })
 
 	// Static Files
 	log.Println("Setting up static files...")
@@ -316,12 +318,17 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 1},
 		Mac: &mac.Options{
-			TitleBar:             mac.TitleBarHiddenInset(),
+			TitleBar: &mac.TitleBar{
+				TitlebarAppearsTransparent: false, // Set to false to fix dragging issues on dual-screen setups
+				HideTitle:                  true,
+				HideTitleBar:               false,
+				FullSizeContent:            true,
+				UseToolbar:                 false,
+				HideToolbarSeparator:       true,
+			},
 			Appearance:           mac.NSAppearanceNameAqua,
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
-			// Prevent fullscreen black screen issue on MacOS
-			DisableZoom: false,
 			About: &mac.AboutInfo{
 				Title:   "MrRSS",
 				Message: "A modern, privacy-focused RSS reader\n\nCopyright © 2025 MrRSS Team",

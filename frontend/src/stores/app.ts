@@ -2,6 +2,41 @@ import { defineStore } from 'pinia';
 import { ref, type Ref } from 'vue';
 import type { Article, Feed, UnreadCounts, RefreshProgress } from '@/types/models';
 
+// TEMPORARY WORKAROUND: Helper to get platform info for macOS Sequoia throttling
+// This is a synchronous helper that reads from cached platform detection
+let platformInfoCache: { needsUIThrottling: boolean } | null = null;
+async function getPlatformInfo() {
+  if (platformInfoCache) {
+    return platformInfoCache;
+  }
+  try {
+    const response = await fetch('/api/platform/info');
+    if (response.ok) {
+      const data = await response.json();
+      platformInfoCache = { needsUIThrottling: data.needs_ui_throttling || false };
+      if (platformInfoCache.needsUIThrottling) {
+        console.log(
+          '[macOS Sequoia Workaround] UI throttling enabled to prevent WKWebView crashes'
+        );
+      }
+      return platformInfoCache;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch platform info:', error);
+  }
+  platformInfoCache = { needsUIThrottling: false };
+  return platformInfoCache;
+}
+
+// TEMPORARY WORKAROUND: Get optimized interval for platform
+function getOptimizedInterval(baseInterval: number): number {
+  // If platform info is available and throttling is needed, increase interval
+  if (platformInfoCache?.needsUIThrottling) {
+    return Math.max(baseInterval * 2, 1000); // 2x interval, minimum 1 second
+  }
+  return baseInterval;
+}
+
 export type Filter = 'all' | 'unread' | 'favorites' | 'readLater' | 'imageGallery' | '';
 export type ThemePreference = 'light' | 'dark' | 'auto';
 export type Theme = 'light' | 'dark';
@@ -66,6 +101,12 @@ export const useAppStore = defineStore('app', () => {
   // Refresh progress
   const refreshProgress = ref<RefreshProgress>({ current: 0, total: 0, isRunning: false });
   let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
+  // TEMPORARY WORKAROUND: Initialize platform info for macOS Sequoia throttling
+  // This runs once when the store is created
+  getPlatformInfo().catch((error) => {
+    console.warn('Failed to initialize platform info:', error);
+  });
 
   // Actions - Article Management
   function setFilter(filter: Filter): void {
@@ -251,6 +292,8 @@ export const useAppStore = defineStore('app', () => {
 
   function pollProgress(): void {
     let lastCurrent = 0;
+    // TEMPORARY WORKAROUND: Use optimized interval for macOS Sequoia
+    const pollInterval = getOptimizedInterval(500);
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/progress');
@@ -280,7 +323,7 @@ export const useAppStore = defineStore('app', () => {
         clearInterval(interval);
         refreshProgress.value.isRunning = false;
       }
-    }, 500);
+    }, pollInterval);
   }
 
   async function checkForAppUpdates(): Promise<void> {
