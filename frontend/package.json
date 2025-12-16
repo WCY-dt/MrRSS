@@ -32,7 +32,7 @@
     "@cypress/vue": "^6.0.2",
     "@types/highlight.js": "^10.1.0",
     "@types/node": "^25.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
     "@typescript-eslint/parser": "^8.49.0",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vue/eslint-config-prettier": "^10.2.0",
