@@ -8,6 +8,15 @@ import { usePlatform } from './usePlatform';
  *
  * This is a TEMPORARY WORKAROUND for macOS Sequoia WKWebView issues.
  * Once Apple fixes the WKWebView refresh rate issue, this can be removed.
+ *
+ * NOTE: This utility exists for consistency but is NOT currently used.
+ * The throttling logic is intentionally duplicated inline in each file
+ * (app.ts, useWindowState.ts, useFeedDiscovery.ts, etc.) to make it
+ * easier to locate and remove when the workaround is no longer needed.
+ * All duplicated code is marked with "TEMPORARY WORKAROUND" comments.
+ *
+ * If this workaround becomes permanent, consider refactoring to use this
+ * centralized utility instead of the duplicated code.
  */
 export function useThrottledInterval() {
   const { needsUIThrottling } = usePlatform();
