@@ -10,7 +10,7 @@ require (
 	github.com/antchfx/xmlquery v1.5.0
 	github.com/go-ego/gse v1.0.0
 	github.com/mmcdole/gofeed v1.3.0
-	github.com/wailsapp/wails/v3 v3.0.0-alpha.48
+	github.com/wailsapp/wails/v3 v3.0.0-alpha.8.3
 	golang.org/x/crypto v0.46.0
 	golang.org/x/net v0.47.0
 	modernc.org/sqlite v1.40.1
@@ -63,7 +63,6 @@ require (
 	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	modernc.org/libc v1.67.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
