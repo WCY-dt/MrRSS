@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Supported RSSHub plugin which can automatically set API key for feeds from RSSHub. (#302) (@cry0404)
+
 ## [1.3.8] - 2025-12-24
 
 ### Added
