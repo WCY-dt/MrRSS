@@ -234,6 +234,11 @@ func runMigrations(db *sql.DB) error {
 	// Migration: Add summary column for caching AI-generated summaries
 	_, _ = db.Exec(`ALTER TABLE articles ADD COLUMN summary TEXT DEFAULT ''`)
 
+	// Migration: Add RSSHub support fields to feeds table
+	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN is_rsshub BOOLEAN DEFAULT 0`)
+	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN rsshub_route TEXT DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN original_url TEXT DEFAULT ''`)
+
 	return nil
 }
 

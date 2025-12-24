@@ -20,6 +20,10 @@ type Feed struct {
 	ProxyEnabled       bool      `json:"proxy_enabled"`         // Whether to use proxy for this feed
 	RefreshInterval    int       `json:"refresh_interval"`      // Custom refresh interval in minutes (0 = use global, -1 = intelligent, >0 = custom minutes)
 	IsImageMode        bool      `json:"is_image_mode"`         // Whether this feed is for image gallery mode
+	// RSSHub support
+	IsRSSHub           bool      `json:"is_rsshub"`            // Whether this feed is from RSSHub
+	RSSHubRoute        string    `json:"rsshub_route,omitempty"` // RSSHub route path (e.g., "/nytimes")
+	OriginalURL        string    `json:"original_url,omitempty"` // Original URL before RSSHub fallback
 	// XPath support for HTML/XML scraping
 	Type                string `json:"type"`                   // "HTML+XPath" or "XML+XPath"
 	XPathItem           string `json:"xpath_item"`             // XPath to extract feed items
