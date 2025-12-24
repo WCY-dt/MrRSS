@@ -41,7 +41,7 @@ const emit = defineEmits<{
   'download-install-update': [];
 }>();
 
-const appVersion: Ref<string> = ref('1.3.8');
+const appVersion: Ref<string> = ref('1.3.9');
 
 onMounted(async () => {
   // Fetch current version from API
