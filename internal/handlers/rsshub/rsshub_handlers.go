@@ -44,7 +44,6 @@ func HandleTestConfig(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		Success: false,
 	}
 
-	// Validate instance URL
 	if req.InstanceURL == "" {
 		response.Error = "Instance URL is required"
 		w.Header().Set("Content-Type", "application/json")
@@ -53,21 +52,17 @@ func HandleTestConfig(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse and validate URL
 	urlStr := strings.TrimSpace(req.InstanceURL)
-	
-	// If URL doesn't have a scheme, try to add one
-	// Check if it looks like a URL with port (e.g., "127.0.0.1:8080" or "localhost:8080")
+
 	if !strings.Contains(urlStr, "://") {
-		// If it contains a colon and looks like host:port, add http://
+
 		if strings.Contains(urlStr, ":") && !strings.HasPrefix(urlStr, "/") {
 			urlStr = "http://" + urlStr
 		} else {
-			// Otherwise, default to https
 			urlStr = "https://" + urlStr
 		}
 	}
-	
+
 	instanceURL, err := url.Parse(urlStr)
 	if err != nil {
 		response.Error = fmt.Sprintf("Invalid instance URL: %v", err)
@@ -82,15 +77,17 @@ func HandleTestConfig(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		instanceURL.Scheme = "https"
 	}
 	instanceURL.Path = strings.TrimSuffix(instanceURL.Path, "/")
-	testURL := instanceURL.String()
+	baseURL := instanceURL.String()
+
+	// test a normal endpoints to ensure authorize is needed
+	testURL := baseURL + "/nytimes"
 
 	// Test connection with both authentication methods
 	startTime := time.Now()
 
-	// Try query parameter method first
 	_, statusCode, err := testRSSHubConnection(testURL, req.APIKey, "query")
 	if err != nil {
-		// Try header method if query parameter fails
+
 		_, statusCode, err = testRSSHubConnection(testURL, req.APIKey, "header")
 	}
 
@@ -118,12 +115,11 @@ func HandleTestConfig(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 
 // testRSSHubConnection tests the RSSHub connection with the specified authentication method
 func testRSSHubConnection(baseURL, apiKey, authMethod string) (success bool, statusCode int, err error) {
-	// Create HTTP client with timeout
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	// Build request URL
 	reqURL := baseURL
 	if apiKey != "" && authMethod == "query" {
 		u, _ := url.Parse(baseURL)
@@ -139,39 +135,39 @@ func testRSSHubConnection(baseURL, apiKey, authMethod string) (success bool, sta
 		return false, 0, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add authentication header if using header method
 	if apiKey != "" && authMethod == "header" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
-	// Set user agent
+	// Set user agent, and rsshub do not need real ua, so I just call it MrRSS hhhh
+	// if in the future need, maybe we can offer a ua.txt , and get it randomly
+
 	req.Header.Set("User-Agent", "MrRSS/1.0")
 
-	// Send request
 	resp, err := client.Do(req)
 	if err != nil {
 		return false, 0, fmt.Errorf("connection failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Read response body (limit to first 1KB to avoid reading large responses)
 	bodyBytes := make([]byte, 1024)
 	n, _ := io.ReadFull(resp.Body, bodyBytes)
 	bodyStr := string(bodyBytes[:n])
 
-	// Check status code
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == 503 {
+		if apiKey == "" {
+			return false, resp.StatusCode, fmt.Errorf("authentication required - this instance requires an API key")
+		}
 		return false, resp.StatusCode, fmt.Errorf("authentication failed - check API key")
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		// Try to extract error message from response
+
 		if strings.Contains(bodyStr, "error") || strings.Contains(bodyStr, "Error") {
 			return false, resp.StatusCode, fmt.Errorf("RSSHub returned error (status %d)", resp.StatusCode)
 		}
 		return false, resp.StatusCode, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	// Success - RSSHub should return HTML or RSS/XML content
 	return true, resp.StatusCode, nil
 }
