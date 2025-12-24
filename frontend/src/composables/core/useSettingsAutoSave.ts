@@ -200,6 +200,10 @@ export function useSettingsAutoSave(settings: Ref<SettingsData> | (() => Setting
             settingsRef.value.freshrss_username ?? settingsDefaults.freshrss_username,
           freshrss_api_password:
             settingsRef.value.freshrss_api_password ?? settingsDefaults.freshrss_api_password,
+          miniflux_server_url:
+            settingsRef.value.miniflux_server_url ?? settingsDefaults.miniflux_server_url,
+          miniflux_api_key:
+            settingsRef.value.miniflux_api_key ?? settingsDefaults.miniflux_api_key,
           full_text_fetch_enabled: (
             settingsRef.value.full_text_fetch_enabled ?? settingsDefaults.full_text_fetch_enabled
           ).toString(),

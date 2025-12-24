@@ -72,6 +72,8 @@ type Defaults struct {
 	FreshRSSServerURL        string `json:"freshrss_server_url"`
 	FreshRSSUsername         string `json:"freshrss_username"`
 	FreshRSSAPIPassword      string `json:"freshrss_api_password"`
+	MinifluxServerURL        string `json:"miniflux_server_url"`
+	MinifluxAPIKey           string `json:"miniflux_api_key"`
 	FullTextFetchEnabled     bool   `json:"full_text_fetch_enabled"`
 }
 
@@ -207,6 +209,10 @@ func GetString(key string) string {
 		return defaults.FreshRSSUsername
 	case "freshrss_api_password":
 		return defaults.FreshRSSAPIPassword
+	case "miniflux_server_url":
+		return defaults.MinifluxServerURL
+	case "miniflux_api_key":
+		return defaults.MinifluxAPIKey
 	case "full_text_fetch_enabled":
 		return strconv.FormatBool(defaults.FullTextFetchEnabled)
 	default:

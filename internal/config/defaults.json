@@ -61,5 +61,7 @@
   "freshrss_server_url": "",
   "freshrss_username": "",
   "freshrss_api_password": "",
+  "miniflux_server_url": "",
+  "miniflux_api_key": "",
   "full_text_fetch_enabled": true
 }

@@ -1,0 +1,7 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Miniflux-inspired icon -->
+  <rect width="32" height="32" rx="6" fill="#2563EB"/>
+  <path d="M8 12 L16 8 L24 12 L16 16 Z" fill="white" opacity="0.9"/>
+  <path d="M8 16 L8 20 L16 24 L16 20 Z" fill="white" opacity="0.7"/>
+  <path d="M24 16 L24 20 L16 24 L16 20 Z" fill="white" opacity="0.5"/>
+</svg>
