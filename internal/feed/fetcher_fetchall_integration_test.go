@@ -12,7 +12,6 @@ import (
 	"MrRSS/internal/models"
 )
 
-
 // Test that FetchAll cancels promptly when context is cancelled
 func TestFetchAll_RespectsCancellation(t *testing.T) {
 	db, err := database.NewDB(":memory:")

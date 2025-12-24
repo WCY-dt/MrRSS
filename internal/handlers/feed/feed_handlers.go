@@ -32,9 +32,9 @@ func HandleAddFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		RefreshInterval  int    `json:"refresh_interval"`
 		IsImageMode      bool   `json:"is_image_mode"`
 		// RSSHub fields
-		IsRSSHub     bool   `json:"is_rsshub"`
-		RSSHubRoute  string `json:"rsshub_route"`
-		OriginalURL  string `json:"original_url"`
+		IsRSSHub    bool   `json:"is_rsshub"`
+		RSSHubRoute string `json:"rsshub_route"`
+		OriginalURL string `json:"original_url"`
 		// XPath fields
 		Type                string `json:"type"`
 		XPathItem           string `json:"xpath_item"`
@@ -122,9 +122,9 @@ func HandleUpdateFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		RefreshInterval  int    `json:"refresh_interval"`
 		IsImageMode      bool   `json:"is_image_mode"`
 		// RSSHub fields
-		IsRSSHub     bool   `json:"is_rsshub"`
-		RSSHubRoute  string `json:"rsshub_route"`
-		OriginalURL  string `json:"original_url"`
+		IsRSSHub    bool   `json:"is_rsshub"`
+		RSSHubRoute string `json:"rsshub_route"`
+		OriginalURL string `json:"original_url"`
 		// XPath fields
 		Type                string `json:"type"`
 		XPathItem           string `json:"xpath_item"`
