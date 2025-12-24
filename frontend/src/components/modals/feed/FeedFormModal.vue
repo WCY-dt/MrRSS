@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PhCaretDown, PhCaretRight } from '@phosphor-icons/vue';
 import type { Feed } from '@/types/models';
+import type { RouteMatch } from '@/types/rsshub';
 import { useModalClose } from '@/composables/ui/useModalClose';
 import { useFeedForm } from '@/composables/feed/useFeedForm';
+import { useAppStore } from '@/stores/app';
 import UrlInput from './parts/UrlInput.vue';
 import ScriptSelector from './parts/ScriptSelector.vue';
 import XPathConfig from './parts/XPathConfig.vue';
 import CategorySelector from './parts/CategorySelector.vue';
 import AdvancedSettings from './parts/AdvancedSettings.vue';
+import RSSHubRouteSelectorModal from './RSSHubRouteSelectorModal.vue';
 
 interface Props {
   mode: 'add' | 'edit';
@@ -18,6 +22,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
+const appStore = useAppStore();
 
 // Use the shared feed form composable
 const {
@@ -72,12 +77,95 @@ const emit = defineEmits<{
   updated: [];
 }>();
 
+// RSSHub route selector state
+const showRouteSelector = ref(false);
+const rsshubMatches = ref<RouteMatch[]>([]);
+const rsshubOriginalUrl = ref('');
+const suggestedRoutes = ref<RouteMatch[]>([]); // Routes to show below URL input
+const isLoadingRoutes = ref(false);
+let routeMatchTimer: ReturnType<typeof setTimeout> | null = null;
+
 // Modal close handling
 useModalClose(() => close());
 
 function close() {
   emit('close');
 }
+
+// Check for RSSHub routes when URL changes
+async function checkRSSHubRoutes() {
+  // Only check in URL mode for new subscriptions
+  if (props.mode !== 'add' || feedType.value !== 'url' || !url.value) {
+    suggestedRoutes.value = [];
+    return;
+  }
+
+  // Check if RSSHub is enabled
+  const settings = appStore.settings;
+
+  // Guard against undefined settings
+  if (!settings) {
+    suggestedRoutes.value = [];
+    return;
+  }
+
+  console.log('[RSSHub] Checking routes, settings:', {
+    enabled: settings.rsshub_enabled,
+    fallback: settings.rsshub_fallback_enabled,
+    url: url.value,
+  });
+
+  if (!settings.rsshub_enabled || !settings.rsshub_fallback_enabled) {
+    suggestedRoutes.value = [];
+    return;
+  }
+
+  // Debounce the API call
+  if (routeMatchTimer) {
+    clearTimeout(routeMatchTimer);
+  }
+
+  routeMatchTimer = setTimeout(async () => {
+    try {
+      isLoadingRoutes.value = true;
+      console.log('[RSSHub] Fetching routes for:', url.value);
+
+      const res = await fetch('/api/rsshub/routes/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.value }),
+      });
+
+      console.log('[RSSHub] Response status:', res.status);
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('[RSSHub] Response data:', data);
+
+        if (data.matches && data.matches.length > 0) {
+          suggestedRoutes.value = data.matches;
+          console.log('[RSSHub] Found', data.matches.length, 'routes');
+        } else {
+          suggestedRoutes.value = [];
+          console.log('[RSSHub] No matches found');
+        }
+      } else {
+        suggestedRoutes.value = [];
+        console.log('[RSSHub] Request failed:', res.status);
+      }
+    } catch (e) {
+      console.error('[RSSHub] Failed to check routes:', e);
+      suggestedRoutes.value = [];
+    } finally {
+      isLoadingRoutes.value = false;
+    }
+  }, 500); // 500ms debounce
+}
+
+// Watch URL changes to check for RSSHub routes
+watch([url, feedType], () => {
+  checkRSSHubRoutes();
+});
 
 async function submit() {
   if (!isFormValid.value) return;
@@ -156,7 +244,31 @@ async function submit() {
       }
       close();
     } else {
-      // Read error message from response
+      // Try to parse error as JSON first
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const errorData: {
+            error: string;
+            code: string;
+            original_url: string;
+            matches: RouteMatch[];
+          } = await res.json();
+
+          // Check if this is an RSSHub match error
+          if (errorData.code === 'RSSHUB_MATCH_FOUND' && errorData.matches) {
+            // Show route selector modal
+            rsshubOriginalUrl.value = errorData.original_url;
+            rsshubMatches.value = errorData.matches;
+            showRouteSelector.value = true;
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to parse error JSON:', e);
+        }
+      }
+
+      // Fallback to text error
       const errorText = await res.text();
       const errorKey = props.mode === 'add' ? 'errorAddingFeed' : 'errorUpdatingFeed';
       window.showToast(`${t(errorKey)}: ${errorText}`, 'error');
@@ -168,6 +280,75 @@ async function submit() {
   } finally {
     isSubmitting.value = false;
   }
+}
+
+// Handle RSSHub route selection
+async function handleRouteSelect(match: RouteMatch) {
+  // Guard against undefined settings
+  const settings = appStore.settings;
+  if (!settings) {
+    window.showToast('Settings not loaded', 'error');
+    return;
+  }
+
+  // Create RSSHub protocol URL instead of full URL
+  // This allows the backend to dynamically build the RSSHub URL
+  const rssHubProtocolURL = 'rsshub://' + rsshubOriginalUrl.value;
+
+  // Build request body with RSSHub protocol URL
+  isSubmitting.value = true;
+  try {
+    const body: Record<string, string | boolean | number> = {
+      url: rssHubProtocolURL, // Use rsshub:// protocol
+      category: category.value,
+      title: title.value || match.title,
+      hide_from_timeline: hideFromTimeline.value,
+      is_image_mode: isImageMode.value,
+      refresh_interval: getRefreshInterval(),
+      // RSSHub metadata
+      is_rsshub: true,
+      rsshub_route: match.route,
+      original_url: rsshubOriginalUrl.value,
+    };
+
+    // Handle proxy settings
+    if (proxyMode.value === 'custom') {
+      body.proxy_enabled = true;
+      body.proxy_url = buildProxyUrl();
+    } else if (proxyMode.value === 'global') {
+      body.proxy_enabled = true;
+      body.proxy_url = '';
+    } else {
+      body.proxy_enabled = false;
+      body.proxy_url = '';
+    }
+
+    const res = await fetch('/api/feeds/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      showRouteSelector.value = false;
+      emit('added');
+      resetForm();
+      window.showToast(t('feedAddedSuccess'), 'success');
+      close();
+    } else {
+      const errorText = await res.text();
+      window.showToast(`${t('errorAddingFeed')}: ${errorText}`, 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    window.showToast(t('errorAddingFeed'), 'error');
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+function closeRouteSelector() {
+  showRouteSelector.value = false;
 }
 </script>
 
@@ -218,6 +399,43 @@ async function submit() {
           <!-- URL Input (default mode) -->
           <div v-if="feedType === 'url'" key="url-mode">
             <UrlInput v-model="url" :mode="mode" :is-invalid="mode === 'add' && isUrlInvalid" />
+
+            <!-- RSSHub suggested routes -->
+            <div v-if="suggestedRoutes.length > 0 || isLoadingRoutes" class="mt-3">
+              <div v-if="isLoadingRoutes" class="text-xs text-text-tertiary text-center">
+                {{ t('rsshub.loading_routes') }}
+              </div>
+              <div v-else class="space-y-2">
+                <div class="text-xs text-text-secondary font-medium">
+                  {{ t('rsshub.available_routes') }}
+                </div>
+                <div
+                  v-for="match in suggestedRoutes"
+                  :key="match.route"
+                  class="p-2 sm:p-2.5 bg-bg-secondary rounded-lg border border-border hover:border-accent cursor-pointer transition-colors"
+                  :class="{ 'ring-2 ring-accent': match.score >= 0.8 }"
+                  @click="handleRouteSelect(match)"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-text-primary truncate">{{
+                          match.title
+                        }}</span>
+                        <span
+                          v-if="match.score >= 0.8"
+                          class="px-1.5 py-0.5 text-xs bg-green-500/20 text-green-600 rounded shrink-0"
+                        >
+                          {{ t('rsshub.recommended') }}
+                        </span>
+                      </div>
+                      <code class="text-xs text-text-tertiary break-all">{{ match.route }}</code>
+                    </div>
+                    <PhCaretRight :size="16" class="text-text-tertiary shrink-0 ml-2" />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <!-- Mode switching links -->
             <div class="mt-3 text-center">
@@ -430,6 +648,15 @@ async function submit() {
       </div>
     </div>
   </div>
+
+  <!-- RSSHub Route Selector Modal -->
+  <RSSHubRouteSelectorModal
+    :visible="showRouteSelector"
+    :original-url="rsshubOriginalUrl"
+    :matches="rsshubMatches"
+    @close="closeRouteSelector"
+    @select="handleRouteSelect"
+  />
 </template>
 
 <style scoped>

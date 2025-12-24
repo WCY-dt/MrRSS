@@ -3,6 +3,7 @@ package feed
 import (
 	"MrRSS/internal/database"
 	"MrRSS/internal/models"
+	rsshubpkg "MrRSS/internal/rsshub"
 	"MrRSS/internal/rules"
 	"MrRSS/internal/translation"
 	"MrRSS/internal/utils"
@@ -46,20 +47,36 @@ func NewFetcher(db *database.DB, translator translation.Translator) *Fetcher {
 		executor = NewScriptExecutor(scriptsDir)
 	}
 
-	// Create HTTP client for feed parsing
-	httpClient, err := CreateHTTPClient("")
+	// Create base HTTP client for feed parsing
+	baseHTTPClient, err := CreateHTTPClient("")
 	if err != nil {
 		// Fallback to default client if proxy setup fails
-		httpClient = &http.Client{Timeout: 30 * time.Second}
+		baseHTTPClient = &http.Client{Timeout: 30 * time.Second}
 	}
 
-	// Create parser with custom HTTP client to support localhost and other endpoints
-	parser := gofeed.NewParser()
-	parser.Client = httpClient
+	// Get RSSHub API key for authentication
+	var rssHubAPIKey string
+	if key, err := db.GetEncryptedSetting("rsshub_api_key"); err == nil && key != "" {
+		rssHubAPIKey = key
+	}
 
-	// Create high priority parser with shorter timeout for content fetching
+	// Wrap base transport with AuthTransport for RSSHub authentication
+	authTransport := rsshubpkg.NewAuthTransport(rssHubAPIKey)
+	// Get the underlying transport from base client to preserve proxy settings
+	if baseTransport, ok := baseHTTPClient.Transport.(*http.Transport); ok {
+		authTransport.SetBaseTransport(baseTransport)
+	}
+
+	authHTTPClient := &http.Client{
+		Transport: authTransport,
+		Timeout:   30 * time.Second,
+	}
+
+	parser := gofeed.NewParser()
+	parser.Client = authHTTPClient
+
 	highPriorityParser := gofeed.NewParser()
-	highPriorityParser.Client = httpClient
+	highPriorityParser.Client = authHTTPClient
 
 	return &Fetcher{
 		db:                db,

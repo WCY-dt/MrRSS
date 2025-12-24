@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PhGlobe, PhKey, PhToggleLeft, PhWifiHigh } from '@phosphor-icons/vue';
+import { PhBookOpen, PhGlobe, PhKey, PhToggleLeft, PhWifiHigh } from '@phosphor-icons/vue';
 import type { SettingsData } from '@/types/settings';
+import { openInBrowser } from '@/utils/browser';
 
 const { t } = useI18n();
 
@@ -95,6 +96,23 @@ async function testConnection() {
     v-if="props.settings.rsshub_enabled"
     class="ml-2 sm:ml-4 space-y-2 sm:space-y-3 border-l-2 border-border pl-2 sm:pl-4"
   >
+    <!-- Usage Hint -->
+    <div class="sub-setting-item">
+      <div class="flex-1 flex items-start gap-2 sm:gap-3 min-w-0">
+        <PhBookOpen :size="20" class="text-text-secondary mt-0.5 shrink-0 sm:w-6 sm:h-6" />
+        <div class="flex-1 min-w-0">
+          <div class="text-xs text-text-secondary leading-relaxed">
+            <span class="font-medium text-text-primary">{{ t('rsshubUsageHint') }}</span>
+            <span
+              class="text-accent hover:underline font-semibold ml-1 cursor-pointer"
+              @click="openInBrowser('https://docs.rsshub.app')"
+            >
+              {{ t('rsshubUsageHintLink') }} →
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Instance URL -->
     <div class="sub-setting-item">
       <div class="flex-1 flex items-center sm:items-start gap-2 sm:gap-3 min-w-0">

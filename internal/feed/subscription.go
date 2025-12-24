@@ -2,6 +2,7 @@ package feed
 
 import (
 	"MrRSS/internal/models"
+	rsshubpkg "MrRSS/internal/rsshub"
 	"MrRSS/internal/utils"
 	"context"
 	"fmt"
@@ -21,6 +22,15 @@ import (
 // AddSubscription adds a new feed subscription and returns the feed ID.
 func (f *Fetcher) AddSubscription(url string, category string, customTitle string) (int64, error) {
 	utils.DebugLog("AddSubscription: Starting to add feed from URL: %s", url)
+
+	// Check if URL matches user's configured RSSHub instance
+	configuredInstance, err := f.db.GetSetting("rsshub_instance_url")
+	if err == nil && configuredInstance != "" {
+		if rsshubpkg.MatchesInstanceURL(url, configuredInstance) {
+			utils.DebugLog("AddSubscription: URL matches configured RSSHub instance: %s", configuredInstance)
+			return f.addRSSHubSubscriptionDirect(url, category, customTitle)
+		}
+	}
 
 	// Try standard parsing first
 	utils.DebugLog("AddSubscription: Attempting standard RSS parsing for URL: %s", url)
@@ -54,7 +64,7 @@ func (f *Fetcher) AddSubscription(url string, category string, customTitle strin
 			}
 			utils.DebugLog("AddSubscription: JavaScript execution succeeded")
 		} else {
-			// For other types of errors (network, etc.), don't try JS execution
+			// Return original error
 			utils.DebugLog("AddSubscription: Returning error without JavaScript execution: %v", err)
 			return 0, err
 		}
@@ -192,7 +202,69 @@ func (f *Fetcher) ParseFeedWithFeed(ctx context.Context, feed *models.Feed, prio
 
 // parseFeedWithFeedInternal does the actual parsing work
 func (f *Fetcher) parseFeedWithFeedInternal(ctx context.Context, feed *models.Feed, priority bool) (*gofeed.Feed, error) {
-	utils.DebugLog("parseFeedWithFeedInternal: Starting parsing for URL: %s, scriptPath: %s, type: %s, priority: %v", feed.URL, feed.ScriptPath, feed.Type, priority)
+	utils.DebugLog("parseFeedWithFeedInternal: Starting parsing for URL: %s, scriptPath: %s, type: %s, priority: %v, IsRSSHub: %v, RSSHubRoute: %s", feed.URL, feed.ScriptPath, feed.Type, priority, feed.IsRSSHub, feed.RSSHubRoute)
+
+	// Check if this feed URL matches the configured RSSHub instance
+	// This handles both properly marked RSSHub feeds and legacy feeds that weren't marked
+	configuredInstance, _ := f.db.GetSetting("rsshub_instance_url")
+	isRSSHubFeed := feed.IsRSSHub && feed.RSSHubRoute != ""
+
+	// Also check if URL matches configured instance (for legacy feeds not properly marked)
+	if !isRSSHubFeed && configuredInstance != "" && rsshubpkg.MatchesInstanceURL(feed.URL, configuredInstance) {
+		utils.DebugLog("parseFeedWithFeedInternal: URL matches configured RSSHub instance, treating as RSSHub feed")
+		isRSSHubFeed = true
+		// Extract route from URL path
+		if feed.RSSHubRoute == "" {
+			routePath, _, _ := rsshubpkg.ParseRSSHubURL(feed.URL)
+			feed.RSSHubRoute = routePath
+			utils.DebugLog("parseFeedWithFeedInternal: Extracted route from URL: %s", routePath)
+		}
+	}
+
+	if isRSSHubFeed {
+		utils.DebugLog("parseFeedWithFeedInternal: Rebuilding RSSHub URL from stored route: %s", feed.RSSHubRoute)
+
+		// Extract instance URL from stored URL
+		instanceURL, err := rsshubpkg.ExtractInstanceURL(feed.URL)
+		if err != nil {
+			utils.DebugLog("parseFeedWithFeedInternal: Failed to extract instance URL: %v", err)
+			if configuredInstance != "" {
+				instanceURL = configuredInstance
+			} else {
+				instanceURL = "https://rsshub.app" // Fallback to default
+			}
+		}
+		utils.DebugLog("parseFeedWithFeedInternal: Using instance URL: %s", instanceURL)
+
+		// Get API key from settings
+		apiKey, err := f.db.GetEncryptedSetting("rsshub_api_key")
+		if err != nil {
+			utils.DebugLog("parseFeedWithFeedInternal: No API key in settings: %v", err)
+			apiKey = ""
+		} else if apiKey != "" {
+			utils.DebugLog("parseFeedWithFeedInternal: Using API key from settings (length: %d)", len(apiKey))
+		} else {
+			utils.DebugLog("parseFeedWithFeedInternal: API key is empty in settings")
+		}
+
+		// Parse the stored RSSHub URL to extract query parameters
+		_, queryParams, err := rsshubpkg.ParseRSSHubURL(feed.URL)
+		if err != nil {
+			utils.DebugLog("parseFeedWithFeedInternal: Failed to parse stored URL: %v", err)
+			// Continue with the stored URL as-is
+		} else {
+			// Rebuild the RSSHub URL using current settings
+			rssHubURL := rsshubpkg.BuildRSSHubURL(instanceURL, feed.RSSHubRoute, queryParams, apiKey)
+
+			utils.DebugLog("parseFeedWithFeedInternal: Rebuilt RSSHub URL with apiKey (len=%d): %s", len(apiKey), rssHubURL)
+			if len(apiKey) > 0 {
+				// Log first few chars of API key for debugging (NOT the full key!)
+				maskedKey := apiKey[:min(4, len(apiKey))] + "..."
+				utils.DebugLog("parseFeedWithFeedInternal: API key preview: %s", maskedKey)
+			}
+			feed.URL = rssHubURL
+		}
+	}
 
 	if feed.ScriptPath != "" {
 		utils.DebugLog("parseFeedWithFeedInternal: Using script execution for %s", feed.ScriptPath)
@@ -827,4 +899,77 @@ func (f *Fetcher) parseFeedWithJavaScript(ctx context.Context, feedURL string, p
 
 	utils.DebugLog("parseFeedWithJavaScript: RSS/Atom parsing succeeded, feed title: %s, items count: %d", feed.Title, len(feed.Items))
 	return feed, nil
+}
+
+// addRSSHubSubscriptionDirect adds a feed from a direct RSSHub URL
+// URL format: https://rsshub.app/weibo/user/7752024421?limit=10
+// Parses the URL and stores the route for future reconstruction
+// Note: The 'key' parameter from URL is ignored and will be added from settings automatically
+func (f *Fetcher) addRSSHubSubscriptionDirect(rssHubURL string, category string, customTitle string) (int64, error) {
+	utils.DebugLog("addRSSHubSubscriptionDirect: Processing RSSHub URL: %s", rssHubURL)
+
+	// Extract instance URL from the input URL
+	instanceURL, err := rsshubpkg.ExtractInstanceURL(rssHubURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to extract instance URL: %w", err)
+	}
+	utils.DebugLog("addRSSHubSubscriptionDirect: Extracted instance URL: %s", instanceURL)
+
+	// Parse the RSSHub URL to extract route path and query parameters (excluding 'key')
+	routePath, queryParams, err := rsshubpkg.ParseRSSHubURL(rssHubURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse RSSHub URL: %w", err)
+	}
+	utils.DebugLog("addRSSHubSubscriptionDirect: Extracted route: %s, params: %v", routePath, queryParams)
+
+	// Get API key from settings
+	apiKey, err := f.db.GetEncryptedSetting("rsshub_api_key")
+	if err != nil {
+		utils.DebugLog("addRSSHubSubscriptionDirect: No API key in settings: %v", err)
+		apiKey = ""
+	} else if apiKey != "" {
+		utils.DebugLog("addRSSHubSubscriptionDirect: Using API key from settings (length: %d)", len(apiKey))
+	} else {
+		utils.DebugLog("addRSSHubSubscriptionDirect: API key is empty in settings")
+	}
+
+	// Build RSSHub URL for fetching (with API key from settings)
+	fetchURL := rsshubpkg.BuildRSSHubURL(instanceURL, routePath, queryParams, apiKey)
+	utils.DebugLog("addRSSHubSubscriptionDirect: Fetch URL: %s", fetchURL)
+
+	// Parse the RSSHub feed to get metadata
+	parsedFeed, err := f.fp.ParseURL(fetchURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse RSSHub feed: %w", err)
+	}
+
+	// Determine feed title
+	title := customTitle
+	if title == "" {
+		title = parsedFeed.Title
+	}
+	if title == "" {
+		title = routePath
+	}
+
+	// Build a clean URL without API key to store (key will be added from settings on refresh)
+	storedURL := rsshubpkg.BuildRSSHubURL(instanceURL, routePath, queryParams, "")
+
+	// Create feed with RSSHub metadata
+	feed := &models.Feed{
+		Title:       title,
+		URL:         storedURL, // Store URL without key - will be rebuilt on refresh
+		Link:        parsedFeed.Link,
+		Description: parsedFeed.Description,
+		Category:    category,
+		IsRSSHub:    true,
+		RSSHubRoute: routePath, // Store the route path for reconstruction
+	}
+
+	if parsedFeed.Image != nil {
+		feed.ImageURL = parsedFeed.Image.URL
+	}
+
+	utils.DebugLog("addRSSHubSubscriptionDirect: Creating feed with route: %s, stored URL: %s", routePath, storedURL)
+	return f.db.AddFeed(feed)
 }

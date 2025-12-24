@@ -63,7 +63,10 @@ export const useAppStore = defineStore('app', () => {
   const hasMore = ref<boolean>(true);
   const searchQuery = ref<string>('');
   const themePreference = ref<ThemePreference>(
-    (localStorage.getItem('themePreference') as ThemePreference) || 'auto'
+    (typeof localStorage !== 'undefined' &&
+      typeof localStorage.getItem === 'function' &&
+      (localStorage.getItem('themePreference') as ThemePreference)) ||
+      'auto'
   );
   const theme = ref<Theme>('light');
 

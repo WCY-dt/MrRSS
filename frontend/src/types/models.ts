@@ -49,6 +49,10 @@ export interface Feed {
   xpath_item_thumbnail?: string;
   xpath_item_categories?: string;
   xpath_item_uid?: string;
+  // RSSHub support
+  is_rsshub?: boolean;
+  rsshub_route?: string;
+  original_url?: string;
 }
 
 export interface UnreadCounts {

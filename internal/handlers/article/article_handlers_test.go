@@ -63,7 +63,7 @@ func TestHandleArticles_ListAndImageGallery(t *testing.T) {
 	}
 
 	// Image gallery: mark feed as image mode and add image article
-	if err := h.DB.UpdateFeed(feedID, "F", "http://x", "", "", false, "", false, 0, true, "", "", "", "", "", "", "", "", "", "", ""); err != nil {
+	if err := h.DB.UpdateFeed(feedID, "F", "http://x", "", "", false, "", false, 0, true, false, "", "", "", "", "", "", "", "", "", "", "", "", ""); err != nil {
 		t.Fatalf("UpdateFeed: %v", err)
 	}
 	imgArticle := &models.Article{FeedID: feedID, Title: "img", URL: "iu", ImageURL: "http://img", PublishedAt: time.Now()}

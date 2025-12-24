@@ -12,14 +12,47 @@ export function usePlatform() {
       return; // Already detected
     }
 
+    // Wait for Wails runtime to be available
+    const checkWailsRuntime = (): Promise<void> => {
+      return new Promise((resolve) => {
+        // Check if Wails runtime is available
+        if (typeof window !== 'undefined' && (window as any)._wails) {
+          resolve();
+          return;
+        }
+
+        // Wait a bit and check again
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max wait
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (typeof window !== 'undefined' && (window as any)._wails) {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            resolve(); // Resolve anyway to avoid blocking
+          }
+        }, 100);
+      });
+    };
+
     try {
-      const env = await System.Environment();
-      isMacOS.value = env.OS === 'darwin';
-      isWindows.value = env.OS === 'windows';
-      isLinux.value = env.OS === 'linux';
-      platformDetected.value = true;
+      // Wait for Wails runtime before using System API
+      await checkWailsRuntime();
+
+      // Check if System is available
+      if (System && System.Environment) {
+        const env = await System.Environment();
+        isMacOS.value = env.OS === 'darwin';
+        isWindows.value = env.OS === 'windows';
+        isLinux.value = env.OS === 'linux';
+        platformDetected.value = true;
+      } else {
+        throw new Error('System API not available');
+      }
     } catch (error) {
-      console.error('Failed to detect platform:', error);
+      console.warn('Failed to detect platform via Wails API, using fallback:', error);
       // Fallback to user agent detection
       const ua = navigator.userAgent.toLowerCase();
       isMacOS.value = ua.includes('mac');

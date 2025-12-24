@@ -70,6 +70,10 @@ export function useSettings() {
     freshrss_username: settingsDefaults.freshrss_username,
     freshrss_api_password: settingsDefaults.freshrss_api_password,
     full_text_fetch_enabled: settingsDefaults.full_text_fetch_enabled,
+    rsshub_enabled: settingsDefaults.rsshub_enabled,
+    rsshub_instance_url: settingsDefaults.rsshub_instance_url,
+    rsshub_fallback_enabled: settingsDefaults.rsshub_fallback_enabled,
+    rsshub_api_key: settingsDefaults.rsshub_api_key,
   } as SettingsData);
 
   /**
@@ -147,6 +151,10 @@ export function useSettings() {
         freshrss_username: data.freshrss_username || settingsDefaults.freshrss_username,
         freshrss_api_password: data.freshrss_api_password || settingsDefaults.freshrss_api_password,
         full_text_fetch_enabled: data.full_text_fetch_enabled === 'true',
+        rsshub_enabled: data.rsshub_enabled === 'true',
+        rsshub_instance_url: data.rsshub_instance_url || settingsDefaults.rsshub_instance_url,
+        rsshub_fallback_enabled: data.rsshub_fallback_enabled === 'true',
+        rsshub_api_key: data.rsshub_api_key || settingsDefaults.rsshub_api_key,
       } as SettingsData;
 
       return settings.value;

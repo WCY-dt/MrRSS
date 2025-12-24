@@ -31,6 +31,10 @@ func HandleAddFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		ProxyEnabled     bool   `json:"proxy_enabled"`
 		RefreshInterval  int    `json:"refresh_interval"`
 		IsImageMode      bool   `json:"is_image_mode"`
+		// RSSHub fields
+		IsRSSHub     bool   `json:"is_rsshub"`
+		RSSHubRoute  string `json:"rsshub_route"`
+		OriginalURL  string `json:"original_url"`
 		// XPath fields
 		Type                string `json:"type"`
 		XPathItem           string `json:"xpath_item"`
@@ -63,6 +67,7 @@ func HandleAddFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		// Return error
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -75,7 +80,7 @@ func HandleAddFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "feed created but failed to update settings: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := h.DB.UpdateFeed(feed.ID, feed.Title, feed.URL, feed.Category, feed.ScriptPath, req.HideFromTimeline, req.ProxyURL, req.ProxyEnabled, req.RefreshInterval, req.IsImageMode, feed.Type, feed.XPathItem, feed.XPathItemTitle, feed.XPathItemContent, feed.XPathItemUri, feed.XPathItemAuthor, feed.XPathItemTimestamp, feed.XPathItemTimeFormat, feed.XPathItemThumbnail, feed.XPathItemCategories, feed.XPathItemUid); err != nil {
+	if err := h.DB.UpdateFeed(feed.ID, feed.Title, feed.URL, feed.Category, feed.ScriptPath, req.HideFromTimeline, req.ProxyURL, req.ProxyEnabled, req.RefreshInterval, req.IsImageMode, req.IsRSSHub, feed.Type, feed.XPathItem, feed.XPathItemTitle, feed.XPathItemContent, feed.XPathItemUri, feed.XPathItemAuthor, feed.XPathItemTimestamp, feed.XPathItemTimeFormat, feed.XPathItemThumbnail, feed.XPathItemCategories, feed.XPathItemUid, req.RSSHubRoute, req.OriginalURL); err != nil {
 		http.Error(w, "feed created but failed to update settings: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -116,6 +121,10 @@ func HandleUpdateFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		ProxyEnabled     bool   `json:"proxy_enabled"`
 		RefreshInterval  int    `json:"refresh_interval"`
 		IsImageMode      bool   `json:"is_image_mode"`
+		// RSSHub fields
+		IsRSSHub     bool   `json:"is_rsshub"`
+		RSSHubRoute  string `json:"rsshub_route"`
+		OriginalURL  string `json:"original_url"`
 		// XPath fields
 		Type                string `json:"type"`
 		XPathItem           string `json:"xpath_item"`
@@ -134,7 +143,7 @@ func HandleUpdateFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.DB.UpdateFeed(req.ID, req.Title, req.URL, req.Category, req.ScriptPath, req.HideFromTimeline, req.ProxyURL, req.ProxyEnabled, req.RefreshInterval, req.IsImageMode, req.Type, req.XPathItem, req.XPathItemTitle, req.XPathItemContent, req.XPathItemUri, req.XPathItemAuthor, req.XPathItemTimestamp, req.XPathItemTimeFormat, req.XPathItemThumbnail, req.XPathItemCategories, req.XPathItemUid); err != nil {
+	if err := h.DB.UpdateFeed(req.ID, req.Title, req.URL, req.Category, req.ScriptPath, req.HideFromTimeline, req.ProxyURL, req.ProxyEnabled, req.RefreshInterval, req.IsImageMode, req.IsRSSHub, req.Type, req.XPathItem, req.XPathItemTitle, req.XPathItemContent, req.XPathItemUri, req.XPathItemAuthor, req.XPathItemTimestamp, req.XPathItemTimeFormat, req.XPathItemThumbnail, req.XPathItemCategories, req.XPathItemUid, req.RSSHubRoute, req.OriginalURL); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

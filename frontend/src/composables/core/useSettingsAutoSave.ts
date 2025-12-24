@@ -203,6 +203,15 @@ export function useSettingsAutoSave(settings: Ref<SettingsData> | (() => Setting
           full_text_fetch_enabled: (
             settingsRef.value.full_text_fetch_enabled ?? settingsDefaults.full_text_fetch_enabled
           ).toString(),
+          rsshub_enabled: (
+            settingsRef.value.rsshub_enabled ?? settingsDefaults.rsshub_enabled
+          ).toString(),
+          rsshub_instance_url:
+            settingsRef.value.rsshub_instance_url ?? settingsDefaults.rsshub_instance_url,
+          rsshub_fallback_enabled: (
+            settingsRef.value.rsshub_fallback_enabled ?? settingsDefaults.rsshub_fallback_enabled
+          ).toString(),
+          rsshub_api_key: settingsRef.value.rsshub_api_key ?? settingsDefaults.rsshub_api_key,
         }),
       });
 

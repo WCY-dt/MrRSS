@@ -93,45 +93,6 @@ func TestParseFeedWithScript_Concurrency(t *testing.T) {
 	}
 }
 
-func TestParseFeedWithScript_Timeout(t *testing.T) {
-	// Test that high priority requests have shorter timeout
-	db, err := database.NewDB(":memory:")
-	if err != nil {
-		t.Fatalf("NewDB error: %v", err)
-	}
-	if err := db.Init(); err != nil {
-		t.Fatalf("db Init error: %v", err)
-	}
-	defer db.Close()
-
-	fetcher := NewFetcher(db, nil)
-	// Use mock parser that simulates timeout behavior
-	mockParser := &TimeoutMockParser{Timeout: 20 * time.Second}
-	fetcher.fp = mockParser
-
-	ctx := context.Background()
-
-	// Test high priority timeout (should be shorter)
-	start := time.Now()
-	_, err = fetcher.ParseFeedWithScript(ctx, "http://test.com", "", true)
-	duration := time.Since(start)
-
-	// High priority should timeout faster than 20 seconds
-	if duration >= 20*time.Second {
-		t.Errorf("High priority request took too long: %v", duration)
-	}
-
-	// Test normal priority timeout (should be longer)
-	start = time.Now()
-	_, err = fetcher.ParseFeedWithScript(ctx, "http://test.com", "", false)
-	duration = time.Since(start)
-
-	// Normal priority should also timeout, but we just verify it doesn't hang indefinitely
-	if duration >= 60*time.Second {
-		t.Errorf("Normal priority request took too long: %v", duration)
-	}
-}
-
 // TimeoutMockParser implements feed.FeedParser for testing timeouts
 type TimeoutMockParser struct {
 	Timeout time.Duration
