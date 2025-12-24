@@ -237,7 +237,6 @@ export interface TranslationMessages {
   rsshubInstanceUrl: string;
   rsshubInstanceUrlDesc: string;
   rsshubInstanceUrlPlaceholder: string;
-  rsshubTestConnectionDesc: string;
   rsshubTestFailed: string;
   rsshubTestSuccess: string;
   general: string;
