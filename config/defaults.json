@@ -62,5 +62,9 @@
   "freshrss_server_url": "",
   "freshrss_username": "",
   "freshrss_api_password": "",
-  "full_text_fetch_enabled": true
+  "full_text_fetch_enabled": true,
+  "rsshub_enabled": false,
+  "rsshub_instance_url": "https://rsshub.app",
+  "rsshub_fallback_enabled": true,
+  "rsshub_api_key": ""
 }

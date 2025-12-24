@@ -72,6 +72,10 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		freshRSSUsername, _ := h.DB.GetSetting("freshrss_username")
 		freshRSSAPIPassword, _ := h.DB.GetEncryptedSetting("freshrss_api_password")
 		fullTextFetchEnabled, _ := h.DB.GetSetting("full_text_fetch_enabled")
+		rsshubEnabled, _ := h.DB.GetSetting("rsshub_enabled")
+		rsshubInstanceURL, _ := h.DB.GetSetting("rsshub_instance_url")
+		rsshubFallbackEnabled, _ := h.DB.GetSetting("rsshub_fallback_enabled")
+		rsshubAPIKey, _ := h.DB.GetEncryptedSetting("rsshub_api_key")
 		json.NewEncoder(w).Encode(map[string]string{
 			"update_interval":             interval,
 			"refresh_mode":                refreshMode,
@@ -132,6 +136,10 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			"freshrss_username":           freshRSSUsername,
 			"freshrss_api_password":       freshRSSAPIPassword,
 			"full_text_fetch_enabled":     fullTextFetchEnabled,
+			"rsshub_enabled":              rsshubEnabled,
+			"rsshub_instance_url":         rsshubInstanceURL,
+			"rsshub_fallback_enabled":     rsshubFallbackEnabled,
+			"rsshub_api_key":              rsshubAPIKey,
 		})
 	case http.MethodPost:
 		var req struct {
@@ -193,6 +201,10 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			FreshRSSUsername         string `json:"freshrss_username"`
 			FreshRSSAPIPassword      string `json:"freshrss_api_password"`
 			FullTextFetchEnabled     string `json:"full_text_fetch_enabled"`
+			RSSHubEnabled            string `json:"rsshub_enabled"`
+			RSSHubInstanceURL        string `json:"rsshub_instance_url"`
+			RSSHubFallbackEnabled    string `json:"rsshub_fallback_enabled"`
+			RSSHubAPIKey             string `json:"rsshub_api_key"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -420,6 +432,24 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 
 		if req.FullTextFetchEnabled != "" {
 			h.DB.SetSetting("full_text_fetch_enabled", req.FullTextFetchEnabled)
+		}
+
+		if req.RSSHubEnabled != "" {
+			h.DB.SetSetting("rsshub_enabled", req.RSSHubEnabled)
+		}
+
+		if req.RSSHubInstanceURL != "" {
+			h.DB.SetSetting("rsshub_instance_url", req.RSSHubInstanceURL)
+		}
+
+		if req.RSSHubFallbackEnabled != "" {
+			h.DB.SetSetting("rsshub_fallback_enabled", req.RSSHubFallbackEnabled)
+		}
+
+		if err := h.DB.SetEncryptedSetting("rsshub_api_key", req.RSSHubAPIKey); err != nil {
+			log.Printf("Failed to save RSSHub API key: %v", err)
+			http.Error(w, "Failed to save RSSHub API key", http.StatusInternalServerError)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)

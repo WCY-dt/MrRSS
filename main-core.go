@@ -32,6 +32,7 @@ import (
 	networkhandlers "MrRSS/internal/handlers/network"
 	opml "MrRSS/internal/handlers/opml"
 	rules "MrRSS/internal/handlers/rules"
+	rsshub "MrRSS/internal/handlers/rsshub"
 	script "MrRSS/internal/handlers/script"
 	settings "MrRSS/internal/handlers/settings"
 	summary "MrRSS/internal/handlers/summary"
@@ -171,6 +172,7 @@ func main() {
 	apiMux.HandleFunc("/api/ai-chat", func(w http.ResponseWriter, r *http.Request) { chat.HandleAIChat(h, w, r) })
 	apiMux.HandleFunc("/api/ai/test", func(w http.ResponseWriter, r *http.Request) { aihandlers.HandleTestAIConfig(h, w, r) })
 	apiMux.HandleFunc("/api/ai/test/info", func(w http.ResponseWriter, r *http.Request) { aihandlers.HandleGetAITestInfo(h, w, r) })
+	apiMux.HandleFunc("/api/rsshub/config/test", func(w http.ResponseWriter, r *http.Request) { rsshub.HandleTestConfig(h, w, r) })
 	apiMux.HandleFunc("/api/articles/toggle-hide", func(w http.ResponseWriter, r *http.Request) { article.HandleToggleHideArticle(h, w, r) })
 	apiMux.HandleFunc("/api/articles/toggle-read-later", func(w http.ResponseWriter, r *http.Request) { article.HandleToggleReadLater(h, w, r) })
 	apiMux.HandleFunc("/api/articles/content", func(w http.ResponseWriter, r *http.Request) { article.HandleGetArticleContent(h, w, r) })

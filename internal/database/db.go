@@ -79,7 +79,7 @@ func (db *DB) Init() error {
 			"window_x", "window_y", "window_width", "window_height", "window_maximized",
 			"network_speed", "network_bandwidth_mbps", "network_latency_ms", "max_concurrent_refreshes", "last_network_test",
 			"image_gallery_enabled", "freshrss_enabled", "freshrss_server_url", "freshrss_username", "freshrss_api_password",
-			"full_text_fetch_enabled",
+			"full_text_fetch_enabled", "rsshub_enabled", "rsshub_instance_url", "rsshub_fallback_enabled", "rsshub_api_key",
 		}
 		for _, key := range settingsKeys {
 			defaultVal := config.GetString(key)

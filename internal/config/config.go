@@ -73,6 +73,10 @@ type Defaults struct {
 	FreshRSSUsername         string `json:"freshrss_username"`
 	FreshRSSAPIPassword      string `json:"freshrss_api_password"`
 	FullTextFetchEnabled     bool   `json:"full_text_fetch_enabled"`
+	RSSHubEnabled            bool   `json:"rsshub_enabled"`
+	RSSHubInstanceURL        string `json:"rsshub_instance_url"`
+	RSSHubFallbackEnabled    bool   `json:"rsshub_fallback_enabled"`
+	RSSHubAPIKey             string `json:"rsshub_api_key"`
 }
 
 var defaults Defaults
@@ -209,6 +213,14 @@ func GetString(key string) string {
 		return defaults.FreshRSSAPIPassword
 	case "full_text_fetch_enabled":
 		return strconv.FormatBool(defaults.FullTextFetchEnabled)
+	case "rsshub_enabled":
+		return strconv.FormatBool(defaults.RSSHubEnabled)
+	case "rsshub_instance_url":
+		return defaults.RSSHubInstanceURL
+	case "rsshub_fallback_enabled":
+		return strconv.FormatBool(defaults.RSSHubFallbackEnabled)
+	case "rsshub_api_key":
+		return defaults.RSSHubAPIKey
 	default:
 		return ""
 	}
