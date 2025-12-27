@@ -24,6 +24,7 @@ export function generateInitialSettings(): SettingsData {
     ai_usage_tokens: settingsDefaults.ai_usage_tokens,
     auto_cleanup_enabled: settingsDefaults.auto_cleanup_enabled,
     auto_show_all_content: settingsDefaults.auto_show_all_content,
+    auto_update: settingsDefaults.auto_update,
     baidu_app_id: settingsDefaults.baidu_app_id,
     baidu_secret_key: settingsDefaults.baidu_secret_key,
     close_to_tray: settingsDefaults.close_to_tray,
@@ -63,6 +64,7 @@ export function generateInitialSettings(): SettingsData {
     refresh_mode: settingsDefaults.refresh_mode,
     rules: settingsDefaults.rules,
     shortcuts: settingsDefaults.shortcuts,
+    shortcuts_enabled: settingsDefaults.shortcuts_enabled,
     show_article_preview_images: settingsDefaults.show_article_preview_images,
     show_hidden_articles: settingsDefaults.show_hidden_articles,
     startup_on_boot: settingsDefaults.startup_on_boot,
@@ -100,6 +102,7 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     ai_usage_tokens: data.ai_usage_tokens || settingsDefaults.ai_usage_tokens,
     auto_cleanup_enabled: data.auto_cleanup_enabled === 'true',
     auto_show_all_content: data.auto_show_all_content === 'true',
+    auto_update: data.auto_update === 'true',
     baidu_app_id: data.baidu_app_id || settingsDefaults.baidu_app_id,
     baidu_secret_key: data.baidu_secret_key || settingsDefaults.baidu_secret_key,
     close_to_tray: data.close_to_tray === 'true',
@@ -144,6 +147,7 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     refresh_mode: data.refresh_mode || settingsDefaults.refresh_mode,
     rules: data.rules || settingsDefaults.rules,
     shortcuts: data.shortcuts || settingsDefaults.shortcuts,
+    shortcuts_enabled: data.shortcuts_enabled === 'true',
     show_article_preview_images: data.show_article_preview_images === 'true',
     show_hidden_articles: data.show_hidden_articles === 'true',
     startup_on_boot: data.startup_on_boot === 'true',
@@ -188,6 +192,7 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     auto_show_all_content: (
       settingsRef.value.auto_show_all_content ?? settingsDefaults.auto_show_all_content
     ).toString(),
+    auto_update: (settingsRef.value.auto_update ?? settingsDefaults.auto_update).toString(),
     baidu_app_id: settingsRef.value.baidu_app_id ?? settingsDefaults.baidu_app_id,
     baidu_secret_key: settingsRef.value.baidu_secret_key ?? settingsDefaults.baidu_secret_key,
     close_to_tray: (settingsRef.value.close_to_tray ?? settingsDefaults.close_to_tray).toString(),
@@ -254,6 +259,9 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     refresh_mode: settingsRef.value.refresh_mode ?? settingsDefaults.refresh_mode,
     rules: settingsRef.value.rules ?? settingsDefaults.rules,
     shortcuts: settingsRef.value.shortcuts ?? settingsDefaults.shortcuts,
+    shortcuts_enabled: (
+      settingsRef.value.shortcuts_enabled ?? settingsDefaults.shortcuts_enabled
+    ).toString(),
     show_article_preview_images: (
       settingsRef.value.show_article_preview_images ?? settingsDefaults.show_article_preview_images
     ).toString(),

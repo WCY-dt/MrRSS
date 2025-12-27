@@ -389,14 +389,14 @@ func TestProcessArticlesWithYouTubeFeed(t *testing.T) {
 	}
 
 	// Process the articles
-	articles := f.processArticles(feed, items)
+	articlesWithContent := f.processArticles(feed, items)
 
 	// Verify results
-	if len(articles) != 1 {
-		t.Fatalf("Expected 1 article, got %d", len(articles))
+	if len(articlesWithContent) != 1 {
+		t.Fatalf("Expected 1 article, got %d", len(articlesWithContent))
 	}
 
-	article := articles[0]
+	article := articlesWithContent[0].Article
 
 	// Should use the longer media:title
 	expectedTitle := "WORST Place to be a Pilot: West Papua's Extreme Bush Flying"

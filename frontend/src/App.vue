@@ -9,6 +9,7 @@ import AddFeedModal from './components/modals/feed/AddFeedModal.vue';
 import EditFeedModal from './components/modals/feed/EditFeedModal.vue';
 import SettingsModal from './components/modals/SettingsModal.vue';
 import DiscoverFeedsModal from './components/modals/discovery/DiscoverFeedsModal.vue';
+import UpdateAvailableDialog from './components/modals/update/UpdateAvailableDialog.vue';
 import ContextMenu from './components/common/ContextMenu.vue';
 import ConfirmDialog from './components/modals/common/ConfirmDialog.vue';
 import InputDialog from './components/modals/common/InputDialog.vue';
@@ -19,6 +20,7 @@ import { useKeyboardShortcuts } from './composables/ui/useKeyboardShortcuts';
 import { useContextMenu } from './composables/ui/useContextMenu';
 import { useResizablePanels } from './composables/ui/useResizablePanels';
 import { useWindowState } from './composables/core/useWindowState';
+import { useAppUpdates } from './composables/core/useAppUpdates';
 import type { Feed } from './types/models';
 
 const store = useAppStore();
@@ -43,6 +45,12 @@ const { contextMenu, openContextMenu, handleContextMenuAction } = useContextMenu
 
 const { sidebarWidth, articleListWidth, startResizeSidebar, startResizeArticleList } =
   useResizablePanels();
+
+// Use app updates composable
+const { updateInfo, checkForUpdates, downloadAndInstallUpdate } = useAppUpdates();
+
+// Update dialog state
+const showUpdateDialog = ref(false);
 
 // Initialize window state management
 const windowState = useWindowState();
@@ -72,6 +80,7 @@ onMounted(async () => {
   // Load remaining settings (theme and other settings are already loaded in main.ts)
   let updateInterval = 10;
   let lastArticleUpdate = '';
+  let autoUpdate = false;
 
   try {
     const res = await fetch('/api/settings');
@@ -92,6 +101,11 @@ onMounted(async () => {
       lastArticleUpdate = data.last_article_update;
     }
 
+    // Get auto_update setting
+    if (data.auto_update !== undefined) {
+      autoUpdate = data.auto_update;
+    }
+
     // Load saved shortcuts
     if (data.shortcuts) {
       try {
@@ -104,6 +118,23 @@ onMounted(async () => {
   } catch (e) {
     console.error('Error loading initial settings:', e);
   }
+
+  // Check for updates on startup
+  setTimeout(async () => {
+    try {
+      await checkForUpdates();
+
+      // If update is available and auto-update is disabled, show dialog
+      if (updateInfo.value && updateInfo.value.has_update && !autoUpdate) {
+        showUpdateDialog.value = true;
+      } else if (updateInfo.value && updateInfo.value.has_update && autoUpdate) {
+        // If auto-update is enabled, automatically download and install
+        await downloadAndInstallUpdate();
+      }
+    } catch (e) {
+      console.error('Error checking for updates:', e);
+    }
+  }, 3000); // Check 3 seconds after startup
 
   // Defer heavy operations to allow UI to render first
   setTimeout(() => {
@@ -214,6 +245,16 @@ function onFeedUpdated(): void {
       :feed="feedToDiscover"
       :show="showDiscoverBlogs"
       @close="showDiscoverBlogs = false"
+    />
+
+    <UpdateAvailableDialog
+      v-if="showUpdateDialog && updateInfo"
+      :update-info="updateInfo"
+      :downloading-update="false"
+      :installing-update="false"
+      :download-progress="0"
+      @close="showUpdateDialog = false"
+      @update="downloadAndInstallUpdate"
     />
 
     <ContextMenu

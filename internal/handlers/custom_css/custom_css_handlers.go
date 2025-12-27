@@ -1,3 +1,5 @@
+//go:build !server
+
 package custom_css
 
 import (

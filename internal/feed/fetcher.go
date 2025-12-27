@@ -305,7 +305,7 @@ func (f *Fetcher) FetchFeed(ctx context.Context, feed models.Feed) {
 	}
 
 	// Process articles
-	articlesToSave := f.processArticles(feed, parsedFeed.Items)
+	articlesWithContent := f.processArticles(feed, parsedFeed.Items)
 
 	// Check context before heavy DB operation
 	select {
@@ -314,10 +314,19 @@ func (f *Fetcher) FetchFeed(ctx context.Context, feed models.Feed) {
 	default:
 	}
 
-	if len(articlesToSave) > 0 {
+	if len(articlesWithContent) > 0 {
+		// Extract just the articles for saving
+		articlesToSave := make([]*models.Article, len(articlesWithContent))
+		for i, awc := range articlesWithContent {
+			articlesToSave[i] = awc.Article
+		}
+
 		if err := f.db.SaveArticles(ctx, articlesToSave); err != nil {
 			log.Printf("Error saving articles for feed %s: %v", feed.Title, err)
 		} else {
+			// Cache article content from RSS feed
+			f.cacheArticleContents(articlesWithContent)
+
 			// Apply rules to newly saved articles
 			// We fetch the recent articles for this feed since SaveArticles doesn't return IDs
 			// This is limited to the number of articles we just saved
@@ -474,4 +483,30 @@ Finish:
 	// Update last article update time
 	f.db.SetSetting("last_article_update", time.Now().Format(time.RFC3339))
 	utils.DebugLog("Batch feed update complete for %d feeds", len(feedIDs))
+}
+
+// cacheArticleContents caches article contents from RSS feeds
+// This is called after articles are saved to the database
+func (f *Fetcher) cacheArticleContents(articlesWithContent []*ArticleWithContent) {
+	for _, awc := range articlesWithContent {
+		// Only cache if content is not empty and URL is present
+		if awc.Content == "" || awc.Article.URL == "" {
+			continue
+		}
+
+		// Get article ID by URL (article was just saved, so it should exist)
+		articleID, err := f.db.GetArticleIDByURL(awc.Article.URL)
+		if err != nil {
+			// Article might not exist yet (race condition) or other error
+			utils.DebugLog("Could not find article ID for URL %s: %v", awc.Article.URL, err)
+			continue
+		}
+
+		// Cache the content (this will overwrite any existing cache as required)
+		if err := f.db.SetArticleContent(articleID, awc.Content); err != nil {
+			log.Printf("Error caching content for article %d: %v", articleID, err)
+		} else {
+			utils.DebugLog("Cached content for article %d", articleID)
+		}
+	}
 }

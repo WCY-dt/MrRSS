@@ -2,6 +2,38 @@
 
 This directory contains end-to-end (E2E) tests for the MrRSS frontend application using Cypress.
 
+## Quick Start
+
+### Prerequisites
+
+1. **Install dependencies:**
+
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. **Start the Wails backend:**
+
+   ```bash
+   # In project root - Terminal 1
+   wails3 dev
+   # OR
+   task dev
+   ```
+
+3. **Run tests in another terminal:**
+
+   ```bash
+   cd frontend
+
+   # Interactive mode (recommended)
+   npm run cypress
+
+   # Headless mode
+   npm run cypress:headless
+   ```
+
 ## Test Structure
 
 ```plaintext
@@ -198,23 +230,146 @@ describe('Feature Name', () => {
 
 ### Tests Fail with "Connection Refused"
 
-Make sure the backend server is running on port 34115:
+**Problem:** Tests fail because backend is not running on port 34115.
+
+**Solution:**
 
 ```bash
-go run main.go
+# Terminal 1: Start Wails dev server
+cd /path/to/MrRSS
+wails3 dev
+
+# Terminal 2: Run tests
+cd frontend
+npm run cypress
+```
+
+**Alternative:** Check if something is already using port 34115:
+
+```bash
+# Windows
+netstat -ano | findstr :34115
+
+# Linux/macOS
+lsof -i :34115
 ```
 
 ### Tests Timeout
 
-Increase the timeout in `cypress.config.ts` or use `cy.wait()` to give more time for slow operations.
+**Problem:** Tests exceed default timeout (10 seconds).
+
+**Solutions:**
+
+1. Increase timeout globally in `cypress.config.ts`:
+
+   ```typescript
+   defaultCommandTimeout: 15000,
+   ```
+
+2. Or increase for specific commands:
+
+   ```typescript
+   cy.get('.element', { timeout: 15000 }).should('be.visible')
+   ```
+
+3. Use `cy.intercept()` to wait for specific API calls:
+
+   ```typescript
+   cy.intercept('GET', '/api/articles*').as('getArticles')
+   cy.wait('@getArticles', { timeout: 15000 })
+   ```
 
 ### Selectors Not Found
 
-The tests use flexible selectors that work with both English and Chinese text. If the UI structure changes, you may need to update the selectors in the test files.
+**Problem:** UI has changed and selectors are outdated.
+
+**Solution:**
+
+- Use flexible selectors with regex: `/settings|设置/i`
+- Use `data-testid` attributes for critical elements
+- Run tests in interactive mode to inspect DOM: `npm run cypress`
+- Use Cypress Test Runner's selector playground
+
+### Browser Launch Issues
+
+**Problem:** Cypress can't find or launch browser.
+
+**Solution:**
+
+```bash
+# Verify browser installation
+npx cypress verify
+
+# Reinstall Cypress binaries
+npx cypress install
+
+# List available browsers
+npx cypress run --browser --list
+```
+
+### Vue Components Not Found
+
+**Problem:** Component tests fail to load Vue components.
+
+**Solution:**
+
+1. Check `@cypress/vue` is installed: `npm list @cypress/vue`
+2. Verify component import paths are correct
+3. Check Vite configuration in `cypress.config.ts`
+
+### Database Lock Errors
+
+**Problem:** Tests fail with SQLite database is locked.
+
+**Solution:**
+
+```bash
+# Close all Wails instances
+# Delete test database
+rm -f frontend/test-data.db
+
+# Restart backend and tests
+```
+
+### Test Flakiness
+
+**Problem:** Tests pass sometimes but fail randomly.
+
+**Solutions:**
+
+1. Add explicit waits for async operations:
+
+   ```typescript
+   cy.intercept('GET', '/api/feeds').as('getFeeds')
+   cy.wait('@getFeeds')
+   ```
+
+2. Use retryability:
+
+   ```typescript
+   cy.get('.element').should('be.visible').click()
+   ```
+
+3. Clean state between tests:
+
+   ```typescript
+   afterEach(() => {
+     cy.clearCookies()
+     cy.clearLocalStorage()
+   })
+   ```
 
 ### CI/CD Failures
 
-Check the uploaded artifacts (screenshots and videos) in the GitHub Actions workflow run to see what failed.
+**Problem:** Tests pass locally but fail in CI.
+
+**Solution:**
+
+1. Check CI environment variables: `CI=true` increases timeouts
+2. Review screenshots/videos uploaded as artifacts
+3. Ensure backend starts before tests run
+4. Use explicit waits instead of hardcoded delays
+5. Check for environment-specific issues (e.g., ports, file paths)
 
 ## Future Improvements
 

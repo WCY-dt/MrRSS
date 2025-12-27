@@ -93,6 +93,7 @@ function handleDiscoverAll() {
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4"
     data-modal-open="true"
+    style="will-change: transform; transform: translateZ(0)"
     @click.self="emit('close')"
   >
     <div
@@ -263,17 +264,9 @@ function handleDiscoverAll() {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
-  animation: shimmer 2s ease-in-out infinite;
-}
-@keyframes shimmer {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
+  background: var(--accent-color);
+  box-shadow: 0 0 8px var(--accent-color);
+  opacity: 0.8;
 }
 .btn-primary {
   @apply bg-accent text-white border-none px-5 py-2.5 rounded-lg cursor-pointer font-semibold hover:bg-accent-hover transition-colors;

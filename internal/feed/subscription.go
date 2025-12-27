@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,11 +20,101 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
+// sanitizeFeedXML removes or replaces problematic atom:link elements with non-HTTP schemes
+// (like file://, javascript:, data:, etc.) that can cause parsing issues.
+// This is a workaround for feeds that include local file system links in their XML.
+func sanitizeFeedXML(xmlContent string) string {
+	// Pattern to match atom:link elements with non-http/https href attributes
+	// This handles cases like: <atom:link href="file://..." rel="self" ... />
+	pattern := regexp.MustCompile(`<atom:link\s+[^>]*href=["'](file://|javascript:|data:|ftp://)[^"']*["'][^>]*/?>`)
+
+	// Replace all occurrences with empty string (remove the element)
+	cleaned := pattern.ReplaceAllString(xmlContent, "")
+
+	// Also handle standalone <link> elements (without atom: prefix)
+	linkPattern := regexp.MustCompile(`<link\s+[^>]*href=["'](file://|javascript:|data:|ftp://)[^"']*["'][^>]*/?>`)
+	cleaned = linkPattern.ReplaceAllString(cleaned, "")
+
+	utils.DebugLog("sanitizeFeedXML: Removed non-HTTP links from feed XML")
+	return cleaned
+}
+
+// fetchAndSanitizeFeed fetches feed content and sanitizes it before parsing
+func (f *Fetcher) fetchAndSanitizeFeed(ctx context.Context, feedURL string) (string, error) {
+	// Use the feed's HTTP client to fetch content
+	httpClient, err := f.getHTTPClient(models.Feed{URL: feedURL})
+	if err != nil {
+		return "", fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", feedURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch feed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	xmlContent := string(body)
+
+	// Sanitize the XML to remove problematic links
+	cleanedXML := sanitizeFeedXML(xmlContent)
+
+	return cleanedXML, nil
+}
+
 // AddSubscription adds a new feed subscription and returns the feed ID.
 func (f *Fetcher) AddSubscription(url string, category string, customTitle string) (int64, error) {
 	utils.DebugLog("AddSubscription: Starting to add feed from URL: %s", url)
 
-	// Try standard parsing first
+	// Try fetching and sanitizing the feed first
+	ctx := context.Background()
+	cleanedXML, err := f.fetchAndSanitizeFeed(ctx, url)
+	if err != nil {
+		utils.DebugLog("AddSubscription: Failed to fetch feed for %s: %v", url, err)
+		// Fall through to standard parsing which might handle it differently
+	} else {
+		// Try parsing the sanitized XML
+		parser := gofeed.NewParser()
+		parser.Client = f.fp.(*gofeed.Parser).Client // Use the same HTTP client
+		parsedFeed, parseErr := parser.ParseString(cleanedXML)
+		if parseErr == nil {
+			utils.DebugLog("AddSubscription: Successfully parsed sanitized feed for URL: %s", url)
+			title := parsedFeed.Title
+			if customTitle != "" {
+				title = customTitle
+			}
+
+			feed := &models.Feed{
+				Title:       title,
+				URL:         url,
+				Link:        parsedFeed.Link,
+				Description: parsedFeed.Description,
+				Category:    category,
+			}
+
+			if parsedFeed.Image != nil {
+				feed.ImageURL = parsedFeed.Image.URL
+			}
+
+			return f.db.AddFeed(feed)
+		}
+		utils.DebugLog("AddSubscription: Parsing sanitized feed failed: %v", parseErr)
+	}
+
+	// Fallback: Try standard parsing (for backward compatibility)
 	utils.DebugLog("AddSubscription: Attempting standard RSS parsing for URL: %s", url)
 	parsedFeed, err := f.fp.ParseURL(url)
 	if err != nil {
@@ -236,7 +328,25 @@ func (f *Fetcher) parseFeedWithFeedInternal(ctx context.Context, feed *models.Fe
 		defer cancel()
 	}
 
-	// Try standard parsing first
+	// Try fetching and sanitizing the feed first to handle file:// URLs in atom:link
+	utils.DebugLog("parseFeedWithFeedInternal: Attempting to fetch and sanitize feed for %s", feed.URL)
+	cleanedXML, sanitizeErr := f.fetchAndSanitizeFeed(fetchCtx, feed.URL)
+	if sanitizeErr == nil {
+		// Successfully fetched and sanitized, try parsing
+		parser := gofeed.NewParser()
+		parser.Client = f.fp.(*gofeed.Parser).Client // Use the same HTTP client
+		parsedFeed, err := parser.ParseString(cleanedXML)
+		if err == nil {
+			utils.DebugLog("parseFeedWithFeedInternal: Successfully parsed sanitized feed for %s", feed.URL)
+			return parsedFeed, nil
+		}
+		utils.DebugLog("parseFeedWithFeedInternal: Parsing sanitized feed failed: %v", err)
+		// Fall through to standard parsing
+	} else {
+		utils.DebugLog("parseFeedWithFeedInternal: Sanitization failed: %v", sanitizeErr)
+	}
+
+	// Fallback: Try standard parsing first
 	utils.DebugLog("parseFeedWithFeedInternal: Attempting standard RSS parsing for %s", feed.URL)
 	parsedFeed, err := f.fp.ParseURLWithContext(feed.URL, fetchCtx)
 	if err != nil {

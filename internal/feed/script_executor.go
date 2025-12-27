@@ -97,9 +97,15 @@ func (e *ScriptExecutor) ExecuteScript(ctx context.Context, scriptPath string) (
 		return nil, fmt.Errorf("script execution failed: %v", err)
 	}
 
-	// Parse the output as RSS/Atom feed
+	// Get the script output
+	output := stdout.String()
+
+	// Sanitize the XML to remove problematic links (like file:// URLs)
+	cleanedOutput := sanitizeFeedXML(output)
+
+	// Parse the sanitized output as RSS/Atom feed
 	fp := gofeed.NewParser()
-	feed, err := fp.ParseString(stdout.String())
+	feed, err := fp.ParseString(cleanedOutput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse script output as feed: %v", err)
 	}

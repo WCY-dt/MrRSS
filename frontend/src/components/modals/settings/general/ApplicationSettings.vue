@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { PhPalette, PhMoon, PhTranslate, PhPower, PhArchiveTray } from '@phosphor-icons/vue';
+import {
+  PhPalette,
+  PhMoon,
+  PhTranslate,
+  PhPower,
+  PhArchiveTray,
+  PhGitPullRequest,
+} from '@phosphor-icons/vue';
 import type { SettingsData } from '@/types/settings';
 
 const { t } = useI18n();
@@ -53,6 +60,32 @@ const emit = defineEmits<{
 
     <div class="setting-item mt-2 sm:mt-3">
       <div class="flex-1 flex items-center sm:items-start gap-2 sm:gap-3 min-w-0">
+        <PhGitPullRequest :size="20" class="text-text-secondary mt-0.5 shrink-0 sm:w-6 sm:h-6" />
+        <div class="flex-1 min-w-0">
+          <div class="font-medium mb-0 sm:mb-1 text-sm sm:text-base">
+            {{ t('autoUpdateApp') }}
+          </div>
+          <div class="text-xs text-text-secondary hidden sm:block">
+            {{ t('autoUpdateAppDesc') }}
+          </div>
+        </div>
+      </div>
+      <input
+        :checked="settings.auto_update"
+        type="checkbox"
+        class="toggle"
+        @change="
+          (e) =>
+            emit('update:settings', {
+              ...settings,
+              auto_update: (e.target as HTMLInputElement).checked,
+            })
+        "
+      />
+    </div>
+
+    <div class="setting-item mt-2 sm:mt-3">
+      <div class="flex-1 flex items-center sm:items-start gap-2 sm:gap-3 min-w-0">
         <PhArchiveTray :size="20" class="text-text-secondary mt-0.5 shrink-0 sm:w-6 sm:h-6" />
         <div class="flex-1 min-w-0">
           <div class="font-medium mb-0 sm:mb-1 text-sm sm:text-base">
@@ -87,6 +120,7 @@ const emit = defineEmits<{
       </div>
       <select
         :value="settings.theme"
+        data-testid="theme-selector"
         class="input-field w-24 sm:w-48 text-xs sm:text-sm"
         @change="
           (e) =>
@@ -109,6 +143,7 @@ const emit = defineEmits<{
       </div>
       <select
         :value="settings.language"
+        data-testid="language-selector"
         class="input-field w-24 sm:w-48 text-xs sm:text-sm"
         @change="
           (e) =>

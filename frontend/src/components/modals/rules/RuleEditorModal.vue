@@ -151,6 +151,7 @@ function handleClose(): void {
     v-if="show"
     class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
     data-modal-open="true"
+    style="will-change: transform; transform: translateZ(0)"
     @click.self="handleClose"
   >
     <div

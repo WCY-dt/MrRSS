@@ -25,6 +25,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		aiUsageTokens, _ := h.DB.GetSetting("ai_usage_tokens")
 		autoCleanupEnabled, _ := h.DB.GetSetting("auto_cleanup_enabled")
 		autoShowAllContent, _ := h.DB.GetSetting("auto_show_all_content")
+		autoUpdate, _ := h.DB.GetSetting("auto_update")
 		baiduAppId, _ := h.DB.GetSetting("baidu_app_id")
 		baiduSecretKey, _ := h.DB.GetEncryptedSetting("baidu_secret_key")
 		closeToTray, _ := h.DB.GetSetting("close_to_tray")
@@ -64,6 +65,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		refreshMode, _ := h.DB.GetSetting("refresh_mode")
 		rules, _ := h.DB.GetSetting("rules")
 		shortcuts, _ := h.DB.GetSetting("shortcuts")
+		shortcutsEnabled, _ := h.DB.GetSetting("shortcuts_enabled")
 		showArticlePreviewImages, _ := h.DB.GetSetting("show_article_preview_images")
 		showHiddenArticles, _ := h.DB.GetSetting("show_hidden_articles")
 		startupOnBoot, _ := h.DB.GetSetting("startup_on_boot")
@@ -93,6 +95,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			"ai_usage_tokens":             aiUsageTokens,
 			"auto_cleanup_enabled":        autoCleanupEnabled,
 			"auto_show_all_content":       autoShowAllContent,
+			"auto_update":                 autoUpdate,
 			"baidu_app_id":                baiduAppId,
 			"baidu_secret_key":            baiduSecretKey,
 			"close_to_tray":               closeToTray,
@@ -132,6 +135,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			"refresh_mode":                refreshMode,
 			"rules":                       rules,
 			"shortcuts":                   shortcuts,
+			"shortcuts_enabled":           shortcutsEnabled,
 			"show_article_preview_images": showArticlePreviewImages,
 			"show_hidden_articles":        showHiddenArticles,
 			"startup_on_boot":             startupOnBoot,
@@ -163,6 +167,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			AIUsageTokens            string `json:"ai_usage_tokens"`
 			AutoCleanupEnabled       string `json:"auto_cleanup_enabled"`
 			AutoShowAllContent       string `json:"auto_show_all_content"`
+			AutoUpdate               string `json:"auto_update"`
 			BaiduAppId               string `json:"baidu_app_id"`
 			BaiduSecretKey           string `json:"baidu_secret_key"`
 			CloseToTray              string `json:"close_to_tray"`
@@ -202,6 +207,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			RefreshMode              string `json:"refresh_mode"`
 			Rules                    string `json:"rules"`
 			Shortcuts                string `json:"shortcuts"`
+			ShortcutsEnabled         string `json:"shortcuts_enabled"`
 			ShowArticlePreviewImages string `json:"show_article_preview_images"`
 			ShowHiddenArticles       string `json:"show_hidden_articles"`
 			StartupOnBoot            string `json:"startup_on_boot"`
@@ -268,6 +274,10 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 
 		if req.AutoShowAllContent != "" {
 			h.DB.SetSetting("auto_show_all_content", req.AutoShowAllContent)
+		}
+
+		if req.AutoUpdate != "" {
+			h.DB.SetSetting("auto_update", req.AutoUpdate)
 		}
 
 		if req.BaiduAppId != "" {
@@ -434,6 +444,10 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 
 		if req.Shortcuts != "" {
 			h.DB.SetSetting("shortcuts", req.Shortcuts)
+		}
+
+		if req.ShortcutsEnabled != "" {
+			h.DB.SetSetting("shortcuts_enabled", req.ShortcutsEnabled)
 		}
 
 		if req.ShowArticlePreviewImages != "" {

@@ -18,3 +18,34 @@ import './commands';
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
+
+// Global setup before all tests
+before(() => {
+  // Log test environment info
+  cy.log('Testing Environment:', Cypress.env('isCI') ? 'CI' : 'Local')
+  cy.log('Backend URL:', Cypress.env('backendUrl'))
+
+  // Check if backend is available
+  cy.request({
+    url: `${Cypress.env('backendUrl')}/api/feeds`,
+    failOnStatusCode: false,
+  }).then((response) => {
+    if (response.status === 500 || response.status === 0) {
+      cy.log('⚠️ Backend may not be running. Tests might fail.')
+    } else {
+      cy.log('✅ Backend is responding')
+    }
+  })
+})
+
+// Cleanup after each test
+afterEach(() => {
+  // Clear localStorage between tests to prevent state leakage
+  cy.clearCookies()
+  cy.clearLocalStorage()
+})
+
+// Global cleanup after all tests
+after(() => {
+  cy.log('All tests completed')
+})

@@ -16,6 +16,7 @@ export interface SettingsData {
   ai_usage_tokens: string;
   auto_cleanup_enabled: boolean;
   auto_show_all_content: boolean;
+  auto_update: boolean;
   baidu_app_id: string;
   baidu_secret_key: string;
   close_to_tray: boolean;
@@ -55,6 +56,7 @@ export interface SettingsData {
   refresh_mode: string;
   rules: string;
   shortcuts: string;
+  shortcuts_enabled: boolean;
   show_article_preview_images: boolean;
   show_hidden_articles: boolean;
   startup_on_boot: boolean;

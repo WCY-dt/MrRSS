@@ -7,7 +7,8 @@ import {
   PhClockCountdown,
   PhImages,
 } from '@phosphor-icons/vue';
-import { Component, computed } from 'vue';
+import { computed } from 'vue';
+import type { Component } from 'vue';
 
 interface Props {
   label: string;

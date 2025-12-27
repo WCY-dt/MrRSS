@@ -41,18 +41,27 @@ cd frontend && npm install && npm run build && cd ..
 # Build server version
 go build -tags server -o mrrss-server .
 
-# Run server
+# Run server (default: 0.0.0.0:1234)
 ./mrrss-server
+
+# Or specify host and port
+./mrrss-server -host 127.0.0.1 -port 8080
 ```
 
 ## Configuration
+
+### Command Line Flags
+
+| Flag | Default | Description |
+| ---- | ------- | ----------- |
+| `-host` | `0.0.0.0` | Server bind address |
+| `-port` | `1234` | Server port |
+| `-server` | `false` | Force server mode (auto-detected with `-tags server`) |
 
 ### Environment Variables
 
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
-| `MRRSS_HOST` | `0.0.0.0` | Server bind address |
-| `MRRSS_PORT` | `1234` | Server port |
 | `MRRSS_DEBUG` | `false` | Enable debug logging |
 
 ### Data Directory
@@ -166,6 +175,104 @@ Refresh a specific feed.
 }
 ```
 
+### POST /api/feeds/reorder
+
+Reorder feeds.
+
+**Request Body:**
+
+```json
+{
+  "feed_ids": [1, 2, 3]
+}
+```
+
+### POST /api/feeds/discover
+
+Discover feeds from a single URL.
+
+**Request Body:**
+
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+### POST /api/feeds/discover-all
+
+Discover feeds from multiple URLs.
+
+**Request Body:**
+
+```json
+{
+  "urls": ["https://example.com", "https://blog.example.com"]
+}
+```
+
+### POST /api/feeds/discover/start
+
+Start background feed discovery for single URL.
+
+**Request Body:**
+
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+### GET /api/feeds/discover/progress
+
+Get discovery progress for single URL.
+
+**Response:**
+
+```json
+{
+  "is_running": true,
+  "current": 5,
+  "total": 10,
+  "feeds": [...]
+}
+```
+
+### POST /api/feeds/discover/clear
+
+Clear discovery results for single URL.
+
+### POST /api/feeds/discover-all/start
+
+Start background feed discovery for multiple URLs.
+
+**Request Body:**
+
+```json
+{
+  "urls": ["https://example.com", "https://blog.example.com"]
+}
+```
+
+### GET /api/feeds/discover-all/progress
+
+Get discovery progress for multiple URLs.
+
+**Response:**
+
+```json
+{
+  "is_running": true,
+  "current": 5,
+  "total": 10,
+  "feeds": [...]
+}
+```
+
+### POST /api/feeds/discover-all/clear
+
+Clear discovery results for multiple URLs.
+
 ### POST /api/refresh
 
 Refresh all feeds.
@@ -239,6 +346,82 @@ Toggle favorite status.
 }
 ```
 
+### POST /api/articles/toggle-hide
+
+Toggle article visibility (hide/unhide).
+
+**Request Body:**
+
+```json
+{
+  "id": 1
+}
+```
+
+### POST /api/articles/toggle-read-later
+
+Toggle read later status.
+
+**Request Body:**
+
+```json
+{
+  "id": 1
+}
+```
+
+### GET /api/articles/content
+
+Get full article content.
+
+**Query Parameters:**
+
+- `id` - Article ID
+
+### POST /api/articles/fetch-full
+
+Fetch full article content from original URL.
+
+**Request Body:**
+
+```json
+{
+  "id": 1
+}
+```
+
+### GET /api/articles/unread-counts
+
+Get unread article counts by feed.
+
+**Response:**
+
+```json
+{
+  "feeds": {
+    "1": 5,
+    "2": 12
+  },
+  "total": 17
+}
+```
+
+### POST /api/articles/mark-all-read
+
+Mark all articles as read.
+
+**Request Body:**
+
+```json
+{
+  "feed_id": 1  // Optional: mark all in specific feed
+}
+```
+
+### POST /api/articles/clear-read-later
+
+Clear read later status for all articles.
+
 ### POST /api/articles/cleanup
 
 Clean up old articles.
@@ -250,6 +433,14 @@ Clean up old articles.
   "max_age_days": 30
 }
 ```
+
+### POST /api/articles/cleanup-content
+
+Clean up cached article content.
+
+### GET /api/articles/content-cache-info
+
+Get article content cache information.
 
 ### POST /api/articles/translate
 
@@ -264,6 +455,23 @@ Translate article content.
 }
 ```
 
+### POST /api/articles/translate-text
+
+Translate arbitrary text.
+
+**Request Body:**
+
+```json
+{
+  "text": "Hello world",
+  "target_language": "zh"
+}
+```
+
+### POST /api/articles/clear-translations
+
+Clear cached translations.
+
 ### POST /api/articles/summarize
 
 Generate article summary.
@@ -273,6 +481,19 @@ Generate article summary.
 ```json
 {
   "id": 1
+}
+```
+
+### POST /api/articles/export/obsidian
+
+Export articles to Obsidian format.
+
+**Request Body:**
+
+```json
+{
+  "article_ids": [1, 2, 3],
+  "vault_path": "/path/to/obsidian/vault"
 }
 ```
 
@@ -396,6 +617,14 @@ Proxy media content through the server.
 
 - `url` - Media URL to proxy
 
+### GET /api/webpage/proxy
+
+Proxy webpage content through the server.
+
+**Query Parameters:**
+
+- `url` - Webpage URL to proxy
+
 ### POST /api/media/cleanup
 
 Clean up old cached media.
@@ -406,7 +635,31 @@ Get media cache information.
 
 ---
 
-## Translation API
+## Custom CSS API
+
+### POST /api/custom-css/upload-dialog
+
+**Note:** Not available in server mode (returns 501)
+
+### POST /api/custom-css/upload
+
+Upload custom CSS file.
+
+**Request Body:** (multipart/form-data)
+
+- `file` - CSS file
+
+### GET /api/custom-css
+
+Get current custom CSS content.
+
+### POST /api/custom-css/delete
+
+Delete custom CSS.
+
+---
+
+## FreshRSS Integration API
 
 ### POST /api/articles/translate-text
 
@@ -433,6 +686,16 @@ Clear cached translations.
 
 Get AI usage statistics.
 
+**Response:**
+
+```json
+{
+  "total_tokens": 15000,
+  "monthly_usage": 5000,
+  "last_reset": "2024-01-01T00:00:00Z"
+}
+```
+
 ### POST /api/ai-usage/reset
 
 Reset AI usage counters.
@@ -449,6 +712,24 @@ Send message to AI chat.
   "context": "article_id:123"
 }
 ```
+
+### POST /api/ai/test
+
+Test AI configuration.
+
+**Request Body:**
+
+```json
+{
+  "provider": "openai",
+  "api_key": "sk-...",
+  "model": "gpt-3.5-turbo"
+}
+```
+
+### GET /api/ai/test/info
+
+Get AI test information.
 
 ---
 
@@ -488,13 +769,23 @@ Install downloaded update.
 
 ## Network API
 
-### GET /api/network/detect
+### POST /api/network/detect
 
-Detect network connectivity.
+Detect network connectivity and speed.
 
 ### GET /api/network/info
 
 Get network information.
+
+**Response:**
+
+```json
+{
+  "speed_level": "fast",
+  "bandwidth_mbps": 50.5,
+  "detection_success": true
+}
+```
 
 ---
 
@@ -512,9 +803,31 @@ Get network information.
 
 Sync with FreshRSS instance.
 
+**Request Body:**
+
+```json
+{
+  "server_url": "https://freshrss.example.com",
+  "username": "user",
+  "password": "pass",
+  "api_key": "abc123"
+}
+```
+
 ### POST /api/freshrss/test-connection
 
 Test FreshRSS connection.
+
+**Request Body:**
+
+```json
+{
+  "server_url": "https://freshrss.example.com",
+  "username": "user",
+  "password": "pass",
+  "api_key": "abc123"
+}
+```
 
 ---
 
@@ -532,13 +845,33 @@ Apply filtering rules to articles.
 
 Get scripts directory path.
 
+**Response:**
+
+```json
+{
+  "path": "/app/data/scripts"
+}
+```
+
 ### POST /api/scripts/open
 
-**Note:** Not available in server mode
+**Note:** Not available in server mode (returns 501)
 
 ### GET /api/scripts/list
 
 List available scripts.
+
+**Response:**
+
+```json
+[
+  {
+    "name": "custom-feed.py",
+    "path": "/app/data/scripts/custom-feed.py",
+    "type": "python"
+  }
+]
+```
 
 ---
 

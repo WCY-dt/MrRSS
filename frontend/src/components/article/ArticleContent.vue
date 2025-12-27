@@ -21,6 +21,7 @@ import {
 } from '@/composables/article/useContentTranslation';
 import { useSettings } from '@/composables/core/useSettings';
 import { useAppStore } from '@/stores/app';
+import { proxyImagesInHtml, isMediaCacheEnabled } from '@/utils/mediaProxy';
 import './ArticleContent.css';
 
 interface SummaryResult {
@@ -84,8 +85,7 @@ const shouldAutoExpandContent = computed(() => {
 onMounted(async () => {
   try {
     const data = await fetchSettings();
-    autoShowAllContent.value =
-      data.auto_show_all_content === 'true' || data.auto_show_all_content === true;
+    autoShowAllContent.value = data.auto_show_all_content === true;
   } catch (e) {
     console.error('Error fetching settings for chat:', e);
   }
@@ -206,7 +206,17 @@ async function fetchFullArticle() {
 
     if (res.ok) {
       const data = await res.json();
-      fullArticleContent.value = data.content || '';
+      let content = data.content || '';
+
+      // Proxy images if media cache is enabled
+      const cacheEnabled = await isMediaCacheEnabled();
+      if (cacheEnabled && content) {
+        // Use feed URL as referer for anti-hotlinking (more reliable than article URL)
+        const feedUrl = data.feed_url || props.article.url;
+        content = proxyImagesInHtml(content, feedUrl);
+      }
+
+      fullArticleContent.value = content;
       window.showToast(t('fullArticleFetched'), 'success');
 
       // After fetching full content, regenerate summary and trigger translation

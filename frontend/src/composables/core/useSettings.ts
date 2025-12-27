@@ -13,11 +13,6 @@ export function useSettings() {
   // Use generated helper for initial settings (alphabetically sorted)
   const settings: Ref<SettingsData> = ref(generateInitialSettings());
 
-  // Override language with current locale if available
-  if (locale.value) {
-    settings.value.language = locale.value;
-  }
-
   /**
    * Fetch settings from backend
    */
@@ -28,11 +23,6 @@ export function useSettings() {
 
       // Use generated helper to parse settings (alphabetically sorted)
       settings.value = parseSettingsData(data);
-
-      // Override language with current locale if not set
-      if (!settings.value.language && locale.value) {
-        settings.value.language = locale.value;
-      }
 
       return settings.value;
     } catch (e) {

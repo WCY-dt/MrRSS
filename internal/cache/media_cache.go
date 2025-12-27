@@ -148,8 +148,15 @@ func (mc *MediaCache) download(url, referer string) ([]byte, string, error) {
 
 // CleanupOldFiles removes cached files older than the specified age
 func (mc *MediaCache) CleanupOldFiles(maxAgeDays int) (int, error) {
-	cutoffTime := time.Now().AddDate(0, 0, -maxAgeDays)
+	var cutoffTime time.Time
 	count := 0
+
+	if maxAgeDays <= 0 {
+		// Special case: remove all files regardless of age
+		cutoffTime = time.Now().Add(time.Hour) // Future time to match all files
+	} else {
+		cutoffTime = time.Now().AddDate(0, 0, -maxAgeDays)
+	}
 
 	entries, err := os.ReadDir(mc.cacheDir)
 	if err != nil {

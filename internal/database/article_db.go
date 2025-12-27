@@ -413,3 +413,14 @@ func (db *DB) UpdateArticleSummary(id int64, summary string) error {
 	_, err := db.Exec("UPDATE articles SET summary = ? WHERE id = ?", summary, id)
 	return err
 }
+
+// GetArticleIDByURL retrieves an article's ID by its URL.
+func (db *DB) GetArticleIDByURL(url string) (int64, error) {
+	db.WaitForReady()
+	var id int64
+	err := db.QueryRow("SELECT id FROM articles WHERE url = ?", url).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}

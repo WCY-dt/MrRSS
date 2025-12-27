@@ -30,14 +30,21 @@ func ExtractContent(item *gofeed.Item) string {
 	return item.Description
 }
 
+// ArticleWithContent represents an article with its RSS content
+type ArticleWithContent struct {
+	Article *models.Article
+	Content string
+}
+
 // processArticles processes RSS feed items and converts them to Article models
-func (f *Fetcher) processArticles(feed models.Feed, items []*gofeed.Item) []*models.Article {
+// Returns a slice of ArticleWithContent which includes both the article and its content
+func (f *Fetcher) processArticles(feed models.Feed, items []*gofeed.Item) []*ArticleWithContent {
 	// Check translation settings
 	translationEnabledStr, _ := f.db.GetSetting("translation_enabled")
 	targetLang, _ := f.db.GetSetting("target_language")
 	translationEnabled := translationEnabledStr == "true"
 
-	var articles []*models.Article
+	var articlesWithContent []*ArticleWithContent
 
 	for _, item := range items {
 		published := time.Now()
@@ -86,10 +93,14 @@ func (f *Fetcher) processArticles(feed models.Feed, items []*gofeed.Item) []*mod
 			PublishedAt:     published,
 			TranslatedTitle: translatedTitle,
 		}
-		articles = append(articles, article)
+
+		articlesWithContent = append(articlesWithContent, &ArticleWithContent{
+			Article: article,
+			Content: content,
+		})
 	}
 
-	return articles
+	return articlesWithContent
 }
 
 // extractImageURL extracts the image URL from a feed item

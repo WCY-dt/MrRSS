@@ -23,6 +23,14 @@ func HandleGetArticleContent(h *core.Handler, w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Get the article from database to access feed_id
+	article, err := h.DB.GetArticleByID(articleID)
+	if err != nil {
+		log.Printf("Error getting article: %v", err)
+		http.Error(w, "Failed to get article", http.StatusInternalServerError)
+		return
+	}
+
 	// Use the cached content fetching method
 	content, err := h.GetArticleContent(articleID)
 	if err != nil {
@@ -31,8 +39,16 @@ func HandleGetArticleContent(h *core.Handler, w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Get feed URL to use as referer for image proxying
+	feed, err := h.DB.GetFeedByID(article.FeedID)
+	var feedURL string
+	if err == nil && feed != nil {
+		feedURL = feed.URL
+	}
+
 	json.NewEncoder(w).Encode(map[string]string{
-		"content": content,
+		"content":  content,
+		"feed_url": feedURL,
 	})
 }
 
@@ -79,7 +95,15 @@ func HandleFetchFullArticle(h *core.Handler, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Get feed URL to use as referer for image proxying
+	feed, err := h.DB.GetFeedByID(article.FeedID)
+	var feedURL string
+	if err == nil && feed != nil {
+		feedURL = feed.URL
+	}
+
 	json.NewEncoder(w).Encode(map[string]string{
-		"content": fullContent,
+		"content":  fullContent,
+		"feed_url": feedURL,
 	})
 }

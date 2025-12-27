@@ -165,6 +165,15 @@ func initSchema(db *sql.DB) error {
 		UNIQUE(source_text_hash, target_lang, provider)
 	);
 
+	-- Article content cache table to store full article content
+	CREATE TABLE IF NOT EXISTS article_contents (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		article_id INTEGER NOT NULL UNIQUE,
+		content TEXT NOT NULL,
+		fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE CASCADE
+	);
+
 	-- Create indexes for better query performance
 	CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
 	CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
@@ -182,6 +191,9 @@ func initSchema(db *sql.DB) error {
 
 	-- Translation cache index
 	CREATE INDEX IF NOT EXISTS idx_translation_cache_lookup ON translation_cache(source_text_hash, target_lang, provider);
+
+	-- Article content cache index
+	CREATE INDEX IF NOT EXISTS idx_article_contents_article_id ON article_contents(article_id);
 	`
 	_, err := db.Exec(query)
 	if err != nil {
@@ -229,6 +241,17 @@ func runMigrations(db *sql.DB) error {
 
 	// Migration: Add summary column for caching AI-generated summaries
 	_, _ = db.Exec(`ALTER TABLE articles ADD COLUMN summary TEXT DEFAULT ''`)
+
+	// Migration: Add article_contents table for caching article content
+	// This uses a separate table to keep the articles table lightweight
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS article_contents (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		article_id INTEGER NOT NULL UNIQUE,
+		content TEXT NOT NULL,
+		fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE CASCADE
+	)`)
+	_, _ = db.Exec(`CREATE INDEX IF NOT EXISTS idx_article_contents_article_id ON article_contents(article_id)`)
 
 	return nil
 }

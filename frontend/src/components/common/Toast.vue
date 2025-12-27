@@ -43,7 +43,7 @@ function handleClose() {
       <PhXCircle v-else-if="type === 'error'" :size="20" />
       <PhWarning v-else-if="type === 'warning'" :size="20" />
       <PhInfo v-else :size="20" />
-      <span class="flex-1">{{ message }}</span>
+      <span class="flex-1 toast-message selectable-text">{{ message }}</span>
       <button class="text-xl opacity-70 hover:opacity-100 transition-opacity" @click="handleClose">
         <PhX :size="20" />
       </button>
@@ -86,6 +86,13 @@ function handleClose() {
 }
 :global(.dark-mode) .toast-warning {
   @apply bg-orange-950 border-orange-700 text-orange-100;
+}
+.toast-message {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
 }
 @keyframes slideIn {
   from {

@@ -119,18 +119,30 @@ func HandleMediaCacheCleanup(h *core.Handler, w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Get settings
-	maxAgeDaysStr, _ := h.DB.GetSetting("media_cache_max_age_days")
-	maxSizeMBStr, _ := h.DB.GetSetting("media_cache_max_size_mb")
+	// Check if this is a manual cleanup (clean all) or automatic cleanup (respect settings)
+	cleanAll := r.URL.Query().Get("all") == "true"
 
-	maxAgeDays, err := strconv.Atoi(maxAgeDaysStr)
-	if err != nil || maxAgeDays <= 0 {
-		maxAgeDays = 7 // Default
-	}
+	var maxAgeDays int
+	var maxSizeMB int
 
-	maxSizeMB, err := strconv.Atoi(maxSizeMBStr)
-	if err != nil || maxSizeMB <= 0 {
-		maxSizeMB = 100 // Default
+	if cleanAll {
+		// Manual cleanup: remove all files
+		maxAgeDays = 0
+		maxSizeMB = 0 // Will skip size-based cleanup
+	} else {
+		// Automatic cleanup: use settings
+		maxAgeDaysStr, _ := h.DB.GetSetting("media_cache_max_age_days")
+		maxSizeMBStr, _ := h.DB.GetSetting("media_cache_max_size_mb")
+
+		maxAgeDays, err = strconv.Atoi(maxAgeDaysStr)
+		if err != nil || maxAgeDays < 0 {
+			maxAgeDays = 7 // Default
+		}
+
+		maxSizeMB, err = strconv.Atoi(maxSizeMBStr)
+		if err != nil || maxSizeMB <= 0 {
+			maxSizeMB = 100 // Default
+		}
 	}
 
 	// Cleanup by age
@@ -139,14 +151,17 @@ func HandleMediaCacheCleanup(h *core.Handler, w http.ResponseWriter, r *http.Req
 		log.Printf("Failed to cleanup old media files: %v", err)
 	}
 
-	// Cleanup by size
-	sizeCount, err := mediaCache.CleanupBySize(maxSizeMB)
-	if err != nil {
-		log.Printf("Failed to cleanup media files by size: %v", err)
+	// Cleanup by size (only for automatic cleanup)
+	sizeCount := 0
+	if !cleanAll {
+		sizeCount, err = mediaCache.CleanupBySize(maxSizeMB)
+		if err != nil {
+			log.Printf("Failed to cleanup media files by size: %v", err)
+		}
 	}
 
 	totalCleaned := ageCount + sizeCount
-	log.Printf("Media cache cleanup: removed %d files", totalCleaned)
+	log.Printf("Media cache cleanup: removed %d files (clean_all: %v)", totalCleaned, cleanAll)
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{

@@ -112,9 +112,14 @@ onMounted(() => {
       {{ t('networkSettingsDescription') }}
     </div>
 
+    <div class="tip-box">
+      <PhInfo :size="16" class="text-accent shrink-0 sm:w-5 sm:h-5" />
+      <span class="text-xs sm:text-sm">{{ t('tunModeInfo') }}</span>
+    </div>
+
     <!-- Network Status Display -->
     <div
-      class="flex flex-col sm:flex-row sm:items-stretch sm:justify-between gap-3 sm:gap-4 p-2 sm:p-3 rounded-lg bg-bg-secondary border border-border"
+      class="flex flex-col sm:flex-row sm:items-stretch sm:justify-between gap-3 sm:gap-4 p-2 sm:p-3 rounded-lg bg-bg-secondary border border-border mt-2 sm:mt-3"
     >
       <!-- Top/Bottom: Speed and Latency Boxes -->
       <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
@@ -205,5 +210,11 @@ onMounted(() => {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+.tip-box {
+  @apply flex items-center gap-2 sm:gap-3 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-lg;
+  background-color: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 </style>
