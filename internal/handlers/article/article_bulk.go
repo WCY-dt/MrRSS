@@ -102,3 +102,45 @@ func HandleCleanupArticles(h *core.Handler, w http.ResponseWriter, r *http.Reque
 		"deleted": count,
 	})
 }
+
+// HandleCleanupArticleContent triggers manual cleanup of article content cache.
+func HandleCleanupArticleContent(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	count, err := h.DB.CleanupAllArticleContents()
+	if err != nil {
+		log.Printf("Error cleaning up article content cache: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Cleaned up %d article content entries", count)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":         true,
+		"entries_cleaned": count,
+	})
+}
+
+// HandleGetArticleContentCacheInfo returns information about article content cache.
+func HandleGetArticleContentCacheInfo(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	count, err := h.DB.GetArticleContentCount()
+	if err != nil {
+		log.Printf("Error getting article content cache info: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"cached_articles": count,
+	})
+}

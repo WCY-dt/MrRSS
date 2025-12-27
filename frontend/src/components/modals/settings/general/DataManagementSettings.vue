@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PhDatabase,
@@ -24,7 +24,9 @@ const emit = defineEmits<{
 }>();
 
 const mediaCacheSize = ref<number>(0);
+const articleCacheCount = ref<number>(0);
 const isCleaningCache = ref(false);
+const isCleaningArticleCache = ref(false);
 
 // Fetch current media cache size
 async function fetchMediaCacheSize() {
@@ -39,17 +41,31 @@ async function fetchMediaCacheSize() {
   }
 }
 
+// Fetch article content cache count
+async function fetchArticleCacheCount() {
+  try {
+    const response = await fetch('/api/articles/content-cache-info');
+    if (response.ok) {
+      const data = await response.json();
+      articleCacheCount.value = data.cached_articles || 0;
+    }
+  } catch (error) {
+    console.error('Failed to fetch article cache count:', error);
+  }
+}
+
 // Clean media cache
 async function cleanMediaCache() {
   isCleaningCache.value = true;
   try {
-    const response = await fetch('/api/media/cleanup', { method: 'POST' });
+    const response = await fetch('/api/media/cleanup?all=true', { method: 'POST' });
     if (response.ok) {
       const data = await response.json();
       window.showToast(
         t('mediaCacheCleanup') + ': ' + data.files_cleaned + ' files removed',
         'success'
       );
+      // Immediately update cache size
       await fetchMediaCacheSize();
     } else {
       window.showToast(t('errorCleaningDatabase'), 'error');
@@ -62,12 +78,50 @@ async function cleanMediaCache() {
   }
 }
 
-onMounted(() => {
-  // Only fetch cache size if media cache is enabled
-  if (props.settings.media_cache_enabled) {
-    fetchMediaCacheSize();
+// Clean article content cache
+async function cleanArticleContentCache() {
+  isCleaningArticleCache.value = true;
+  try {
+    const response = await fetch('/api/articles/cleanup-content', { method: 'POST' });
+    if (response.ok) {
+      const data = await response.json();
+      window.showToast(
+        t('articleContentCacheCleanup') + ': ' + data.entries_cleaned + ' entries removed',
+        'success'
+      );
+      // Immediately update cache count
+      await fetchArticleCacheCount();
+    } else {
+      window.showToast(t('errorCleaningDatabase'), 'error');
+    }
+  } catch (error) {
+    console.error('Failed to clean article content cache:', error);
+    window.showToast(t('errorCleaningDatabase'), 'error');
+  } finally {
+    isCleaningArticleCache.value = false;
   }
+}
+
+// Fetch all cache data
+async function fetchAllCacheData() {
+  if (props.settings.media_cache_enabled) {
+    await fetchMediaCacheSize();
+  }
+  await fetchArticleCacheCount();
+}
+
+onMounted(() => {
+  // Fetch cache sizes when component mounts
+  fetchAllCacheData();
 });
+
+// Watch for settings changes to refetch media cache info
+watch(
+  () => props.settings.media_cache_enabled,
+  () => {
+    fetchAllCacheData();
+  }
+);
 </script>
 
 <template>
@@ -164,6 +218,33 @@ onMounted(() => {
           />
           <span class="text-xs sm:text-sm text-text-secondary">{{ t('days') }}</span>
         </div>
+      </div>
+
+      <!-- Article Content Cache Cleanup -->
+      <div class="sub-setting-item">
+        <div class="flex-1 flex items-center sm:items-start gap-2 sm:gap-3 min-w-0">
+          <PhTrash :size="20" class="text-text-secondary mt-0.5 shrink-0 sm:w-6 sm:h-6" />
+          <div class="flex-1 min-w-0">
+            <div class="font-medium mb-0 sm:mb-1 text-sm">
+              {{ t('articleContentCacheCleanup') }}
+            </div>
+            <div class="text-xs text-text-secondary hidden sm:block">
+              {{ t('articleContentCacheCleanupDesc') }}
+            </div>
+            <div class="text-xs text-text-secondary mt-1">
+              {{ t('currentCachedArticles') }}:
+              <span class="theme-number">{{ articleCacheCount }}</span>
+            </div>
+          </div>
+        </div>
+        <button
+          :disabled="isCleaningArticleCache"
+          class="btn-secondary"
+          @click="cleanArticleContentCache"
+        >
+          <PhBroom :size="16" class="sm:w-5 sm:h-5" />
+          {{ isCleaningArticleCache ? t('cleaning') : t('cleanupArticleContentCache') }}
+        </button>
       </div>
     </div>
 
@@ -265,7 +346,8 @@ onMounted(() => {
               {{ t('mediaCacheCleanupDesc') }}
             </div>
             <div class="text-xs text-text-secondary mt-1">
-              {{ t('currentCacheSize') }}: {{ mediaCacheSize.toFixed(2) }} MB
+              {{ t('currentCacheSize') }}:
+              <span class="theme-number">{{ mediaCacheSize.toFixed(2) }} MB</span>
             </div>
           </div>
         </div>
@@ -305,5 +387,8 @@ onMounted(() => {
 }
 .setting-group {
   @apply space-y-2 sm:space-y-3;
+}
+.theme-number {
+  @apply text-accent font-semibold;
 }
 </style>

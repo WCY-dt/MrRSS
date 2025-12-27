@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"MrRSS/internal/database"
@@ -38,7 +39,24 @@ func TestHandleMediaCacheInfoAndCleanup(t *testing.T) {
 		t.Fatalf("SetSetting failed: %v", err)
 	}
 
-	// Call info (GET)
+	// Get the cache directory
+	cacheDir := filepath.Join(tmp, "mrrss", "media_cache")
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		t.Fatalf("Failed to create cache dir: %v", err)
+	}
+
+	// Create some test cache files
+	testData := []byte("test image data")
+	file1 := filepath.Join(cacheDir, "abc123.jpg")
+	file2 := filepath.Join(cacheDir, "def456.png")
+	if err := os.WriteFile(file1, testData, 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	if err := os.WriteFile(file2, testData, 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Call info (GET) - should show cache size > 0
 	req := httptest.NewRequest(http.MethodGet, "/media/info", nil)
 	rr := httptest.NewRecorder()
 	HandleMediaCacheInfo(h, rr, req)
@@ -50,11 +68,16 @@ func TestHandleMediaCacheInfoAndCleanup(t *testing.T) {
 		t.Fatalf("decode info failed: %v", err)
 	}
 
-	if _, ok := info["cache_size_mb"]; !ok {
+	cacheSizeMB, ok := info["cache_size_mb"]
+	if !ok {
 		t.Fatalf("info missing cache_size_mb")
 	}
+	if cacheSizeMB <= 0 {
+		t.Errorf("Expected cache size > 0, got %f", cacheSizeMB)
+	}
 
-	// Call cleanup (POST)
+	// Test 1: Cleanup without ?all=true parameter (automatic cleanup)
+	// Should respect max_age_days setting and not clean new files
 	req2 := httptest.NewRequest(http.MethodPost, "/media/cleanup", nil)
 	rr2 := httptest.NewRecorder()
 	HandleMediaCacheCleanup(h, rr2, req2)
@@ -67,5 +90,44 @@ func TestHandleMediaCacheInfoAndCleanup(t *testing.T) {
 	}
 	if success, ok := resp["success"].(bool); !ok || !success {
 		t.Fatalf("expected cleanup success true, got %v", resp)
+	}
+	filesCleaned := int(resp["files_cleaned"].(float64))
+	if filesCleaned != 0 {
+		t.Errorf("Expected 0 files cleaned (too new), got %d", filesCleaned)
+	}
+
+	// Test 2: Cleanup with ?all=true parameter (manual cleanup)
+	// Should clean all files regardless of age
+	req3 := httptest.NewRequest(http.MethodPost, "/media/cleanup?all=true", nil)
+	rr3 := httptest.NewRecorder()
+	HandleMediaCacheCleanup(h, rr3, req3)
+	if rr3.Code != http.StatusOK {
+		t.Fatalf("expected 200 for cleanup with all=true, got %d", rr3.Code)
+	}
+	var resp2 map[string]interface{}
+	if err := json.NewDecoder(rr3.Body).Decode(&resp2); err != nil {
+		t.Fatalf("decode cleanup failed: %v", err)
+	}
+	filesCleaned2 := int(resp2["files_cleaned"].(float64))
+	if filesCleaned2 == 0 {
+		t.Error("Expected files to be cleaned with ?all=true")
+	}
+	if filesCleaned2 != 2 {
+		t.Errorf("Expected 2 files cleaned with ?all=true, got %d", filesCleaned2)
+	}
+
+	// Test 3: Verify cache is now empty
+	req4 := httptest.NewRequest(http.MethodGet, "/media/info", nil)
+	rr4 := httptest.NewRecorder()
+	HandleMediaCacheInfo(h, rr4, req4)
+	if rr4.Code != http.StatusOK {
+		t.Fatalf("expected 200 for info, got %d", rr4.Code)
+	}
+	var info2 map[string]float64
+	if err := json.NewDecoder(rr4.Body).Decode(&info2); err != nil {
+		t.Fatalf("decode info failed: %v", err)
+	}
+	if info2["cache_size_mb"] != 0 {
+		t.Errorf("Expected cache size 0 after cleanup, got %f", info2["cache_size_mb"])
 	}
 }

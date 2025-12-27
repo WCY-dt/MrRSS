@@ -35,13 +35,24 @@ func (db *DB) CleanupOldArticles() (int64, error) {
 
 	count, _ := result.RowsAffected()
 
-	// Also cleanup translation cache with the same age limit
+	// Also cleanup related caches with the same age limit
 	_, _ = db.CleanupTranslationCache(maxAgeDays)
+	_, _ = db.CleanupOldArticleContents(maxAgeDays)
 
 	// Run VACUUM to reclaim space
 	_, _ = db.Exec("VACUUM")
 
 	return count, nil
+}
+
+// CleanupAllArticleContents removes all cached article contents
+func (db *DB) CleanupAllArticleContents() (int64, error) {
+	db.WaitForReady()
+	result, err := db.Exec(`DELETE FROM article_contents`)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 // CleanupUnimportantArticles removes all articles except read, favorited, and read later ones.
@@ -60,8 +71,9 @@ func (db *DB) CleanupUnimportantArticles() (int64, error) {
 
 	count, _ := result.RowsAffected()
 
-	// Also cleanup translation cache (remove entries older than 7 days)
+	// Also cleanup related caches (remove entries older than 7 days)
 	_, _ = db.CleanupTranslationCache(7)
+	_, _ = db.CleanupOldArticleContents(7)
 
 	// Run VACUUM to reclaim space
 	_, _ = db.Exec("VACUUM")

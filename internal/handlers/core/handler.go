@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -77,7 +78,15 @@ func (h *Handler) SetApp(app interface{}) {
 
 // GetArticleContent fetches article content with caching
 func (h *Handler) GetArticleContent(articleID int64) (string, error) {
-	// Check cache first
+	// First, check database cache (persistent cache)
+	content, found, err := h.DB.GetArticleContent(articleID)
+	if err == nil && found {
+		// Also populate memory cache for faster subsequent access
+		h.ContentCache.Set(articleID, content)
+		return content, nil
+	}
+
+	// Check memory cache (in-memory cache, might be stale but fast)
 	if content, found := h.ContentCache.Get(articleID); found {
 		return content, nil
 	}
@@ -130,8 +139,11 @@ func (h *Handler) GetArticleContent(articleID int64) (string, error) {
 		content := feed.ExtractContent(matchingItem)
 		cleanContent := utils.CleanHTML(content)
 
-		// Cache the content
+		// Cache the content in both memory and database
 		h.ContentCache.Set(articleID, cleanContent)
+		if err := h.DB.SetArticleContent(articleID, cleanContent); err != nil {
+			log.Printf("Error caching content to database: %v", err)
+		}
 
 		return cleanContent, nil
 	}

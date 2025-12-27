@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Offer users a setting to enable or disable auto installation of updates after download. (#336)
 - Shortcuts can now be enabled or disabled via settings.
+- All article contents are now cached to improve loading speed when switching articles. (#344)
 
 ### Fixed
 

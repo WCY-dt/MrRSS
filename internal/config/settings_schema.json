@@ -209,14 +209,14 @@
     },
     "auto_cleanup_enabled": {
       "type": "bool",
-      "default": false,
+      "default": true,
       "category": "storage",
       "encrypted": false,
       "frontend_key": "autoCleanupEnabled"
     },
     "max_cache_size_mb": {
       "type": "int",
-      "default": 20,
+      "default": 100,
       "category": "storage",
       "encrypted": false,
       "frontend_key": "maxCacheSizeMB"
