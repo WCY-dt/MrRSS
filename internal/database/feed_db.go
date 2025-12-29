@@ -72,12 +72,18 @@ func (db *DB) GetFeeds() ([]models.Feed, error) {
 	for rows.Next() {
 		var f models.Feed
 		var link, category, imageURL, lastError, scriptPath, proxyURL, feedType, xpathItem, xpathItemTitle, xpathItemContent, xpathItemUri, xpathItemAuthor, xpathItemTimestamp, xpathItemTimeFormat, xpathItemThumbnail, xpathItemCategories, xpathItemUid, articleViewMode, autoExpandContent sql.NullString
-		if err := rows.Scan(&f.ID, &f.Title, &f.URL, &link, &f.Description, &category, &imageURL, &f.Position, &f.LastUpdated, &lastError, &f.DiscoveryCompleted, &scriptPath, &f.HideFromTimeline, &proxyURL, &f.ProxyEnabled, &f.RefreshInterval, &f.IsImageMode, &feedType, &xpathItem, &xpathItemTitle, &xpathItemContent, &xpathItemUri, &xpathItemAuthor, &xpathItemTimestamp, &xpathItemTimeFormat, &xpathItemThumbnail, &xpathItemCategories, &xpathItemUid, &articleViewMode, &autoExpandContent); err != nil {
+		var lastUpdated sql.NullTime
+		if err := rows.Scan(&f.ID, &f.Title, &f.URL, &link, &f.Description, &category, &imageURL, &f.Position, &lastUpdated, &lastError, &f.DiscoveryCompleted, &scriptPath, &f.HideFromTimeline, &proxyURL, &f.ProxyEnabled, &f.RefreshInterval, &f.IsImageMode, &feedType, &xpathItem, &xpathItemTitle, &xpathItemContent, &xpathItemUri, &xpathItemAuthor, &xpathItemTimestamp, &xpathItemTimeFormat, &xpathItemThumbnail, &xpathItemCategories, &xpathItemUid, &articleViewMode, &autoExpandContent); err != nil {
 			return nil, err
 		}
 		f.Link = link.String
 		f.Category = category.String
 		f.ImageURL = imageURL.String
+		if lastUpdated.Valid {
+			f.LastUpdated = lastUpdated.Time
+		} else {
+			f.LastUpdated = time.Time{}
+		}
 		f.LastError = lastError.String
 		f.ScriptPath = scriptPath.String
 		f.ProxyURL = proxyURL.String
@@ -112,12 +118,18 @@ func (db *DB) GetFeedByID(id int64) (*models.Feed, error) {
 
 	var f models.Feed
 	var link, category, imageURL, lastError, scriptPath, proxyURL, feedType, xpathItem, xpathItemTitle, xpathItemContent, xpathItemUri, xpathItemAuthor, xpathItemTimestamp, xpathItemTimeFormat, xpathItemThumbnail, xpathItemCategories, xpathItemUid, articleViewMode, autoExpandContent sql.NullString
-	if err := row.Scan(&f.ID, &f.Title, &f.URL, &link, &f.Description, &category, &imageURL, &f.Position, &f.LastUpdated, &lastError, &f.DiscoveryCompleted, &scriptPath, &f.HideFromTimeline, &proxyURL, &f.ProxyEnabled, &f.RefreshInterval, &f.IsImageMode, &feedType, &xpathItem, &xpathItemTitle, &xpathItemContent, &xpathItemUri, &xpathItemAuthor, &xpathItemTimestamp, &xpathItemTimeFormat, &xpathItemThumbnail, &xpathItemCategories, &xpathItemUid, &articleViewMode, &autoExpandContent); err != nil {
+	var lastUpdated sql.NullTime
+	if err := row.Scan(&f.ID, &f.Title, &f.URL, &link, &f.Description, &category, &imageURL, &f.Position, &lastUpdated, &lastError, &f.DiscoveryCompleted, &scriptPath, &f.HideFromTimeline, &proxyURL, &f.ProxyEnabled, &f.RefreshInterval, &f.IsImageMode, &feedType, &xpathItem, &xpathItemTitle, &xpathItemContent, &xpathItemUri, &xpathItemAuthor, &xpathItemTimestamp, &xpathItemTimeFormat, &xpathItemThumbnail, &xpathItemCategories, &xpathItemUid, &articleViewMode, &autoExpandContent); err != nil {
 		return nil, err
 	}
 	f.Link = link.String
 	f.Category = category.String
 	f.ImageURL = imageURL.String
+	if lastUpdated.Valid {
+		f.LastUpdated = lastUpdated.Time
+	} else {
+		f.LastUpdated = time.Time{}
+	}
 	f.LastError = lastError.String
 	f.ScriptPath = scriptPath.String
 	f.ProxyURL = proxyURL.String

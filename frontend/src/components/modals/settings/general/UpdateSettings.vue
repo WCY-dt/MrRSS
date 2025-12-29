@@ -43,9 +43,9 @@ function formatLastUpdate(timestamp: string): string {
           </div>
           <!-- Last update time -->
           <div class="text-xs text-text-secondary mt-1 flex items-center gap-1">
-            <span>{{ t('lastArticleUpdate') }}:</span>
+            <span>{{ t('lastGlobalRefresh') }}:</span>
             <span class="font-medium text-accent">{{
-              formatLastUpdate(settings.last_article_update)
+              formatLastUpdate(settings.last_global_refresh)
             }}</span>
           </div>
         </div>

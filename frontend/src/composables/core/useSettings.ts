@@ -1,7 +1,7 @@
 /**
  * Composable for settings management
  */
-import { ref, type Ref } from 'vue';
+import { ref, type Ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { SettingsData } from '@/types/settings';
 import type { ThemePreference } from '@/stores/app';
@@ -60,6 +60,25 @@ export function useSettings() {
       }
     }
   }
+
+  /**
+   * Handle settings-updated event
+   * Re-fetches settings when backend updates them (e.g., after feed refresh)
+   */
+  function handleSettingsUpdated() {
+    fetchSettings().catch((e) => {
+      console.error('Error re-fetching settings after update:', e);
+    });
+  }
+
+  // Listen for settings-updated events
+  onMounted(() => {
+    window.addEventListener('settings-updated', handleSettingsUpdated);
+  });
+
+  onUnmounted(() => {
+    window.removeEventListener('settings-updated', handleSettingsUpdated);
+  });
 
   return {
     settings,

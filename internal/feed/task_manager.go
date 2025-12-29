@@ -309,6 +309,13 @@ func (tm *TaskManager) AddGlobalRefresh(ctx context.Context, feeds []models.Feed
 	tm.progress.Errors = make(map[int64]string)
 	tm.progressMutex.Unlock()
 
+	// Update last global refresh time when global refresh starts
+	newUpdateTime := time.Now().Format(time.RFC3339)
+	log.Printf("Global refresh started, updating last_global_refresh to: %s", newUpdateTime)
+	if err := tm.fetcher.db.SetSetting("last_global_refresh", newUpdateTime); err != nil {
+		log.Printf("ERROR: Failed to update last_global_refresh: %v", err)
+	}
+
 	// Clear all feed error marks in database
 	if err := tm.fetcher.db.ClearAllFeedErrors(); err != nil {
 		log.Printf("Failed to clear all feed errors: %v", err)
@@ -644,9 +651,6 @@ func (tm *TaskManager) checkCompletion() {
 		tm.progress.IsRunning = false
 
 		log.Println("All tasks completed")
-
-		// Update last article update time
-		tm.fetcher.db.SetSetting("last_article_update", time.Now().Format(time.RFC3339))
 
 		// Trigger cleanup through cleanup manager
 		tm.fetcher.cleanupManager.RequestCleanup()

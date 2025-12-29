@@ -27,7 +27,7 @@
   "hover_mark_as_read": false,
   "image_gallery_enabled": false,
   "language": "en-US",
-  "last_article_update": "",
+  "last_global_refresh": "",
   "last_network_test": "",
   "max_article_age_days": 30,
   "max_cache_size_mb": 500,

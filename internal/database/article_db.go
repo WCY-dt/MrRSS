@@ -144,13 +144,19 @@ func (db *DB) GetArticles(filter string, feedID int64, category string, showHidd
 	for rows.Next() {
 		var a models.Article
 		var imageURL, audioURL, videoURL, translatedTitle, summary sql.NullString
-		if err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &a.PublishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
+		var publishedAt sql.NullTime
+		if err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
 			log.Println("Error scanning article:", err)
 			continue
 		}
 		a.ImageURL = imageURL.String
 		a.AudioURL = audioURL.String
 		a.VideoURL = videoURL.String
+		if publishedAt.Valid {
+			a.PublishedAt = publishedAt.Time
+		} else {
+			a.PublishedAt = time.Time{}
+		}
 		a.TranslatedTitle = translatedTitle.String
 		a.Summary = summary.String
 		articles = append(articles, a)
@@ -172,12 +178,18 @@ func (db *DB) GetArticleByID(id int64) (*models.Article, error) {
 
 	var a models.Article
 	var imageURL, audioURL, videoURL, translatedTitle, summary sql.NullString
-	if err := row.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &a.PublishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
+	var publishedAt sql.NullTime
+	if err := row.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
 		return nil, err
 	}
 	a.ImageURL = imageURL.String
 	a.AudioURL = audioURL.String
 	a.VideoURL = videoURL.String
+	if publishedAt.Valid {
+		a.PublishedAt = publishedAt.Time
+	} else {
+		a.PublishedAt = time.Time{}
+	}
 	a.TranslatedTitle = translatedTitle.String
 	a.Summary = summary.String
 	return &a, nil
@@ -426,13 +438,19 @@ func (db *DB) GetImageGalleryArticles(feedID int64, showHidden bool, limit, offs
 	for rows.Next() {
 		var a models.Article
 		var imageURL, audioURL, videoURL, translatedTitle, summary sql.NullString
-		if err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &a.PublishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
+		var publishedAt sql.NullTime
+		if err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
 			log.Println("Error scanning article:", err)
 			continue
 		}
 		a.ImageURL = imageURL.String
 		a.AudioURL = audioURL.String
 		a.VideoURL = videoURL.String
+		if publishedAt.Valid {
+			a.PublishedAt = publishedAt.Time
+		} else {
+			a.PublishedAt = time.Time{}
+		}
 		a.TranslatedTitle = translatedTitle.String
 		a.Summary = summary.String
 		articles = append(articles, a)

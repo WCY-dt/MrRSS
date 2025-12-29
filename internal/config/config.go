@@ -46,7 +46,7 @@ type Defaults struct {
 	HoverMarkAsRead          bool   `json:"hover_mark_as_read"`
 	ImageGalleryEnabled      bool   `json:"image_gallery_enabled"`
 	Language                 string `json:"language"`
-	LastArticleUpdate        string `json:"last_article_update"`
+	LastGlobalRefresh        string `json:"last_global_refresh"`
 	LastNetworkTest          string `json:"last_network_test"`
 	MaxArticleAgeDays        int    `json:"max_article_age_days"`
 	MaxCacheSizeMb           int    `json:"max_cache_size_mb"`
@@ -161,8 +161,8 @@ func GetString(key string) string {
 		return strconv.FormatBool(defaults.ImageGalleryEnabled)
 	case "language":
 		return defaults.Language
-	case "last_article_update":
-		return defaults.LastArticleUpdate
+	case "last_global_refresh":
+		return defaults.LastGlobalRefresh
 	case "last_network_test":
 		return defaults.LastNetworkTest
 	case "max_article_age_days":

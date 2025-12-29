@@ -41,7 +41,7 @@ export function generateInitialSettings(): SettingsData {
     hover_mark_as_read: settingsDefaults.hover_mark_as_read,
     image_gallery_enabled: settingsDefaults.image_gallery_enabled,
     language: settingsDefaults.language,
-    last_article_update: settingsDefaults.last_article_update,
+    last_global_refresh: settingsDefaults.last_global_refresh,
     last_network_test: settingsDefaults.last_network_test,
     max_article_age_days: settingsDefaults.max_article_age_days,
     max_cache_size_mb: settingsDefaults.max_cache_size_mb,
@@ -120,7 +120,7 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     hover_mark_as_read: data.hover_mark_as_read === 'true',
     image_gallery_enabled: data.image_gallery_enabled === 'true',
     language: data.language || settingsDefaults.language,
-    last_article_update: data.last_article_update || settingsDefaults.last_article_update,
+    last_global_refresh: data.last_global_refresh || settingsDefaults.last_global_refresh,
     last_network_test: data.last_network_test || settingsDefaults.last_network_test,
     max_article_age_days:
       parseInt(data.max_article_age_days) || settingsDefaults.max_article_age_days,
@@ -220,8 +220,6 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
       settingsRef.value.image_gallery_enabled ?? settingsDefaults.image_gallery_enabled
     ).toString(),
     language: settingsRef.value.language ?? settingsDefaults.language,
-    last_article_update:
-      settingsRef.value.last_article_update ?? settingsDefaults.last_article_update,
     last_network_test: settingsRef.value.last_network_test ?? settingsDefaults.last_network_test,
     max_article_age_days: (
       settingsRef.value.max_article_age_days ?? settingsDefaults.max_article_age_days
@@ -288,10 +286,5 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     update_interval: (
       settingsRef.value.update_interval ?? settingsDefaults.update_interval
     ).toString(),
-    window_height: settingsRef.value.window_height ?? settingsDefaults.window_height,
-    window_maximized: settingsRef.value.window_maximized ?? settingsDefaults.window_maximized,
-    window_width: settingsRef.value.window_width ?? settingsDefaults.window_width,
-    window_x: settingsRef.value.window_x ?? settingsDefaults.window_x,
-    window_y: settingsRef.value.window_y ?? settingsDefaults.window_y,
   };
 }

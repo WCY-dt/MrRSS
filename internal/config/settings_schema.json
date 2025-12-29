@@ -305,12 +305,12 @@
       "encrypted": false,
       "frontend_key": "rules"
     },
-    "last_article_update": {
+    "last_global_refresh": {
       "type": "string",
       "default": "",
       "category": "internal",
       "encrypted": false,
-      "frontend_key": "lastArticleUpdate"
+      "frontend_key": "lastGlobalRefresh"
     },
     "google_translate_endpoint": {
       "type": "string",

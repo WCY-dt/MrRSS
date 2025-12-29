@@ -308,10 +308,10 @@ export interface TranslationMessages {
   justNow: string;
   language: string;
   languageDesc: string;
-  lastArticleUpdate: string;
+  lastGlobalRefresh: string;
   markRead: string;
   markUnread: string;
-  lastArticleUpdateDesc: string;
+  lastGlobalRefreshDesc: string;
   lastDetection: string;
   lastSync: string;
   latencyLabel: string;

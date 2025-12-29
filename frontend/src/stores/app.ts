@@ -340,6 +340,10 @@ export const useAppStore = defineStore('app', () => {
           fetchArticles();
           fetchUnreadCounts();
 
+          // Notify components that settings have been updated (e.g., last_article_update)
+          // This triggers components using useSettings() to refresh their settings
+          window.dispatchEvent(new CustomEvent('settings-updated'));
+
           // Note: We no longer show error toasts for failed feeds
           // Users can see error status in the feed list sidebar
 

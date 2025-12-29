@@ -287,7 +287,8 @@ func (f *Fetcher) AddXPathSubscription(url string, category string, customTitle 
 	}
 
 	// Test parsing based on feed type
-	if feedType == "HTML+XPath" {
+	switch feedType {
+	case "HTML+XPath":
 		doc, err := htmlquery.Parse(strings.NewReader(string(body)))
 		if err != nil {
 			return 0, &XPathError{
@@ -306,7 +307,7 @@ func (f *Fetcher) AddXPathSubscription(url string, category string, customTitle 
 				Details:   "No items found. The Item XPath expression doesn't match any elements. Please check the XPath expression and the page structure",
 			}
 		}
-	} else if feedType == "XML+XPath" {
+	case "XML+XPath":
 		doc, err := xmlquery.Parse(strings.NewReader(string(body)))
 		if err != nil {
 			return 0, &XPathError{

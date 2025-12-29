@@ -434,13 +434,16 @@ func generateFrontendComposable(schema *SettingsSchema) error {
 		}
 
 		// Auto-save field - convert to string for backend
-		switch def.Type {
-		case "bool":
-			autoSaveFields = append(autoSaveFields, fmt.Sprintf("    %s: (settingsRef.value.%s ?? settingsDefaults.%s).toString(),", key, key, key))
-		case "int":
-			autoSaveFields = append(autoSaveFields, fmt.Sprintf("    %s: (settingsRef.value.%s ?? settingsDefaults.%s).toString(),", key, key, key))
-		default:
-			autoSaveFields = append(autoSaveFields, fmt.Sprintf("    %s: settingsRef.value.%s ?? settingsDefaults.%s,", key, key, key))
+		// Skip internal settings (should only be modified by backend)
+		if def.Category != "internal" {
+			switch def.Type {
+			case "bool":
+				autoSaveFields = append(autoSaveFields, fmt.Sprintf("    %s: (settingsRef.value.%s ?? settingsDefaults.%s).toString(),", key, key, key))
+			case "int":
+				autoSaveFields = append(autoSaveFields, fmt.Sprintf("    %s: (settingsRef.value.%s ?? settingsDefaults.%s).toString(),", key, key, key))
+			default:
+				autoSaveFields = append(autoSaveFields, fmt.Sprintf("    %s: settingsRef.value.%s ?? settingsDefaults.%s,", key, key, key))
+			}
 		}
 	}
 

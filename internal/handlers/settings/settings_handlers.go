@@ -42,7 +42,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		hoverMarkAsRead, _ := h.DB.GetSetting("hover_mark_as_read")
 		imageGalleryEnabled, _ := h.DB.GetSetting("image_gallery_enabled")
 		language, _ := h.DB.GetSetting("language")
-		lastArticleUpdate, _ := h.DB.GetSetting("last_article_update")
+		lastGlobalRefresh, _ := h.DB.GetSetting("last_global_refresh")
 		lastNetworkTest, _ := h.DB.GetSetting("last_network_test")
 		maxArticleAgeDays, _ := h.DB.GetSetting("max_article_age_days")
 		maxCacheSizeMb, _ := h.DB.GetSetting("max_cache_size_mb")
@@ -112,7 +112,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			"hover_mark_as_read":          hoverMarkAsRead,
 			"image_gallery_enabled":       imageGalleryEnabled,
 			"language":                    language,
-			"last_article_update":         lastArticleUpdate,
+			"last_global_refresh":         lastGlobalRefresh,
 			"last_network_test":           lastNetworkTest,
 			"max_article_age_days":        maxArticleAgeDays,
 			"max_cache_size_mb":           maxCacheSizeMb,
@@ -184,7 +184,7 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			HoverMarkAsRead          string `json:"hover_mark_as_read"`
 			ImageGalleryEnabled      string `json:"image_gallery_enabled"`
 			Language                 string `json:"language"`
-			LastArticleUpdate        string `json:"last_article_update"`
+			LastGlobalRefresh        string `json:"last_global_refresh"`
 			LastNetworkTest          string `json:"last_network_test"`
 			MaxArticleAgeDays        string `json:"max_article_age_days"`
 			MaxCacheSizeMb           string `json:"max_cache_size_mb"`
@@ -350,8 +350,8 @@ func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 			h.DB.SetSetting("language", req.Language)
 		}
 
-		if req.LastArticleUpdate != "" {
-			h.DB.SetSetting("last_article_update", req.LastArticleUpdate)
+		if req.LastGlobalRefresh != "" {
+			h.DB.SetSetting("last_global_refresh", req.LastGlobalRefresh)
 		}
 
 		if req.LastNetworkTest != "" {

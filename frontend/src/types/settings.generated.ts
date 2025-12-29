@@ -33,7 +33,7 @@ export interface SettingsData {
   hover_mark_as_read: boolean;
   image_gallery_enabled: boolean;
   language: string;
-  last_article_update: string;
+  last_global_refresh: string;
   last_network_test: string;
   max_article_age_days: number;
   max_cache_size_mb: number;

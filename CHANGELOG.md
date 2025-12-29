@@ -43,6 +43,7 @@ The following changes may affect existing setups:
 - Fixed the issue where application name is displayed as `{{.info.ProductName}}` on Windows platform. (#351)
 - Fixed the issue where moving a feed removes advanced setting for that feed. (#356)
 - Fixed the issue where switching articles before summary generation completes causes incorrect summary display. (#365)
+- Fixed the issue where error messages when DATETIME is NULL. (#347)
 
 ## [1.3.11] - 2025-12-26
 

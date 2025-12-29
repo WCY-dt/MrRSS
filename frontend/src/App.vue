@@ -79,7 +79,7 @@ onMounted(async () => {
 
   // Load remaining settings (theme and other settings are already loaded in main.ts)
   let updateInterval = 10;
-  let lastArticleUpdate = '';
+  let lastGlobalRefresh = '';
   let autoUpdate = false;
 
   try {
@@ -97,8 +97,8 @@ onMounted(async () => {
       store.startAutoRefresh(updateInterval);
     }
 
-    if (data.last_article_update) {
-      lastArticleUpdate = data.last_article_update;
+    if (data.last_global_refresh) {
+      lastGlobalRefresh = data.last_global_refresh;
     }
 
     // Get auto_update setting
@@ -167,7 +167,21 @@ onMounted(async () => {
 
       // Only trigger feed refresh if enough time has passed since last update
       // and backend is not already refreshing
-      const shouldRefresh = shouldTriggerRefresh(lastArticleUpdate, updateInterval);
+
+      // Re-fetch the latest last_global_refresh from backend to ensure we have
+      // the most recent value (in case a previous update just completed)
+      let latestLastGlobalRefresh = lastGlobalRefresh;
+      try {
+        const settingsRes = await fetch('/api/settings');
+        const settingsData = await settingsRes.json();
+        if (settingsData.last_global_refresh) {
+          latestLastGlobalRefresh = settingsData.last_global_refresh;
+        }
+      } catch (e) {
+        console.error('Error fetching latest last_global_refresh:', e);
+      }
+
+      const shouldRefresh = shouldTriggerRefresh(latestLastGlobalRefresh, updateInterval);
       if (shouldRefresh) {
         store.refreshFeeds();
       }

@@ -124,7 +124,7 @@ func (h *Handler) startScheduler(ctx context.Context, intelligentMode bool) {
 // In intelligent mode, this calculates intervals per feed
 // In fixed mode, all feeds refresh together at the global interval
 func (h *Handler) triggerGlobalRefresh(ctx context.Context, intelligentMode bool, lastGlobalRefresh *time.Time) {
-	// Update last global refresh time to now
+	// Update in-memory timestamp and database setting
 	*lastGlobalRefresh = time.Now()
 	log.Printf("Global refresh triggered at %v", *lastGlobalRefresh)
 
@@ -133,6 +133,7 @@ func (h *Handler) triggerGlobalRefresh(ctx context.Context, intelligentMode bool
 	if err := h.DB.SetSetting("last_global_refresh", lastGlobalRefreshStr); err != nil {
 		log.Printf("Failed to save last_global_refresh to settings: %v", err)
 	}
+
 	feeds, err := h.DB.GetFeeds()
 	if err != nil {
 		log.Printf("Error getting feeds for global refresh: %v", err)
