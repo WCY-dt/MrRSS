@@ -78,3 +78,115 @@ func TestHandleMediaProxy_InvalidURL(t *testing.T) {
 		t.Fatalf("expected %d got %d", http.StatusBadRequest, rr.Code)
 	}
 }
+
+func TestProxyImagesInHTML_RelativeURLs(t *testing.T) {
+	referer := "https://example.com/blog/post-123"
+
+	testCases := []struct {
+		name           string
+		html           string
+		expectedSuffix string // The URL should end with this after proxying
+		skipProxy      bool   // If true, URL should not be proxied
+	}{
+		{
+			name:           "Absolute URL",
+			html:           `<img src="https://cdn.example.com/image.jpg">`,
+			expectedSuffix: "url=https%3A%2F%2Fcdn.example.com%2Fimage.jpg",
+		},
+		{
+			name:           "Relative path - no slash",
+			html:           `<img src="images/photo.jpg">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fblog%2Fimages%2Fphoto.jpg",
+		},
+		{
+			name:           "Relative path - dot slash",
+			html:           `<img src="./img.png">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fblog%2Fimg.png",
+		},
+		{
+			name:           "Relative path - parent directory",
+			html:           `<img src="../assets/image.gif">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fassets%2Fimage.gif",
+		},
+		{
+			name:           "Relative path - multiple parent directories",
+			html:           `<img src="../../static/logo.png">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fstatic%2Flogo.png",
+		},
+		{
+			name:           "Absolute path - domain relative",
+			html:           `<img src="/static/img.png">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fstatic%2Fimg.png",
+		},
+		{
+			name:      "Data URL",
+			html:      `<img src="data:image/png;base64,iVBORw0KG">`,
+			skipProxy: true,
+		},
+		{
+			name:      "Blob URL",
+			html:      `<img src="blob:http://localhost/abc-123">`,
+			skipProxy: true,
+		},
+		{
+			name:           "Single quoted URL",
+			html:           `<img src='images/photo.jpg'>`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fblog%2Fimages%2Fphoto.jpg",
+		},
+		{
+			name:           "Unquoted URL (no spaces)",
+			html:           `<img src=images/photo.jpg>`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fblog%2Fimages%2Fphoto.jpg",
+		},
+		{
+			name:           "URL with HTML entities &amp;",
+			html:           `<img src="https://wechat2rss.dev/img-proxy?key=val&amp;other=test">`,
+			expectedSuffix: "url=https%3A%2F%2Fwechat2rss.dev%2Fimg-proxy%3Fkey%3Dval%26other%3Dtest",
+		},
+		{
+			name:           "Relative URL with HTML entities &amp;",
+			html:           `<img src="images.jpg?w=800&amp;h=600">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fblog%2Fimages.jpg%3Fw%3D800%26h%3D600",
+		},
+		{
+			name:           "URL with multiple HTML entities",
+			html:           `<img src="https://example.com/img?a=1&amp;b=2&amp;c=3">`,
+			expectedSuffix: "url=https%3A%2F%2Fexample.com%2Fimg%3Fa%3D1%26b%3D2%26c%3D3",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := proxyImagesInHTML(tc.html, referer)
+
+			if tc.skipProxy {
+				// URL should not be proxied
+				if !contains(result, "src=\"") || contains(result, "/api/media/proxy") {
+					t.Errorf("Expected URL to remain unchanged, got: %s", result)
+				}
+			} else {
+				// URL should be proxied
+				if !contains(result, tc.expectedSuffix) {
+					t.Errorf("Expected URL to contain %q, got: %s", tc.expectedSuffix, result)
+				}
+				if !contains(result, "/api/media/proxy") {
+					t.Errorf("Expected proxy URL in result, got: %s", result)
+				}
+			}
+		})
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > 0 && findInString(s, substr)))
+}
+
+func findInString(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

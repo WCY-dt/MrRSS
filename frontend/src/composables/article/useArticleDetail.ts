@@ -216,7 +216,6 @@ export function useArticleDetail() {
       try {
         // Check if parent exists and is valid
         if (!link.parentNode) {
-          console.warn('Link has no parent node, skipping unwrap');
           return;
         }
 
@@ -237,22 +236,17 @@ export function useArticleDetail() {
   // Attach event listeners to images in rendered content
   // Can be called multiple times (e.g., after translations modify the DOM)
   function attachImageEventListeners() {
-    console.log('[attachImageEventListeners] Called');
-
     // First, unwrap any images that are inside hyperlinks
     unwrapImagesFromLinks();
 
     // Get all images in prose content (use more specific selector)
     const proseContainers = document.querySelectorAll('.prose-content, .prose');
-    console.log('[attachImageEventListeners] Found prose containers:', proseContainers.length);
 
     if (proseContainers.length === 0) {
       return;
     }
 
     const images = document.querySelectorAll<HTMLImageElement>('.prose-content img, .prose img');
-
-    console.log('[attachImageEventListeners] Found images:', images.length);
 
     // Process images if there are any
     if (images.length > 0) {
@@ -355,35 +349,28 @@ export function useArticleDetail() {
   }
 
   // Attach event listeners to links in rendered content
-  // Uses the same clone-and-replace strategy as image handling
-  // This ensures fresh event listeners on each link
+  // Uses the same strategy as image handling for consistency
+  // Works for dynamically added content (e.g., translations)
   function attachLinkEventListeners() {
     // Get all text-only links (no images) in prose content
     const links = document.querySelectorAll<HTMLAnchorElement>('.prose-content a, .prose a');
 
-    console.log('[Link Handler] Found links:', links.length);
-
-    links.forEach((link, index) => {
+    links.forEach((link) => {
       try {
         // Verify the link has a valid parent
         if (!link.parentNode) {
-          console.warn('Link has no parent node, skipping event attachment');
           return;
         }
 
         // Skip if the link contains an image (handled separately by image handlers)
         if (link.querySelector('img')) {
-          console.log('[Link Handler] Skipping image link:', link.href);
           return;
         }
 
         // Check if already processed (has our marker)
         if (link.dataset.linkHandlerAttached === 'true') {
-          console.log('[Link Handler] Already processed:', link.href);
           return;
         }
-
-        console.log('[Link Handler] Processing link:', index, link.href, link.textContent);
 
         // Mark as processed
         link.dataset.linkHandlerAttached = 'true';
@@ -392,15 +379,39 @@ export function useArticleDetail() {
         link.addEventListener(
           'click',
           (e: Event) => {
-            console.log('[Link Handler] Clicked link:', link.href);
             // Prevent default behavior and stop propagation
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
 
             // Get the href
-            const href = link.getAttribute('href');
+            let href = link.getAttribute('href');
             if (href) {
+              // Convert relative URLs to absolute URLs
+              // If it starts with / or is a relative path, convert to absolute using article URL
+              if (
+                href.startsWith('/') ||
+                (!href.startsWith('http://') &&
+                  !href.startsWith('https://') &&
+                  !href.startsWith('mailto:') &&
+                  !href.startsWith('#'))
+              ) {
+                if (article.value?.url) {
+                  try {
+                    const articleUrl = new URL(article.value.url);
+                    // For relative paths like "path/to/page"
+                    if (!href.startsWith('/')) {
+                      href = new URL(href, article.value.url).href;
+                    } else {
+                      // For absolute paths like "/path/to/page"
+                      href = `${articleUrl.origin}${href}`;
+                    }
+                  } catch (error) {
+                    console.error('Error converting relative URL:', error);
+                  }
+                }
+              }
+
               try {
                 openInBrowser(href);
               } catch (error) {

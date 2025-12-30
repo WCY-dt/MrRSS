@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"net/http"
@@ -34,29 +35,52 @@ func validateMediaURL(urlStr string) error {
 }
 
 // proxyImagesInHTML replaces image URLs in HTML with proxied versions
-func proxyImagesInHTML(html, referer string) string {
-	if html == "" || referer == "" {
-		return html
+func proxyImagesInHTML(htmlContent, referer string) string {
+	if htmlContent == "" || referer == "" {
+		return htmlContent
+	}
+
+	// Parse the referer URL once for resolving relative URLs
+	baseURL, err := url.Parse(referer)
+	if err != nil {
+		log.Printf("Failed to parse referer URL: %v", err)
+		return htmlContent
 	}
 
 	// Use regex to find and replace img src attributes
 	// This handles various formats: src="url", src='url', src=url (unquoted)
 	re := regexp.MustCompile(`<img[^>]*src\s*=\s*(?:['"]\s*)?([^'"\s>]+)(?:\s*['"])?[^>]*>`)
-	html = re.ReplaceAllStringFunc(html, func(match string) string {
+	htmlContent = re.ReplaceAllStringFunc(htmlContent, func(match string) string {
 		// Extract the src URL from the match
 		re := regexp.MustCompile(`src\s*=\s*(?:['"]\s*)?([^'"\s>]+)(?:\s*['"])?`)
 		srcMatch := re.FindStringSubmatch(match)
-		if len(srcMatch) < 3 {
+		if len(srcMatch) < 2 {
 			return match // No valid src found, return unchanged
 		}
 
-		srcURL := srcMatch[2]
+		srcURL := srcMatch[1]
 
 		// Skip data URLs, blob URLs, and already proxied URLs
 		if strings.HasPrefix(srcURL, "data:") ||
 			strings.HasPrefix(srcURL, "blob:") ||
 			strings.Contains(srcURL, "/api/media/proxy") {
 			return match
+		}
+
+		// CRITICAL FIX: Decode HTML entities before processing the URL
+		// HTML attributes contain &amp; which should be decoded to & before URL encoding
+		// For example: ?key=val&amp;other=val becomes ?key=val&other=val
+		srcURL = html.UnescapeString(srcURL)
+
+		// Resolve relative URLs against the referer
+		// Handles: images/photo.jpg, ./img.png, ../assets/image.gif, /static/img.png
+		if !strings.HasPrefix(srcURL, "http://") && !strings.HasPrefix(srcURL, "https://") {
+			parsedURL, err := url.Parse(srcURL)
+			if err != nil {
+				log.Printf("Failed to parse image URL %s: %v", srcURL, err)
+				return match
+			}
+			srcURL = baseURL.ResolveReference(parsedURL).String()
 		}
 
 		// Build proxied URL
@@ -68,7 +92,7 @@ func proxyImagesInHTML(html, referer string) string {
 		return strings.Replace(match, srcMatch[0], fmt.Sprintf(`src="%s"`, proxyURL), 1)
 	})
 
-	return html
+	return htmlContent
 }
 
 // HandleMediaProxy serves cached media or downloads and caches it

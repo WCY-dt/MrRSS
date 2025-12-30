@@ -98,11 +98,15 @@ export function proxyImagesInHtml(html: string, referer?: string): string {
   // Note: Unquoted values cannot contain spaces per HTML specification
   const imgRegex = /<img([^>]+)src\s*=\s*(['"]?)([^"'\s>]+)\2/gi;
 
-  return html.replace(imgRegex, (match, attrs, quote, src) => {
-    const proxiedUrl = getProxiedMediaUrl(src, referer);
+  return html.replace(imgRegex, (match, _attrs, quote, src) => {
+    // CRITICAL FIX: Decode HTML entities before processing the URL
+    // HTML attributes contain &amp; which should be decoded to & before URL encoding
+    // For example: &amp; becomes &, then gets properly URL-encoded as %26
+    const decodedSrc = decodeHTMLEntities(src);
+    const proxiedUrl = getProxiedMediaUrl(decodedSrc, referer);
 
     // If proxying failed or returned the same URL, keep original
-    if (!proxiedUrl || proxiedUrl === src) {
+    if (!proxiedUrl || proxiedUrl === decodedSrc) {
       return match;
     }
 
@@ -115,4 +119,14 @@ export function proxyImagesInHtml(html: string, referer?: string): string {
 
     return match.replace(srcRegex, newSrc);
   });
+}
+
+/**
+ * Decode HTML entities in a string
+ * Handles common entities like &amp;, &lt;, &gt;, &quot;, &#39;, etc.
+ */
+function decodeHTMLEntities(text: string): string {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
 }

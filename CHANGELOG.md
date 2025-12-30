@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed the issue where python command not found error occurs. (#364)
 - Fixed the issue where some links in article content rendering mode cannot be opened in default browser. (#330)
+- Fixed the issue where some images in article content rendering mode cannot be displayed correctly. (#327)
 
 ## [1.3.12] - 2025-12-29
 
