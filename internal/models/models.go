@@ -42,6 +42,9 @@ type Feed struct {
 	EmailPassword   string `json:"email_password,omitempty"`    // IMAP password (encrypted)
 	EmailFolder     string `json:"email_folder"`                // IMAP folder to monitor (default INBOX)
 	EmailLastUID    int    `json:"email_last_uid"`              // Last processed email UID for incremental updates
+	// FreshRSS integration
+	IsFreshRSSSource bool   `json:"is_freshrss_source"` // Whether this feed is from FreshRSS sync
+	FreshRSSStreamID string `json:"freshrss_stream_id"` // FreshRSS stream ID (e.g., "feed/http://...")
 }
 
 type Article struct {
@@ -60,6 +63,7 @@ type Article struct {
 	IsReadLater           bool      `json:"is_read_later"`
 	FeedTitle             string    `json:"feed_title,omitempty"` // Joined field
 	TranslatedTitle       string    `json:"translated_title"`
-	Summary               string    `json:"summary"`   // Cached AI-generated summary
-	UniqueID              string    `json:"unique_id"` // Unique identifier for deduplication (title+feed_id+published_date)
+	Summary               string    `json:"summary"`          // Cached AI-generated summary
+	UniqueID              string    `json:"unique_id"`        // Unique identifier for deduplication (title+feed_id+published_date)
+	FreshRSSItemID        string    `json:"freshrss_item_id"` // FreshRSS/Google Reader item ID for API operations
 }

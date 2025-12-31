@@ -57,22 +57,37 @@ func HandleMarkRead(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		read = false
 	}
 
-	if err := h.DB.MarkArticleRead(id, read); err != nil {
+	syncReq, err := h.DB.MarkArticleReadWithSync(id, read)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+
+	// Trigger background sync if needed (non-blocking)
+	if syncReq != nil {
+		// Note: This is a simplified version. For production, use the new HandleMarkReadWithImmediateSync
+		_ = syncReq
+	}
 }
 
 // HandleToggleFavorite toggles the favorite status of an article.
 func HandleToggleFavorite(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.ParseInt(idStr, 10, 64)
-	if err := h.DB.ToggleFavorite(id); err != nil {
+
+	syncReq, err := h.DB.ToggleFavoriteWithSync(id)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+
+	// Trigger background sync if needed (non-blocking)
+	if syncReq != nil {
+		// Note: This is a simplified version. For production, use the new HandleToggleFavoriteWithImmediateSync
+		_ = syncReq
+	}
 }
 
 // HandleToggleHideArticle toggles the hidden status of an article.

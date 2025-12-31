@@ -182,6 +182,14 @@ onUnmounted(() => {
             class="text-yellow-500 sm:w-[18px] sm:h-[18px]"
             weight="fill"
           />
+          <!-- FreshRSS indicator -->
+          <img
+            v-if="article.freshrss_item_id"
+            src="/assets/plugin_icons/freshrss.svg"
+            class="w-3.5 h-3.5 shrink-0 sm:w-4 sm:h-4"
+            :title="t('freshRSSSyncedFeed')"
+            alt="FreshRSS"
+          />
           <span class="whitespace-nowrap">{{ formatDate(article.published_at) }}</span>
         </div>
       </div>

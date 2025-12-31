@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { PhWarningCircle, PhEyeSlash, PhImage, PhDotsSixVertical } from '@phosphor-icons/vue';
+import {
+  PhWarningCircle,
+  PhEyeSlash,
+  PhImage,
+  PhDotsSixVertical,
+  PhLock,
+} from '@phosphor-icons/vue';
 import type { Feed } from '@/types/models';
 import { useI18n } from 'vue-i18n';
 
@@ -47,9 +53,9 @@ function handleDragEnd() {
     @click="emit('click')"
     @contextmenu="(e) => emit('contextmenu', e)"
   >
-    <!-- Drag handle (only visible in edit mode) -->
+    <!-- Drag handle (only visible in edit mode and not for FreshRSS feeds) -->
     <div
-      v-if="isEditMode"
+      v-if="isEditMode && !feed.is_freshrss_source"
       class="drag-handle"
       draggable="true"
       :title="t('dragToReorder')"
@@ -57,6 +63,15 @@ function handleDragEnd() {
       @dragend="handleDragEnd"
     >
       <PhDotsSixVertical :size="14" />
+    </div>
+
+    <!-- FreshRSS lock icon (for FreshRSS feeds in edit mode) -->
+    <div
+      v-if="isEditMode && feed.is_freshrss_source"
+      class="freshrss-lock"
+      :title="t('freshRSSFeedLocked')"
+    >
+      <PhLock :size="14" />
     </div>
 
     <div class="w-4 h-4 flex items-center justify-center shrink-0">
@@ -155,6 +170,13 @@ function handleDragEnd() {
 }
 .drag-handle:active {
   cursor: grabbing;
+}
+
+.freshrss-lock {
+  @apply cursor-not-allowed text-text-secondary transition-colors flex items-center justify-center;
+  padding: 2px;
+  margin-right: 2px;
+  border-radius: 2px;
 }
 
 .unread-badge {

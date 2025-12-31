@@ -18,6 +18,7 @@ export interface Article {
   is_hidden: boolean;
   is_read_later: boolean;
   summary?: string; // Cached AI-generated summary
+  freshrss_item_id?: string; // FreshRSS/Google Reader item ID
 }
 
 export interface Feed {
@@ -58,6 +59,9 @@ export interface Feed {
   email_username?: string;
   email_password?: string;
   email_folder?: string;
+  // FreshRSS integration
+  is_freshrss_source?: boolean; // Whether this feed is from FreshRSS sync
+  freshrss_stream_id?: string; // FreshRSS stream ID (e.g., "feed/http://...")
 }
 
 export interface UnreadCounts {

@@ -5,15 +5,23 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"MrRSS/internal/freshrss"
 	"MrRSS/internal/handlers/core"
 )
 
-// HandleSync performs synchronization with FreshRSS server
-func HandleSync(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+// HandleSyncFeed syncs articles for a single FreshRSS feed
+func HandleSyncFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get stream_id from query parameter
+	streamID := r.URL.Query().Get("stream_id")
+	if streamID == "" {
+		http.Error(w, "stream_id is required", http.StatusBadRequest)
 		return
 	}
 
@@ -39,91 +47,126 @@ func HandleSync(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create sync service
-	syncService := freshrss.NewSyncService(serverURL, username, password, h.DB)
+	// Create bidirectional sync service
+	syncService := freshrss.NewBidirectionalSyncService(serverURL, username, password, h.DB)
+	log.Printf("[HandleSyncFeed] Syncing stream: %s", streamID)
 
 	// Perform sync in background
 	go func() {
 		ctx := context.Background()
-		if err := syncService.Sync(ctx); err != nil {
-			log.Printf("FreshRSS sync failed: %v", err)
+		count, err := syncService.SyncFeed(ctx, streamID)
+
+		if err != nil {
+			log.Printf("FreshRSS feed sync failed for stream %s: %v", streamID, err)
 		} else {
-			log.Printf("FreshRSS sync completed successfully")
-			// Trigger a refresh of all feeds to update the article list
-			go h.Fetcher.FetchAll(context.Background())
+			log.Printf("FreshRSS feed sync completed for stream %s: %d articles", streamID, count)
 		}
 	}()
 
-	// Return success response
+	// Return success response immediately
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "sync_started",
-		"message": "FreshRSS synchronization started",
+		"message": "Feed synchronization started",
 	})
 }
 
-// HandleTestConnection tests the connection to FreshRSS server
-func HandleTestConnection(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+// HandleSync performs bidirectional synchronization with FreshRSS server
+func HandleSync(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+	log.Printf("[HandleSync] Sync request received")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Parse request body
-	var req struct {
-		ServerURL   string `json:"server_url"`
-		Username    string `json:"username"`
-		APIPassword string `json:"api_password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "Invalid request body",
-		})
-		return
-	}
-
-	// Validate required fields
-	if req.ServerURL == "" || req.Username == "" || req.APIPassword == "" {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "FreshRSS settings incomplete",
-		})
-		return
-	}
-
-	serverURL := req.ServerURL
-	username := req.Username
-	password := req.APIPassword
-
-	// Test connection
-	client := freshrss.NewClient(serverURL, username, password)
-	ctx := context.Background()
-
-	err := client.Login(ctx)
+	// Get FreshRSS settings
+	enabled, err := h.DB.GetSetting("freshrss_enabled")
+	log.Printf("[HandleSync] FreshRSS enabled: %s", enabled)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
-		})
+		log.Printf("Error getting freshrss_enabled: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Get subscription count
-	subscriptions, err := client.GetSubscriptions(ctx)
-	subscriptionCount := 0
-	if err == nil {
-		subscriptionCount = len(subscriptions)
+	if enabled != "true" {
+		http.Error(w, "FreshRSS sync is disabled", http.StatusBadRequest)
+		return
+	}
+
+	serverURL, _ := h.DB.GetSetting("freshrss_server_url")
+	username, _ := h.DB.GetSetting("freshrss_username")
+	password, _ := h.DB.GetEncryptedSetting("freshrss_api_password")
+
+	if serverURL == "" || username == "" || password == "" {
+		http.Error(w, "FreshRSS settings incomplete", http.StatusBadRequest)
+		return
+	}
+
+	// Create bidirectional sync service
+	syncService := freshrss.NewBidirectionalSyncService(serverURL, username, password, h.DB)
+	log.Printf("[HandleSync] Sync service created, starting sync")
+
+	// Perform sync in background
+	go func() {
+		ctx := context.Background()
+		result, err := syncService.Sync(ctx)
+
+		// Update last sync time
+		lastSyncTime := time.Now().Format(time.RFC3339)
+		_ = h.DB.SetSetting("freshrss_last_sync_time", lastSyncTime)
+
+		if err != nil {
+			log.Printf("FreshRSS sync failed: %v", err)
+		} else {
+			log.Printf("FreshRSS sync completed: pull=%d changes, push=%d changes, duration=%s",
+				result.PullChangesCount, result.PushChangesCount, result.Duration)
+		}
+	}()
+
+	// Return success response immediately
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "sync_started",
+		"message": "FreshRSS synchronization started",
+	})
+}
+
+// HandleSyncStatus returns the current sync status
+func HandleSyncStatus(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get pending count
+	pendingCount, err := h.DB.GetPendingSyncCount()
+	if err != nil {
+		log.Printf("Error getting pending sync count: %v", err)
+		pendingCount = 0
+	}
+
+	// Get failed items
+	failedItems, err := h.DB.GetFailedSyncItems(10)
+	if err != nil {
+		log.Printf("Error getting failed sync items: %v", err)
+		failedItems = nil
+	}
+
+	// Get last sync time from settings
+	lastSyncStr, _ := h.DB.GetSetting("freshrss_last_sync_time")
+	var lastSyncTime *time.Time
+	if lastSyncStr != "" {
+		if ts, err := time.Parse(time.RFC3339, lastSyncStr); err == nil {
+			lastSyncTime = &ts
+		}
+	}
+
+	response := map[string]interface{}{
+		"pending_changes": pendingCount,
+		"failed_items":    len(failedItems),
+		"last_sync_time":  lastSyncTime,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":           true,
-		"subscriptionCount": subscriptionCount,
-		"message":           "Connection successful",
-	})
+	json.NewEncoder(w).Encode(response)
 }

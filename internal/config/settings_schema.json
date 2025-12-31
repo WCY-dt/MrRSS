@@ -459,6 +459,27 @@
       "encrypted": true,
       "frontend_key": "freshRSSAPIPassword"
     },
+    "freshrss_auto_sync_interval": {
+      "type": "int",
+      "default": 0,
+      "category": "integrations",
+      "encrypted": false,
+      "frontend_key": "freshRSSAutoSyncInterval"
+    },
+    "freshrss_sync_on_startup": {
+      "type": "bool",
+      "default": false,
+      "category": "integrations",
+      "encrypted": false,
+      "frontend_key": "freshRSSSyncOnStartup"
+    },
+    "freshrss_last_sync_time": {
+      "type": "string",
+      "default": "",
+      "category": "integrations",
+      "encrypted": false,
+      "frontend_key": "freshRSSLastSyncTime"
+    },
     "full_text_fetch_enabled": {
       "type": "bool",
       "default": true,

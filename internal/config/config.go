@@ -38,8 +38,11 @@ type Defaults struct {
 	DeeplEndpoint            string `json:"deepl_endpoint"`
 	DefaultViewMode          string `json:"default_view_mode"`
 	FreshRSSAPIPassword      string `json:"freshrss_api_password"`
+	FreshRSSAutoSyncInterval int    `json:"freshrss_auto_sync_interval"`
 	FreshRSSEnabled          bool   `json:"freshrss_enabled"`
+	FreshRSSLastSyncTime     string `json:"freshrss_last_sync_time"`
 	FreshRSSServerUrl        string `json:"freshrss_server_url"`
+	FreshRSSSyncOnStartup    bool   `json:"freshrss_sync_on_startup"`
 	FreshRSSUsername         string `json:"freshrss_username"`
 	FullTextFetchEnabled     bool   `json:"full_text_fetch_enabled"`
 	GoogleTranslateEndpoint  string `json:"google_translate_endpoint"`
@@ -146,10 +149,16 @@ func GetString(key string) string {
 		return defaults.DefaultViewMode
 	case "freshrss_api_password":
 		return defaults.FreshRSSAPIPassword
+	case "freshrss_auto_sync_interval":
+		return strconv.Itoa(defaults.FreshRSSAutoSyncInterval)
 	case "freshrss_enabled":
 		return strconv.FormatBool(defaults.FreshRSSEnabled)
+	case "freshrss_last_sync_time":
+		return defaults.FreshRSSLastSyncTime
 	case "freshrss_server_url":
 		return defaults.FreshRSSServerUrl
+	case "freshrss_sync_on_startup":
+		return strconv.FormatBool(defaults.FreshRSSSyncOnStartup)
 	case "freshrss_username":
 		return defaults.FreshRSSUsername
 	case "full_text_fetch_enabled":

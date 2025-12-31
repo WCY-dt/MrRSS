@@ -33,8 +33,11 @@ export function generateInitialSettings(): SettingsData {
     deepl_endpoint: settingsDefaults.deepl_endpoint,
     default_view_mode: settingsDefaults.default_view_mode,
     freshrss_api_password: settingsDefaults.freshrss_api_password,
+    freshrss_auto_sync_interval: settingsDefaults.freshrss_auto_sync_interval,
     freshrss_enabled: settingsDefaults.freshrss_enabled,
+    freshrss_last_sync_time: settingsDefaults.freshrss_last_sync_time,
     freshrss_server_url: settingsDefaults.freshrss_server_url,
+    freshrss_sync_on_startup: settingsDefaults.freshrss_sync_on_startup,
     freshrss_username: settingsDefaults.freshrss_username,
     full_text_fetch_enabled: settingsDefaults.full_text_fetch_enabled,
     google_translate_endpoint: settingsDefaults.google_translate_endpoint,
@@ -112,8 +115,13 @@ export function parseSettingsData(data: Record<string, string>): SettingsData {
     deepl_endpoint: data.deepl_endpoint || settingsDefaults.deepl_endpoint,
     default_view_mode: data.default_view_mode || settingsDefaults.default_view_mode,
     freshrss_api_password: data.freshrss_api_password || settingsDefaults.freshrss_api_password,
+    freshrss_auto_sync_interval:
+      parseInt(data.freshrss_auto_sync_interval) || settingsDefaults.freshrss_auto_sync_interval,
     freshrss_enabled: data.freshrss_enabled === 'true',
+    freshrss_last_sync_time:
+      data.freshrss_last_sync_time || settingsDefaults.freshrss_last_sync_time,
     freshrss_server_url: data.freshrss_server_url || settingsDefaults.freshrss_server_url,
+    freshrss_sync_on_startup: data.freshrss_sync_on_startup === 'true',
     freshrss_username: data.freshrss_username || settingsDefaults.freshrss_username,
     full_text_fetch_enabled: data.full_text_fetch_enabled === 'true',
     google_translate_endpoint:
@@ -204,11 +212,19 @@ export function buildAutoSavePayload(settingsRef: Ref<SettingsData>): Record<str
     default_view_mode: settingsRef.value.default_view_mode ?? settingsDefaults.default_view_mode,
     freshrss_api_password:
       settingsRef.value.freshrss_api_password ?? settingsDefaults.freshrss_api_password,
+    freshrss_auto_sync_interval: (
+      settingsRef.value.freshrss_auto_sync_interval ?? settingsDefaults.freshrss_auto_sync_interval
+    ).toString(),
     freshrss_enabled: (
       settingsRef.value.freshrss_enabled ?? settingsDefaults.freshrss_enabled
     ).toString(),
+    freshrss_last_sync_time:
+      settingsRef.value.freshrss_last_sync_time ?? settingsDefaults.freshrss_last_sync_time,
     freshrss_server_url:
       settingsRef.value.freshrss_server_url ?? settingsDefaults.freshrss_server_url,
+    freshrss_sync_on_startup: (
+      settingsRef.value.freshrss_sync_on_startup ?? settingsDefaults.freshrss_sync_on_startup
+    ).toString(),
     freshrss_username: settingsRef.value.freshrss_username ?? settingsDefaults.freshrss_username,
     full_text_fetch_enabled: (
       settingsRef.value.full_text_fetch_enabled ?? settingsDefaults.full_text_fetch_enabled

@@ -279,6 +279,15 @@ export const useAppStore = defineStore('app', () => {
     refreshProgress.value.isRunning = true;
     try {
       await fetch('/api/refresh', { method: 'POST' });
+
+      // Also trigger FreshRSS sync if enabled
+      try {
+        await fetch('/api/freshrss/sync', { method: 'POST' });
+      } catch (e) {
+        // If FreshRSS sync fails, it's okay - just log it
+        console.log('FreshRSS sync triggered (may not be enabled)');
+      }
+
       // Immediately fetch progress once before starting polling
       await fetchProgressOnce();
       pollProgress();

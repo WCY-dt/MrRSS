@@ -60,6 +60,11 @@ func (db *DB) Init() error {
 			return
 		}
 
+		// Initialize FreshRSS sync queue table
+		if err = InitFreshRSSSyncTable(db.DB); err != nil {
+			return
+		}
+
 		// Create settings table if not exists
 		_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS settings (
 			key TEXT PRIMARY KEY,
@@ -112,6 +117,14 @@ func (db *DB) Init() error {
 		// Migration: Add auto_expand_content column to feeds table for per-feed content expansion override
 		// Error is ignored - if column exists, the operation fails harmlessly.
 		_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN auto_expand_content TEXT DEFAULT 'global'`)
+
+		// Migration: Add is_freshrss_source column to feeds table to mark feeds from FreshRSS
+		// Error is ignored - if column exists, the operation fails harmlessly.
+		_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN is_freshrss_source BOOLEAN DEFAULT 0`)
+
+		// Migration: Add freshrss_stream_id column to feeds table to store FreshRSS stream ID
+		// Error is ignored - if column exists, the operation fails harmlessly.
+		_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN freshrss_stream_id TEXT DEFAULT ''`)
 
 		// Migration: Add summary column to articles table for AI-generated summaries
 		// Error is ignored - if column exists, the operation fails harmlessly.
@@ -381,6 +394,11 @@ func runMigrations(db *sql.DB) error {
 	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN email_password TEXT DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN email_folder TEXT DEFAULT 'INBOX'`)
 	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN email_last_uid INTEGER DEFAULT 0`)
+
+	// Migration: Add FreshRSS integration fields
+	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN is_freshrss_source BOOLEAN DEFAULT 0`)
+	_, _ = db.Exec(`ALTER TABLE feeds ADD COLUMN freshrss_stream_id TEXT DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE articles ADD COLUMN freshrss_item_id TEXT DEFAULT ''`)
 
 	return nil
 }

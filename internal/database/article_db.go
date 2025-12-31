@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"strings"
 	"time"
 
 	"MrRSS/internal/models"
@@ -79,7 +80,7 @@ func (db *DB) SaveArticles(ctx context.Context, articles []*models.Article) erro
 func (db *DB) GetArticles(filter string, feedID int64, category string, showHidden bool, limit, offset int) ([]models.Article, error) {
 	db.WaitForReady()
 	baseQuery := `
-		SELECT a.id, a.feed_id, a.title, a.url, a.image_url, a.audio_url, a.video_url, a.published_at, a.is_read, a.is_favorite, a.is_hidden, a.is_read_later, a.translated_title, a.summary, f.title
+		SELECT a.id, a.feed_id, a.title, a.url, a.image_url, a.audio_url, a.video_url, a.published_at, a.is_read, a.is_favorite, a.is_hidden, a.is_read_later, a.translated_title, a.summary, a.freshrss_item_id, f.title
 		FROM articles a
 		JOIN feeds f ON a.feed_id = f.id
 	`
@@ -143,9 +144,9 @@ func (db *DB) GetArticles(filter string, feedID int64, category string, showHidd
 	var articles []models.Article
 	for rows.Next() {
 		var a models.Article
-		var imageURL, audioURL, videoURL, translatedTitle, summary sql.NullString
+		var imageURL, audioURL, videoURL, translatedTitle, summary, freshrssItemID sql.NullString
 		var publishedAt sql.NullTime
-		if err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
+		if err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &freshrssItemID, &a.FeedTitle); err != nil {
 			log.Println("Error scanning article:", err)
 			continue
 		}
@@ -159,6 +160,7 @@ func (db *DB) GetArticles(filter string, feedID int64, category string, showHidd
 		}
 		a.TranslatedTitle = translatedTitle.String
 		a.Summary = summary.String
+		a.FreshRSSItemID = freshrssItemID.String
 		articles = append(articles, a)
 	}
 	return articles, nil
@@ -169,7 +171,7 @@ func (db *DB) GetArticles(filter string, feedID int64, category string, showHidd
 func (db *DB) GetArticleByID(id int64) (*models.Article, error) {
 	db.WaitForReady()
 	query := `
-		SELECT a.id, a.feed_id, a.title, a.url, a.image_url, a.audio_url, a.video_url, a.published_at, a.is_read, a.is_favorite, a.is_hidden, a.is_read_later, a.translated_title, a.summary, f.title
+		SELECT a.id, a.feed_id, a.title, a.url, a.image_url, a.audio_url, a.video_url, a.published_at, a.is_read, a.is_favorite, a.is_hidden, a.is_read_later, a.translated_title, a.summary, a.freshrss_item_id, f.title
 		FROM articles a
 		JOIN feeds f ON a.feed_id = f.id
 		WHERE a.id = ?
@@ -177,9 +179,9 @@ func (db *DB) GetArticleByID(id int64) (*models.Article, error) {
 	row := db.QueryRow(query, id)
 
 	var a models.Article
-	var imageURL, audioURL, videoURL, translatedTitle, summary sql.NullString
+	var imageURL, audioURL, videoURL, translatedTitle, summary, freshrssItemID sql.NullString
 	var publishedAt sql.NullTime
-	if err := row.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &a.FeedTitle); err != nil {
+	if err := row.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &freshrssItemID, &a.FeedTitle); err != nil {
 		return nil, err
 	}
 	a.ImageURL = imageURL.String
@@ -192,7 +194,69 @@ func (db *DB) GetArticleByID(id int64) (*models.Article, error) {
 	}
 	a.TranslatedTitle = translatedTitle.String
 	a.Summary = summary.String
+	a.FreshRSSItemID = freshrssItemID.String
 	return &a, nil
+}
+
+// GetArticlesByIDs retrieves multiple articles by their IDs
+func (db *DB) GetArticlesByIDs(ids []int64) ([]models.Article, error) {
+	db.WaitForReady()
+	if len(ids) == 0 {
+		return []models.Article{}, nil
+	}
+
+	// Build placeholder string for IN clause
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	query := `
+		SELECT a.id, a.feed_id, a.title, a.url, a.image_url, a.audio_url, a.video_url, a.published_at, a.is_read, a.is_favorite, a.is_hidden, a.is_read_later, a.translated_title, a.summary, a.freshrss_item_id, f.title
+		FROM articles a
+		JOIN feeds f ON a.feed_id = f.id
+		WHERE a.id IN (` + strings.Join(placeholders, ",") + `)
+	`
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	articles := []models.Article{}
+	for rows.Next() {
+		var a models.Article
+		var imageURL, audioURL, videoURL, translatedTitle, summary, freshrssItemID sql.NullString
+		var publishedAt sql.NullTime
+
+		err := rows.Scan(&a.ID, &a.FeedID, &a.Title, &a.URL, &imageURL, &audioURL, &videoURL, &publishedAt, &a.IsRead, &a.IsFavorite, &a.IsHidden, &a.IsReadLater, &translatedTitle, &summary, &freshrssItemID, &a.FeedTitle)
+		if err != nil {
+			return nil, err
+		}
+
+		a.ImageURL = imageURL.String
+		a.AudioURL = audioURL.String
+		a.VideoURL = videoURL.String
+		if publishedAt.Valid {
+			a.PublishedAt = publishedAt.Time
+		} else {
+			a.PublishedAt = time.Time{}
+		}
+		a.TranslatedTitle = translatedTitle.String
+		a.Summary = summary.String
+		a.FreshRSSItemID = freshrssItemID.String
+
+		articles = append(articles, a)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return articles, nil
 }
 
 // MarkArticleRead marks an article as read or unread.

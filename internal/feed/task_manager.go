@@ -175,6 +175,12 @@ func (tm *TaskManager) MarkCompleted() {
 // AddToQueueHead adds a task to the queue head (highest priority)
 // Used for: manual add, manual refresh
 func (tm *TaskManager) AddToQueueHead(ctx context.Context, feed models.Feed, reason TaskReason) {
+	// Skip FreshRSS feeds - they are refreshed via sync, not standard refresh
+	if feed.IsFreshRSSSource {
+		log.Printf("Skipping FreshRSS feed %s (refreshed via sync only)", feed.Title)
+		return
+	}
+
 	tm.stateMutex.RLock()
 	isStopped := tm.isStopped
 	tm.stateMutex.RUnlock()
@@ -234,6 +240,12 @@ func (tm *TaskManager) AddToQueueHead(ctx context.Context, feed models.Feed, rea
 // AddToQueueTail adds a task to the queue tail (lowest priority)
 // Used for: scheduled refresh with custom interval
 func (tm *TaskManager) AddToQueueTail(ctx context.Context, feed models.Feed, reason TaskReason) {
+	// Skip FreshRSS feeds - they are refreshed via sync, not standard refresh
+	if feed.IsFreshRSSSource {
+		log.Printf("Skipping FreshRSS feed %s (refreshed via sync only)", feed.Title)
+		return
+	}
+
 	tm.stateMutex.RLock()
 	isStopped := tm.isStopped
 	tm.stateMutex.RUnlock()
@@ -299,6 +311,25 @@ func (tm *TaskManager) AddGlobalRefresh(ctx context.Context, feeds []models.Feed
 	if isStopped {
 		return
 	}
+
+	if len(feeds) == 0 {
+		return
+	}
+
+	// Filter out FreshRSS feeds - they are refreshed via sync, not standard refresh
+	filteredFeeds := make([]models.Feed, 0, len(feeds))
+	skippedCount := 0
+	for _, feed := range feeds {
+		if feed.IsFreshRSSSource {
+			skippedCount++
+		} else {
+			filteredFeeds = append(filteredFeeds, feed)
+		}
+	}
+	if skippedCount > 0 {
+		log.Printf("Filtered out %d FreshRSS feeds from global refresh (refreshed via sync only)", skippedCount)
+	}
+	feeds = filteredFeeds
 
 	if len(feeds) == 0 {
 		return

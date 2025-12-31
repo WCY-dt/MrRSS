@@ -60,7 +60,12 @@ const sortedFeeds = computed(() => {
 });
 
 const isAllSelected = computed(() => {
-  return store.feeds && store.feeds.length > 0 && selectedFeeds.value.length === store.feeds.length;
+  if (!store.feeds || store.feeds.length === 0) return false;
+  // Get non-FreshRSS feeds
+  const nonFreshRSSFeeds = store.feeds.filter((f) => !f.is_freshrss_source);
+  if (nonFreshRSSFeeds.length === 0) return false;
+  // Check if all non-FreshRSS feeds are selected
+  return nonFreshRSSFeeds.every((f) => selectedFeeds.value.includes(f.id));
 });
 
 function toggleSort(field: SortField) {
@@ -76,7 +81,8 @@ function toggleSelectAll(e: Event) {
   const target = e.target as HTMLInputElement;
   if (!store.feeds) return;
   if (target.checked) {
-    selectedFeeds.value = store.feeds.map((f) => f.id);
+    // Select only non-FreshRSS feeds
+    selectedFeeds.value = store.feeds.filter((f) => !f.is_freshrss_source).map((f) => f.id);
   } else {
     selectedFeeds.value = [];
   }
@@ -124,6 +130,10 @@ function isXPathFeed(feed: Feed): boolean {
 
 function isEmailFeed(feed: Feed): boolean {
   return feed.type === 'email';
+}
+
+function isFreshRSSFeed(feed: Feed): boolean {
+  return !!feed.is_freshrss_source;
 }
 
 async function openScriptsFolder() {
@@ -232,13 +242,18 @@ async function openScriptsFolder() {
         <div
           v-for="feed in sortedFeeds"
           :key="feed.id"
-          class="flex items-center p-1.5 sm:p-2 border-b border-border last:border-0 bg-bg-primary hover:bg-bg-secondary gap-1.5 sm:gap-2"
+          :class="[
+            'flex items-center p-1.5 sm:p-2 border-b border-border last:border-0 gap-1.5 sm:gap-2',
+            feed.is_freshrss_source ? 'bg-info/10' : 'bg-bg-primary hover:bg-bg-secondary',
+          ]"
         >
           <input
             v-model="selectedFeeds"
             type="checkbox"
             :value="feed.id"
+            :disabled="feed.is_freshrss_source"
             class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 rounded border-border text-accent focus:ring-2 focus:ring-accent cursor-pointer"
+            :class="{ 'cursor-not-allowed opacity-50': feed.is_freshrss_source }"
           />
           <div class="w-4 h-4 flex items-center justify-center shrink-0">
             <img
@@ -255,6 +270,14 @@ async function openScriptsFolder() {
           <div class="truncate flex-1 min-w-0">
             <div class="font-medium truncate text-xs sm:text-sm flex items-center gap-1">
               {{ feed.title }}
+              <!-- FreshRSS icon indicator -->
+              <img
+                v-if="feed.is_freshrss_source"
+                src="/assets/plugin_icons/freshrss.svg"
+                class="w-3.5 h-3.5 shrink-0 inline"
+                :title="t('freshRSSSyncedFeed')"
+                alt="FreshRSS"
+              />
               <PhEyeSlash
                 v-if="feed.hide_from_timeline"
                 :size="12"
@@ -269,7 +292,14 @@ async function openScriptsFolder() {
                 <span class="mx-1">•</span>
               </span>
               <span
-                v-if="isScriptFeed(feed)"
+                v-if="isFreshRSSFeed(feed)"
+                class="inline-flex items-center gap-1 text-info"
+                :title="t('freshRSSSyncedFeed')"
+              >
+                {{ feed.url }}
+              </span>
+              <span
+                v-else-if="isScriptFeed(feed)"
                 class="inline-flex items-center gap-1"
                 :title="t('customScript')"
               >
@@ -308,15 +338,19 @@ async function openScriptsFolder() {
           <div class="flex gap-0.5 sm:gap-1 shrink-0">
             <button
               class="text-accent hover:bg-bg-tertiary p-1 rounded text-sm"
-              :title="t('edit')"
-              @click="handleEditFeed(feed)"
+              :title="feed.is_freshrss_source ? t('freshRSSFeedLocked') : t('edit')"
+              :disabled="feed.is_freshrss_source"
+              :class="{ 'cursor-not-allowed opacity-50': feed.is_freshrss_source }"
+              @click="!feed.is_freshrss_source && handleEditFeed(feed)"
             >
               <PhPencil :size="14" class="sm:w-4 sm:h-4" />
             </button>
             <button
               class="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded text-sm"
-              :title="t('delete')"
-              @click="handleDeleteFeed(feed.id)"
+              :title="feed.is_freshrss_source ? t('freshRSSFeedLocked') : t('delete')"
+              :disabled="feed.is_freshrss_source"
+              :class="{ 'cursor-not-allowed opacity-50': feed.is_freshrss_source }"
+              @click="!feed.is_freshrss_source && handleDeleteFeed(feed.id)"
             >
               <PhTrash :size="14" class="sm:w-4 sm:h-4" />
             </button>

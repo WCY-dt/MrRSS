@@ -354,12 +354,41 @@ async function translateContentParagraphs(content: string) {
     'DT',
     'DD',
   ];
-  const elements = proseContainer.querySelectorAll(textTags.join(','));
 
   // Track which elements we've already translated to avoid duplicates
   const translatedElements = new Set<HTMLElement>();
 
-  for (const el of elements) {
+  // Process elements level by level to handle nested structures correctly
+  // First, get all elements and sort them by depth (shallowest first)
+  const allElements = Array.from(proseContainer.querySelectorAll(textTags.join(',')));
+
+  // Sort by depth (number of ancestors) to process outermost elements first
+  allElements.sort((a, b) => {
+    const getDepth = (el: Element): number => {
+      let depth = 0;
+      let parent = el.parentElement;
+      while (parent && parent !== proseContainer) {
+        depth++;
+        parent = parent.parentElement;
+      }
+      return depth;
+    };
+    return getDepth(a) - getDepth(b);
+  });
+
+  // Helper function to check if an element can contain nested translatable content
+  const canContainNestedTranslatableElements = (el: HTMLElement): boolean => {
+    // These elements can contain other translatable elements
+    const nestableTags = ['LI', 'BLOCKQUOTE', 'DD', 'DT', 'TD', 'TH'];
+    return nestableTags.includes(el.tagName);
+  };
+
+  // Helper function to get nested translatable children (direct children only)
+  const getNestedTranslatableChildren = (el: HTMLElement): Element[] => {
+    return Array.from(el.children).filter((child) => textTags.includes(child.tagName));
+  };
+
+  for (const el of allElements) {
     const htmlEl = el as HTMLElement;
 
     // Skip if inside a translation element
@@ -371,12 +400,22 @@ async function translateContentParagraphs(content: string) {
     // Skip if we've already translated this element
     if (translatedElements.has(htmlEl)) continue;
 
-    // Skip if this element's parent was already translated
-    // This prevents duplicate translations of nested elements
+    // Skip if this element's parent or any ancestor was already translated
+    // EXCEPTION: For LI/BLOCKQUOTE/DD/DT/TD/TH elements, if the parent element
+    // also contains nested elements, allow translation
     let hasTranslatedAncestor = false;
     let ancestor = htmlEl.parentElement;
     while (ancestor && ancestor !== proseContainer) {
       if (translatedElements.has(ancestor)) {
+        // If current element is also nestable (like LI), check if ancestor has nested children
+        if (canContainNestedTranslatableElements(htmlEl)) {
+          const ancestorNested = getNestedTranslatableChildren(ancestor as HTMLElement);
+          if (ancestorNested.length > 0) {
+            // Both are nestable and ancestor has nested children, allow this one
+            ancestor = ancestor.parentElement;
+            continue;
+          }
+        }
         hasTranslatedAncestor = true;
         break;
       }

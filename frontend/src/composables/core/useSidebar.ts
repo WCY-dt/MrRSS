@@ -155,6 +155,14 @@ export function useSidebar() {
       window.showToast(t('feedRefreshStarted'), 'success');
       // Start polling for progress as the backend is now fetching articles for this feed
       store.pollProgress();
+    } else if (action === 'syncFeed') {
+      // Sync individual FreshRSS feed
+      await fetch(`/api/freshrss/sync-feed?stream_id=${feed.freshrss_stream_id}`, {
+        method: 'POST',
+      });
+      window.showToast(t('syncFeedStarted'), 'success');
+      // Start polling for progress
+      store.pollProgress();
     } else if (action === 'delete') {
       const confirmed = await window.showConfirm({
         title: t('unsubscribeTitle'),
@@ -181,21 +189,45 @@ export function useSidebar() {
   function onFeedContextMenu(e: MouseEvent, feed: Feed): void {
     e.preventDefault();
     e.stopPropagation();
+
+    // Build menu items dynamically based on whether this is a FreshRSS feed
+    const items: Array<{
+      label: string;
+      action: string;
+      icon: string;
+      separator?: boolean;
+      danger?: boolean;
+    }> = [];
+
+    // For FreshRSS feeds, show "Sync Feed" instead of "Refresh Feed"
+    if (feed.is_freshrss_source) {
+      items.push({ label: t('syncFeed'), action: 'syncFeed', icon: 'PhArrowsClockwise' });
+    } else {
+      items.push({ label: t('refreshFeed'), action: 'refreshFeed', icon: 'PhArrowsClockwise' });
+    }
+
+    items.push({ label: t('markAllAsReadFeed'), action: 'markAllRead', icon: 'PhCheckCircle' });
+    items.push({ separator: true });
+    items.push({ label: t('openWebsite'), action: 'openWebsite', icon: 'PhGlobe' });
+
+    // Only add discover for non-FreshRSS feeds
+    if (!feed.is_freshrss_source) {
+      items.push({ label: t('discoverFeeds'), action: 'discover', icon: 'PhBinoculars' });
+    }
+
+    // Only add edit and delete options for non-FreshRSS feeds
+    if (!feed.is_freshrss_source) {
+      items.push({ separator: true });
+      items.push({ label: t('editSubscription'), action: 'edit', icon: 'PhPencil' });
+      items.push({ label: t('unsubscribe'), action: 'delete', icon: 'PhTrash', danger: true });
+    }
+
     window.dispatchEvent(
       new CustomEvent('open-context-menu', {
         detail: {
           x: e.clientX,
           y: e.clientY,
-          items: [
-            { label: t('refreshFeed'), action: 'refreshFeed', icon: 'PhArrowsClockwise' },
-            { label: t('markAllAsReadFeed'), action: 'markAllRead', icon: 'PhCheckCircle' },
-            { separator: true },
-            { label: t('openWebsite'), action: 'openWebsite', icon: 'PhGlobe' },
-            { label: t('discoverFeeds'), action: 'discover', icon: 'PhBinoculars' },
-            { separator: true },
-            { label: t('editSubscription'), action: 'edit', icon: 'PhPencil' },
-            { label: t('unsubscribe'), action: 'delete', icon: 'PhTrash', danger: true },
-          ],
+          items,
           data: feed,
           callback: handleFeedAction,
         },

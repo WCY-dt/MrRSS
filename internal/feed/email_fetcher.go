@@ -207,18 +207,15 @@ func (ef *EmailFetcher) parseEmailToItem(feed *models.Feed, msg *imap.Message) (
 func (ef *EmailFetcher) extractEmailBody(msg *imap.Message) (string, error) {
 	// Try to get the body section from the message
 	for _, r := range msg.Body {
-		// Check if it's a Literal (email body)
-		if literal, ok := r.(imap.Literal); ok {
-			// Literal is already an io.Reader
-			data, err := io.ReadAll(literal)
-			if err != nil {
-				continue
-			}
+		// r is already an imap.Literal (io.Reader)
+		data, err := io.ReadAll(r)
+		if err != nil {
+			continue
+		}
 
-			content := string(data)
-			if strings.TrimSpace(content) != "" {
-				return content, nil
-			}
+		content := string(data)
+		if strings.TrimSpace(content) != "" {
+			return content, nil
 		}
 	}
 

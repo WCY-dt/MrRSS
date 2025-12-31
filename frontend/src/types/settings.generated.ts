@@ -25,8 +25,11 @@ export interface SettingsData {
   deepl_endpoint: string;
   default_view_mode: string;
   freshrss_api_password: string;
+  freshrss_auto_sync_interval: number;
   freshrss_enabled: boolean;
+  freshrss_last_sync_time: string;
   freshrss_server_url: string;
+  freshrss_sync_on_startup: boolean;
   freshrss_username: string;
   full_text_fetch_enabled: boolean;
   google_translate_endpoint: string;

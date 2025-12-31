@@ -220,89 +220,217 @@ func (c *Client) GetSubscriptions(ctx context.Context) ([]Subscription, error) {
 
 // Article represents a FreshRSS article
 type Article struct {
-	ID         string    `json:"id"`
-	Title      string    `json:"title"`
-	URL        string    `json:"canonical,omitempty"`
-	Content    string    `json:"summary,omitempty"`
-	Published  time.Time `json:"published"`
-	Updated    time.Time `json:"updated"`
-	Author     string    `json:"author,omitempty"`
-	Categories []string  `json:"categories,omitempty"`
+	ID             string    `json:"id"`
+	Title          string    `json:"title"`
+	URL            string    `json:"canonical,omitempty"`
+	Content        string    `json:"summary,omitempty"`
+	Published      time.Time `json:"published"`
+	Updated        time.Time `json:"updated"`
+	Author         string    `json:"author,omitempty"`
+	Categories     []string  `json:"categories,omitempty"`
+	OriginStreamID string    `json:"origin_stream_id,omitempty"` // Stream ID of the feed
 }
 
-// GetUnreadArticles retrieves unread articles
-func (c *Client) GetUnreadArticles(ctx context.Context, maxItems int) ([]Article, error) {
+// GetUnreadCount retrieves unread counts for all feeds
+func (c *Client) GetUnreadCount(ctx context.Context) (map[string]int, error) {
 	if c.authToken == "" {
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	streamURL := fmt.Sprintf("%s/reader/api/0/stream/contents/user/-/state/com.google/reading-list?output=json&n=%d",
-		c.baseURL, maxItems)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", streamURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET",
+		c.baseURL+"/reader/api/0/unread-count?output=json",
+		nil)
 	if err != nil {
-		return nil, fmt.Errorf("create articles request: %w", err)
+		return nil, fmt.Errorf("create unread-count request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "GoogleLogin auth="+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("articles request: %w", err)
+		return nil, fmt.Errorf("unread-count request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("articles request failed with status %d", resp.StatusCode)
+		return nil, fmt.Errorf("unread-count request failed with status %d", resp.StatusCode)
 	}
 
 	var result struct {
-		Items []struct {
+		Max     int64 `json:"max"`
+		Unreads []struct {
+			ID              string `json:"id"`
+			Count           int    `json:"count"`
+			LatestTimestamp int64  `json:"newestItemTimestampUsec"`
+		} `json:"unreadcounts"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode unread-count response: %w", err)
+	}
+
+	// Convert to map for easier lookup
+	counts := make(map[string]int)
+	for _, unread := range result.Unreads {
+		counts[unread.ID] = unread.Count
+	}
+
+	return counts, nil
+}
+
+// StreamContentsResult represents the result of stream contents API
+type StreamContentsResult struct {
+	Items        []Article
+	Continuation string
+	Updated      int64
+}
+
+// GetStarredArticles retrieves all starred articles
+func (c *Client) GetStarredArticles(ctx context.Context, maxItems int) ([]Article, error) {
+	result, err := c.GetStreamContents(ctx, "user/-/state/com.google/starred", nil, maxItems, "")
+	if err != nil {
+		return nil, err
+	}
+	return result.Items, nil
+}
+
+// GetReadArticles retrieves recently read articles
+func (c *Client) GetReadArticles(ctx context.Context, maxItems int) ([]Article, error) {
+	result, err := c.GetStreamContents(ctx, "user/-/state/com.google/read", nil, maxItems, "")
+	if err != nil {
+		return nil, err
+	}
+	return result.Items, nil
+}
+
+// GetStreamContents retrieves articles from a specific stream with optional filtering
+// streamID: e.g., "user/-/state/com.google/read", "user/-/state/com.google/starred", "feed/http://..."
+// excludeTypes: list of states to exclude, e.g., ["user/-/state/com.google/read"]
+// maxItems: maximum number of items to retrieve
+// continuationToken: token for pagination (empty for first request)
+func (c *Client) GetStreamContents(ctx context.Context, streamID string, excludeTypes []string, maxItems int, continuationToken string) (*StreamContentsResult, error) {
+	if c.authToken == "" {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	// Build URL with parameters
+	params := url.Values{}
+	params.Set("output", "json")
+	params.Set("n", fmt.Sprintf("%d", maxItems))
+
+	if continuationToken != "" {
+		params.Set("c", continuationToken)
+	}
+
+	// Add exclude types (xt parameter)
+	// Google Reader API allows filtering out specific states
+	for _, exclude := range excludeTypes {
+		params.Add("xt", exclude)
+	}
+
+	streamURL := fmt.Sprintf("%s/reader/api/0/stream/contents/%s?%s",
+		c.baseURL, streamID, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, "GET", streamURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create stream contents request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "GoogleLogin auth="+c.authToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("stream contents request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("stream contents request failed with status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		ID           string `json:"id"`
+		Updated      int64  `json:"updated"`
+		Continuation string `json:"continuation,omitempty"`
+		Items        []struct {
 			ID        string `json:"id"`
 			Title     string `json:"title"`
 			Canonical []struct {
 				Href string `json:"href"`
 			} `json:"canonical"`
 			Summary struct {
-				Content string `json:"content"`
+				Content   string `json:"content"`
+				Direction string `json:"direction,omitempty"`
 			} `json:"summary"`
 			Published  int64    `json:"published"`
-			Updated    int64    `json:"updated"`
-			Author     string   `json:"author"`
+			Updated    int64    `json:"updated"` // crawlTimeMsec
+			Author     string   `json:"author,omitempty"`
 			Categories []string `json:"categories"`
+			Origin     struct {
+				StreamID string `json:"streamId"`
+				Title    string `json:"title"`
+				HtmlURL  string `json:"htmlUrl,omitempty"`
+			} `json:"origin,omitempty"`
 		} `json:"items"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decode articles response: %w", err)
+		return nil, fmt.Errorf("decode stream contents response: %w", err)
 	}
 
-	articles := make([]Article, len(result.Items))
-	for i, item := range result.Items {
+	articles := make([]Article, 0, len(result.Items))
+	for _, item := range result.Items {
 		var articleURL string
 		if len(item.Canonical) > 0 {
 			articleURL = item.Canonical[0].Href
 		}
 
-		articles[i] = Article{
-			ID:         item.ID,
-			Title:      item.Title,
-			URL:        articleURL,
-			Content:    item.Summary.Content,
-			Published:  time.Unix(item.Published, 0),
-			Updated:    time.Unix(item.Updated, 0),
-			Author:     item.Author,
-			Categories: item.Categories,
-		}
+		articles = append(articles, Article{
+			ID:             item.ID,
+			Title:          item.Title,
+			URL:            articleURL,
+			Content:        item.Summary.Content,
+			Published:      time.Unix(item.Published, 0),
+			Updated:        time.Unix(item.Updated/1000, 0), // Convert milliseconds to seconds
+			Author:         item.Author,
+			Categories:     item.Categories,
+			OriginStreamID: item.Origin.StreamID,
+		})
 	}
 
-	return articles, nil
+	return &StreamContentsResult{
+		Items:        articles,
+		Continuation: result.Continuation,
+		Updated:      result.Updated,
+	}, nil
 }
 
-// MarkAsRead marks articles as read
-func (c *Client) MarkAsRead(ctx context.Context, articleIDs []string) error {
+// GetUnreadArticles retrieves unread articles (deprecated, use GetStreamContents instead)
+// Kept for backward compatibility
+func (c *Client) GetUnreadArticles(ctx context.Context, maxItems int) ([]Article, error) {
+	// Exclude read articles to get only unread ones
+	result, err := c.GetStreamContents(ctx, "user/-/state/com.google/reading-list",
+		[]string{TagRead}, maxItems, "")
+	if err != nil {
+		return nil, err
+	}
+	return result.Items, nil
+}
+
+// System tags for Google Reader API
+const (
+	TagRead    = "user/-/state/com.google/read"
+	TagStarred = "user/-/state/com.google/starred"
+)
+
+// editTag is a helper function to add or remove tags from items
+func (c *Client) editTag(ctx context.Context, itemIDs []string, addTag string, removeTag string) error {
 	if c.authToken == "" {
 		return fmt.Errorf("not authenticated")
+	}
+
+	if len(itemIDs) == 0 {
+		return nil
 	}
 
 	token, err := c.GetToken(ctx)
@@ -313,36 +441,80 @@ func (c *Client) MarkAsRead(ctx context.Context, articleIDs []string) error {
 	data := url.Values{}
 	data.Set("T", token)
 
-	for _, id := range articleIDs {
-		data.Set("i", id)
+	// Add all item IDs - Google Reader API supports multiple i parameters
+	for _, id := range itemIDs {
+		data.Add("i", id)
+	}
+
+	// Add tag if specified
+	if addTag != "" {
+		data.Set("a", addTag)
+	}
+
+	// Remove tag if specified
+	if removeTag != "" {
+		data.Set("r", removeTag)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST",
 		c.baseURL+"/reader/api/0/edit-tag",
 		strings.NewReader(data.Encode()))
 	if err != nil {
-		return fmt.Errorf("create mark read request: %w", err)
+		return fmt.Errorf("create edit-tag request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "GoogleLogin auth="+c.authToken)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Add read tag
-	data.Set("a", "user/-/state/com.google/read")
-	req.Body = io.NopCloser(strings.NewReader(data.Encode()))
+	log.Printf("[FreshRSS API] edit-tag request: URL=%s addTag=%s removeTag=%s itemIDs=%d",
+		c.baseURL+"/reader/api/0/edit-tag", addTag, removeTag, len(itemIDs))
+	log.Printf("[FreshRSS API] Request body: %s", data.Encode())
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("mark read request: %w", err)
+		return fmt.Errorf("edit-tag request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("mark read failed with status %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("edit-tag failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
+	log.Printf("[FreshRSS API] edit-tag success: addTag=%s removeTag=%s itemIDs=%d response=%s",
+		addTag, removeTag, len(itemIDs), string(body))
+
 	return nil
+}
+
+// MarkAsRead marks articles as read
+func (c *Client) MarkAsRead(ctx context.Context, articleIDs []string) error {
+	return c.editTag(ctx, articleIDs, TagRead, "")
+}
+
+// MarkAsReadBatch is an alias for MarkAsRead for batch operations
+func (c *Client) MarkAsReadBatch(ctx context.Context, itemIDs []string) error {
+	return c.MarkAsRead(ctx, itemIDs)
+}
+
+// MarkAsUnread marks articles as unread
+func (c *Client) MarkAsUnread(ctx context.Context, articleIDs []string) error {
+	return c.editTag(ctx, articleIDs, "", TagRead)
+}
+
+// MarkAsUnreadBatch marks multiple articles as unread
+func (c *Client) MarkAsUnreadBatch(ctx context.Context, itemIDs []string) error {
+	return c.MarkAsUnread(ctx, itemIDs)
+}
+
+// StarBatch adds star to articles
+func (c *Client) StarBatch(ctx context.Context, itemIDs []string) error {
+	return c.editTag(ctx, itemIDs, TagStarred, "")
+}
+
+// UnstarBatch removes star from articles
+func (c *Client) UnstarBatch(ctx context.Context, itemIDs []string) error {
+	return c.editTag(ctx, itemIDs, "", TagStarred)
 }
 
 // SubscribeToFeed subscribes to a new feed

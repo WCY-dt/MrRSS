@@ -83,6 +83,16 @@ const {
 // Handle drag events from categories
 function handleDragStart(feedId: number, event: Event) {
   console.log('[handleDragStart] Starting drag for feed:', feedId);
+
+  // Prevent dragging FreshRSS feeds
+  const feed = store.feeds?.find((f) => f.id === feedId);
+  if (feed?.is_freshrss_source) {
+    console.log('[handleDragStart] Blocked drag for FreshRSS feed:', feedId);
+    event.preventDefault();
+    window.showToast(t('freshRSSFeedLocked'), 'info');
+    return;
+  }
+
   isDragging.value = true;
   dropHandled = false;
   onDragStart(feedId, event);
@@ -117,6 +127,36 @@ async function handleDrop(categoryName: string, feeds: any[]) {
     feeds: feeds.map((f) => ({ id: f.id, title: f.title, category: f.category })),
     draggingFeedId: draggingFeedId.value,
   });
+
+  // Prevent dropping into FreshRSS categories
+  // Check if any feed in the target category is a FreshRSS feed
+  const targetCategoryFeeds = feeds.filter(
+    (f) => f.category === categoryName || (categoryName === 'uncategorized' && !f.category)
+  );
+  const hasFreshRSSFeedInTarget = targetCategoryFeeds.some((f) => f.is_freshrss_source);
+
+  if (hasFreshRSSFeedInTarget) {
+    console.log('[handleDrop] Blocked drop into FreshRSS category:', categoryName);
+    window.showToast(t('freshRSSFeedLocked'), 'info');
+    isDragging.value = false;
+    return;
+  }
+
+  // Also check if the dragged feed is being dropped into a category that contains FreshRSS feeds
+  const draggedFeed = store.feeds?.find((f) => f.id === draggingFeedId.value);
+  if (draggedFeed && !draggedFeed.is_freshrss_source) {
+    // Check all feeds to see if target category has any FreshRSS feeds
+    const allFeedsInCategory =
+      store.feeds?.filter(
+        (f) => f.category === categoryName || (categoryName === 'uncategorized' && !f.category)
+      ) || [];
+    if (allFeedsInCategory.some((f) => f.is_freshrss_source)) {
+      console.log('[handleDrop] Cannot drop non-FreshRSS feed into FreshRSS category');
+      window.showToast(t('freshRSSFeedLocked'), 'info');
+      isDragging.value = false;
+      return;
+    }
+  }
 
   try {
     // Keep isDragging true until after the data refreshes
