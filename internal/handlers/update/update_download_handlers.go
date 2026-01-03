@@ -13,6 +13,16 @@ import (
 )
 
 // HandleDownloadUpdate downloads the update file.
+// @Summary      Download update
+// @Description  Download the update file from GitHub releases to the temp directory
+// @Tags         update
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Download request (download_url, asset_name)"
+// @Success      200  {object}  map[string]interface{}  "Download success (success, file_path, total_bytes, bytes_written)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid URL or asset name)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /update/download [post]
 func HandleDownloadUpdate(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

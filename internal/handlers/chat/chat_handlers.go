@@ -62,6 +62,17 @@ type OllamaResponse struct {
 }
 
 // HandleAIChat handles chat requests for article discussions
+// @Summary      AI chat with article
+// @Description  Send messages to AI for discussing article content (requires ai_chat_enabled setting)
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        request  body      chat.ChatRequest  true  "Chat request (messages, article info)"
+// @Success      200  {object}  chat.ChatResponse  "AI response (response, html)"
+// @Failure      400  {object}  map[string]string  "Bad request (missing messages)"
+// @Failure      403  {object}  map[string]string  "AI chat is disabled or limit reached"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat [post]
 func HandleAIChat(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

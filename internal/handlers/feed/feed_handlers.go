@@ -10,6 +10,14 @@ import (
 )
 
 // HandleFeeds returns all feeds.
+// @Summary      Get all feeds
+// @Description  Retrieve all RSS feed subscriptions (passwords are cleared)
+// @Tags         feeds
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   models.Feed  "List of feeds"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /feeds [get]
 func HandleFeeds(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	feeds, err := h.DB.GetFeeds()
 	if err != nil {
@@ -26,6 +34,16 @@ func HandleFeeds(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleAddFeed adds a new feed subscription and immediately fetches its articles.
+// @Summary      Add a new feed
+// @Description  Add a new RSS/Atom/Email/Script/XPath feed subscription
+// @Tags         feeds
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Feed details"
+// @Success      200  {string}  string  "Feed added successfully"
+// @Failure      400  {object}  map[string]string  "Bad request"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /feeds/add [post]
 func HandleAddFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		URL              string `json:"url"`
@@ -112,6 +130,15 @@ func HandleAddFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDeleteFeed deletes a feed subscription.
+// @Summary      Delete a feed
+// @Description  Delete a feed subscription by ID
+// @Tags         feeds
+// @Accept       json
+// @Produce      json
+// @Param        id   query      int64  true  "Feed ID"
+// @Success      200  {string}  string  "Feed deleted successfully"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /feeds/delete [post]
 func HandleDeleteFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.ParseInt(idStr, 10, 64)
@@ -123,6 +150,16 @@ func HandleDeleteFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleUpdateFeed updates a feed's properties.
+// @Summary      Update a feed
+// @Description  Update properties of an existing feed subscription
+// @Tags         feeds
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Feed update details"
+// @Success      200  {string}  string  "Feed updated successfully"
+// @Failure      400  {object}  map[string]string  "Bad request"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /feeds/update [post]
 func HandleUpdateFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ID               int64  `json:"id"`
@@ -170,6 +207,16 @@ func HandleUpdateFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleRefreshFeed refreshes a single feed by ID with progress tracking.
+// @Summary      Refresh a single feed
+// @Description  Trigger a refresh for a specific feed (runs in background with progress tracking)
+// @Tags         feeds
+// @Accept       json
+// @Produce      json
+// @Param        id   query     int64   true  "Feed ID"
+// @Success      200  {string}  string  "Feed refresh started successfully"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid feed ID)"
+// @Failure      404  {object}  map[string]string  "Feed not found"
+// @Router       /feeds/refresh [post]
 func HandleRefreshFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -196,6 +243,16 @@ func HandleRefreshFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) 
 }
 
 // HandleReorderFeed reorders a feed within or across categories.
+// @Summary      Reorder a feed
+// @Description  Change the position and optionally the category of a feed
+// @Tags         feeds
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Reorder details (feed_id, category, position)"
+// @Success      200  {object}  map[string]string  "Reorder status"
+// @Failure      400  {object}  map[string]string  "Bad request"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /feeds/reorder [post]
 func HandleReorderFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

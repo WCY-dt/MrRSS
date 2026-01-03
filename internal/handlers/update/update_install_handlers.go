@@ -21,6 +21,16 @@ import (
 )
 
 // HandleInstallUpdate triggers the installation of the downloaded update.
+// @Summary      Install update
+// @Description  Install the downloaded update (will restart the application)
+// @Tags         update
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Install request (file_path)"
+// @Success      200  {object}  map[string]interface{}  "Installation started (success, message)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid file path or type)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /update/install [post]
 func HandleInstallUpdate(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

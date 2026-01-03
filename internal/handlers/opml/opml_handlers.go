@@ -21,6 +21,16 @@ import (
 )
 
 // HandleOPMLImport handles OPML/JSON file import based on file extension.
+// @Summary      Import subscriptions from OPML/JSON
+// @Description  Import RSS feed subscriptions from an OPML or JSON file
+// @Tags         opml
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  file  false  "OPML or JSON file to import"
+// @Success      200  {object}  map[string]string  "Import successful"
+// @Failure      400  {object}  map[string]string  "Bad request"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /opml/import [post]
 func HandleOPMLImport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("HandleOPMLImport: ContentLength: %d", r.ContentLength)
 	contentType := r.Header.Get("Content-Type")
@@ -108,6 +118,14 @@ func HandleOPMLImport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleOPMLExport handles OPML file export.
+// @Summary      Export subscriptions to OPML
+// @Description  Export all local RSS feed subscriptions to an OPML file (excludes FreshRSS feeds)
+// @Tags         opml
+// @Accept       json
+// @Produce      text/xml
+// @Success      200  {string}  string  "OPML file content"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /opml/export [get]
 func HandleOPMLExport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	feeds, err := h.DB.GetFeeds()
 	if err != nil {
@@ -138,6 +156,15 @@ func HandleOPMLExport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleOPMLImportDialog opens a file dialog to select OPML file for import.
+// @Summary      Import dialog (desktop mode)
+// @Description  Open a file dialog to select an OPML or JSON file for import (desktop mode only)
+// @Tags         opml
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Import success (status, feedCount, filePath)"
+// @Success      501  {object}  map[string]string  "Not implemented in server mode"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /opml/import/dialog [post]
 func HandleOPMLImportDialog(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if h.App == nil {
 		log.Printf("File dialog not available")
@@ -279,6 +306,15 @@ func HandleOPMLImportDialog(h *core.Handler, w http.ResponseWriter, r *http.Requ
 }
 
 // HandleOPMLExportDialog opens a save dialog to export OPML file.
+// @Summary      Export dialog (desktop mode)
+// @Description  Open a save dialog to export subscriptions to OPML or JSON file (desktop mode only)
+// @Tags         opml
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Export success (status, filePath)"
+// @Success      501  {object}  map[string]string  "Not implemented in server mode"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /opml/export/dialog [post]
 func HandleOPMLExportDialog(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if h.App == nil {
 		log.Printf("File dialog not available")

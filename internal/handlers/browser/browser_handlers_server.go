@@ -14,10 +14,15 @@ import (
 
 // HandleOpenURL handles URL opening requests in server mode.
 // In server mode, this returns a redirect response that instructs the client to open the URL.
-//
-// Request: POST /api/browser/open
-// Body: {"url": "https://example.com"}
-// Response: {"redirect": "https://example.com"}
+// @Summary      Open URL in browser (server mode)
+// @Description  Returns redirect response for client-side URL opening
+// @Tags         browser
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Open URL request (url)"
+// @Success      200  {object}  map[string]string  "Redirect URL (redirect)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid URL)"
+// @Router       /browser/open [post]
 func HandleOpenURL(h *handlers.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

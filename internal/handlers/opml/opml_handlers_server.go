@@ -14,6 +14,16 @@ import (
 )
 
 // HandleOPMLImport handles OPML file import for server mode.
+// @Summary      Import OPML file
+// @Description  Import feeds from an OPML file (server mode - requires file upload)
+// @Tags         opml
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  file  true  "OPML file"
+// @Success      200  {object}  map[string]interface{}  "Import result (success, imported, total)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid file or format)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /opml/import [post]
 func HandleOPMLImport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("HandleOPMLImport: ContentLength: %d", r.ContentLength)
 
@@ -77,6 +87,13 @@ func HandleOPMLImport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleOPMLImportDialog is not available in server mode.
+// @Summary      Import dialog (not available in server mode)
+// @Description  File dialog operations are not available in server mode. Use /api/opml/import with file upload instead
+// @Tags         opml
+// @Accept       json
+// @Produce      json
+// @Success      501  {object}  map[string]string  "Not implemented error"
+// @Router       /opml/import/dialog [post]
 func HandleOPMLImportDialog(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("File dialog operations are not available in server mode")
 	w.Header().Set("Content-Type", "application/json")
@@ -87,6 +104,14 @@ func HandleOPMLImportDialog(h *core.Handler, w http.ResponseWriter, r *http.Requ
 }
 
 // HandleOPMLExport handles OPML export for server mode.
+// @Summary      Export OPML file
+// @Description  Export all feeds as an OPML file (server mode - direct download)
+// @Tags         opml
+// @Accept       json
+// @Produce      xml
+// @Success      200  {string}  string  "OPML XML file"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /opml/export [get]
 func HandleOPMLExport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	// Get feeds data
 	feeds, err := h.DB.GetFeeds()
@@ -111,6 +136,13 @@ func HandleOPMLExport(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleOPMLExportDialog is not available in server mode.
+// @Summary      Export dialog (not available in server mode)
+// @Description  File dialog operations are not available in server mode. Use /api/opml/export with direct download instead
+// @Tags         opml
+// @Accept       json
+// @Produce      json
+// @Success      501  {object}  map[string]string  "Not implemented error"
+// @Router       /opml/export/dialog [post]
 func HandleOPMLExportDialog(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("File dialog not available in server mode")
 	w.Header().Set("Content-Type", "application/json")

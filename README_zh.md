@@ -3,7 +3,7 @@
   <h1>MrRSS</h1>
   <p><strong>一个现代化的跨平台桌面 RSS 阅读器</strong></p>
 
-   [![Version](https://img.shields.io/badge/version-1.3.13-blue.svg)](https://github.com/WCY-dt/MrRSS/releases)
+   [![Version](https://img.shields.io/badge/version-1.3.14-blue.svg)](https://github.com/WCY-dt/MrRSS/releases)
   [![License](https://img.shields.io/badge/license-GPLv3-green.svg)](LICENSE)
    [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
   [![Wails](https://img.shields.io/badge/Wails-v3%20alpha-red)](https://wails.io/)
@@ -244,7 +244,14 @@ go build -tags server -o mrrss-server .
 ./mrrss-server
 ```
 
-请参阅[服务器模式文档](docs/SERVER_MODE.md)以获取完整的 API 参考和部署指南。
+当然，本项目也提供了基于 ghcr.io 的预构建服务器镜像：
+
+```bash
+docker run -d -p 1234:1234 ghcr.io/wcy-dt/mrrss:latest-amd64
+docker run -d -p 1234:1234 ghcr.io/wcy-dt/mrrss:latest-arm64
+```
+
+请参阅[服务器模式 API 文档](docs/SERVER_MODE/swagger.json)以获取完整的 API 参考。
 
 </div>
 

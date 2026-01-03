@@ -11,6 +11,13 @@ import (
 )
 
 // HandleProgress returns the current fetch progress with statistics.
+// @Summary      Get fetch progress
+// @Description  Get the current feed fetching progress with statistics
+// @Tags         articles
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Progress information"
+// @Router       /progress [get]
 func HandleProgress(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	progress := h.Fetcher.GetProgressWithStats()
 	json.NewEncoder(w).Encode(progress)
@@ -38,6 +45,13 @@ type QueueTaskInfo struct {
 }
 
 // HandleTaskDetails returns detailed information about tasks in pool and queue
+// @Summary      Get task details
+// @Description  Get detailed information about tasks in pool and queue
+// @Tags         articles
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  TaskDetailsResponse  "Task details"
+// @Router       /progress/task-details [get]
 func HandleTaskDetails(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	tm := h.Fetcher.GetTaskManager()
 
@@ -78,6 +92,16 @@ func HandleTaskDetails(h *core.Handler, w http.ResponseWriter, r *http.Request) 
 }
 
 // HandleFilteredArticles returns articles filtered by advanced conditions from the database.
+// @Summary      Get filtered articles
+// @Description  Retrieve articles with advanced filtering conditions
+// @Tags         articles
+// @Accept       json
+// @Produce      json
+// @Param        request  body      FilterRequest  true  "Filter criteria"
+// @Success      200  {object}  FilterResponse  "Filtered articles"
+// @Failure      400  {object}  map[string]string  "Bad request"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /articles/filter [post]
 func HandleFilteredArticles(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

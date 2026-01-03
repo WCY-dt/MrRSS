@@ -9,6 +9,16 @@ import (
 )
 
 // HandleApplyRule applies a rule to matching articles
+// @Summary      Apply rule to articles
+// @Description  Apply a rule with conditions and actions to matching articles (mark as read, favorite, etc.)
+// @Tags         rules
+// @Accept       json
+// @Produce      json
+// @Param        rule  body      rules.Rule  true  "Rule definition (conditions and actions)"
+// @Success      200  {object}  map[string]interface{}  "Application result (success, affected count)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid rule or no actions)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /rules/apply [post]
 func HandleApplyRule(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

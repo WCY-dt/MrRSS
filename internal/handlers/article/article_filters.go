@@ -93,9 +93,10 @@ func evaluateSingleCondition(article models.Article, condition FilterCondition, 
 		} else {
 			lowerValue := strings.ToLower(condition.Value)
 			lowerTitle := strings.ToLower(article.Title)
-			if condition.Operator == "exact" {
+			switch condition.Operator {
+			case "exact":
 				result = lowerTitle == lowerValue
-			} else if condition.Operator == "regex" {
+			case "regex":
 				matched, err := regexp.MatchString(condition.Value, article.Title)
 				if err != nil {
 					log.Printf("Invalid regex pattern: %v", err)
@@ -103,7 +104,7 @@ func evaluateSingleCondition(article models.Article, condition FilterCondition, 
 				} else {
 					result = matched
 				}
-			} else {
+			default:
 				result = strings.Contains(lowerTitle, lowerValue)
 			}
 		}

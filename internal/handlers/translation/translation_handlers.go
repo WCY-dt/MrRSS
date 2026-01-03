@@ -12,6 +12,16 @@ import (
 )
 
 // HandleTranslateArticle translates an article's title.
+// @Summary      Translate article title
+// @Description  Translate an article's title to the target language (uses AI or Google based on settings)
+// @Tags         translation
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Translation request (article_id, title, target_language)"
+// @Success      200  {object}  map[string]interface{}  "Translation result (translated_title, limit_reached)"
+// @Failure      400  {object}  map[string]string  "Bad request (missing required fields)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /translate/article [post]
 func HandleTranslateArticle(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -94,6 +104,14 @@ func HandleTranslateArticle(h *core.Handler, w http.ResponseWriter, r *http.Requ
 }
 
 // HandleClearTranslations clears all translated titles from the database.
+// @Summary      Clear all translations
+// @Description  Clear all translated article titles from the database
+// @Tags         translation
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]bool  "Success status"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /translations/clear [post]
 func HandleClearTranslations(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -112,6 +130,16 @@ func HandleClearTranslations(h *core.Handler, w http.ResponseWriter, r *http.Req
 
 // HandleTranslateText translates any text to the target language.
 // This is used for translating content, summaries, etc.
+// @Summary      Translate text
+// @Description  Translate any text to the target language (uses AI or Google based on settings)
+// @Tags         translation
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Translation request (text, target_language)"
+// @Success      200  {object}  map[string]string  "Translation result (translated_text, html)"
+// @Failure      400  {object}  map[string]string  "Bad request (missing required fields)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /translate/text [post]
 func HandleTranslateText(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -187,6 +215,14 @@ func HandleTranslateText(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleResetAIUsage resets the AI usage counter.
+// @Summary      Reset AI usage counter
+// @Description  Reset the AI usage token counter to zero
+// @Tags         translation
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]bool  "Success status"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /ai/usage/reset [post]
 func HandleResetAIUsage(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -204,6 +240,13 @@ func HandleResetAIUsage(h *core.Handler, w http.ResponseWriter, r *http.Request)
 }
 
 // HandleGetAIUsage returns the current AI usage statistics.
+// @Summary      Get AI usage statistics
+// @Description  Get current AI usage (tokens used, limit, and whether limit is reached)
+// @Tags         translation
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "AI usage stats (usage, limit, limit_reached)"
+// @Router       /ai/usage [get]
 func HandleGetAIUsage(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

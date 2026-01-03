@@ -9,6 +9,13 @@ import (
 )
 
 // HandleSettings handles GET and POST requests for application settings.
+// @Summary      Get application settings
+// @Description  Get all application settings (sensitive values like passwords are cleared)
+// @Tags         settings
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Application settings (key-value pairs)"
+// @Router       /settings [get]
 // CODE GENERATED - DO NOT EDIT MANUALLY
 // To add new settings, edit internal/config/settings_schema.json and run: go run tools/settings-generator/main.go
 func HandleSettings(h *core.Handler, w http.ResponseWriter, r *http.Request) {

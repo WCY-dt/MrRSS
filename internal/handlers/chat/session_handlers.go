@@ -22,6 +22,16 @@ type UpdateSessionRequest struct {
 }
 
 // HandleListSessions handles GET requests to list all chat sessions for an article
+// @Summary      List chat sessions
+// @Description  Get all chat sessions for a specific article
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        article_id  query     int64   true  "Article ID"
+// @Success      200  {array}   database.ChatSession  "List of chat sessions"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid article_id)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/sessions [get]
 func HandleListSessions(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -52,6 +62,16 @@ func HandleListSessions(h *core.Handler, w http.ResponseWriter, r *http.Request)
 }
 
 // HandleCreateSession handles POST requests to create a new chat session
+// @Summary      Create chat session
+// @Description  Create a new chat session for an article
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        request  body      chat.CreateSessionRequest  true  "Session creation request (article_id, title)"
+// @Success      200  {object}  database.ChatSession  "Created chat session"
+// @Failure      400  {object}  map[string]string  "Bad request (missing article_id)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/sessions [post]
 func HandleCreateSession(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -93,6 +113,17 @@ func HandleCreateSession(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleGetSession handles GET requests to retrieve a specific chat session
+// @Summary      Get chat session
+// @Description  Get details of a specific chat session
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        session_id  query     int64   true  "Session ID"
+// @Success      200  {object}  database.ChatSession  "Chat session details"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid session_id)"
+// @Failure      404  {object}  map[string]string  "Session not found"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/session [get]
 func HandleGetSession(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -128,6 +159,17 @@ func HandleGetSession(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleUpdateSession handles PUT requests to update a chat session
+// @Summary      Update chat session
+// @Description  Update the title of a chat session
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        session_id  query     int64                            true  "Session ID"
+// @Param        request    body      chat.UpdateSessionRequest  true  "Update request (title)"
+// @Success      200  {object}  database.ChatSession  "Updated chat session"
+// @Failure      400  {object}  map[string]string  "Bad request (missing session_id or title)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/session [put]
 func HandleUpdateSession(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut && r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -176,6 +218,16 @@ func HandleUpdateSession(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleDeleteSession handles DELETE requests to delete a chat session
+// @Summary      Delete chat session
+// @Description  Delete a specific chat session and all its messages
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        session_id  query     int64   true  "Session ID"
+// @Success      200  {string}  string  "Session deleted successfully"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid session_id)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/session [delete]
 func HandleDeleteSession(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -206,6 +258,17 @@ func HandleDeleteSession(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleListMessages handles GET requests to list all messages in a session
+// HandleListMessages lists all messages in a chat session
+// @Summary      List chat messages
+// @Description  Get all messages in a specific chat session
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        session_id  query     int64   true  "Session ID"
+// @Success      200  {array}   object  "List of chat messages (with HTML for assistant messages)"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid session_id)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/messages [get]
 func HandleListMessages(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -263,6 +326,16 @@ func HandleListMessages(h *core.Handler, w http.ResponseWriter, r *http.Request)
 }
 
 // HandleDeleteMessage handles DELETE requests to delete a specific message
+// @Summary      Delete chat message
+// @Description  Delete a specific chat message
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        message_id  query     int64   true  "Message ID"
+// @Success      200  {object}  map[string]string  "Deletion status (status: 'deleted')"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid message_id)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/message [delete]
 func HandleDeleteMessage(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -293,6 +366,14 @@ func HandleDeleteMessage(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleDeleteAllSessions handles DELETE requests to delete all chat sessions
+// @Summary      Delete all chat sessions
+// @Description  Delete all chat sessions and their messages
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Deletion result (status, count)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /chat/sessions/all [delete]
 func HandleDeleteAllSessions(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

@@ -26,6 +26,14 @@ type TestResult struct {
 }
 
 // HandleTestAIConfig handles POST /api/ai/test to test AI configuration
+// @Summary      Test AI configuration
+// @Description  Test AI service configuration (endpoint, API key, model availability)
+// @Tags         ai
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  ai.TestResult  "Test result (config_valid, connection_success, model_available, response_time_ms, test_time, error_message)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /ai/test [post]
 func HandleTestAIConfig(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -118,6 +126,13 @@ func HandleTestAIConfig(h *core.Handler, w http.ResponseWriter, r *http.Request)
 }
 
 // HandleGetAITestInfo handles GET /api/ai/test/info to get last test result
+// @Summary      Get AI test info
+// @Description  Get the last AI configuration test result (returns empty/default result as tests are not stored persistently)
+// @Tags         ai
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  ai.TestResult  "Empty test result (config_valid, connection_success, model_available, response_time_ms, test_time)"
+// @Router       /ai/test/info [get]
 func HandleGetAITestInfo(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

@@ -22,6 +22,17 @@ type ExportToObsidianRequest struct {
 }
 
 // HandleExportToObsidian exports an article to Obsidian using direct file system access
+// @Summary      Export article to Obsidian
+// @Description  Export an article to Obsidian vault as a Markdown file (requires obsidian_enabled and obsidian_vault_path settings)
+// @Tags         articles
+// @Accept       json
+// @Produce      json
+// @Param        request  body      ExportToObsidianRequest  true  "Article export request"
+// @Success      200  {object}  map[string]string  "Export result (success, file_path, message)"
+// @Failure      400  {object}  map[string]string  "Bad request (Obsidian not configured or invalid article ID)"
+// @Failure      404  {object}  map[string]string  "Article not found"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /articles/export/obsidian [post]
 func HandleExportToObsidian(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

@@ -42,7 +42,30 @@ import (
 	"MrRSS/internal/network"
 	"MrRSS/internal/translation"
 	"MrRSS/internal/utils"
+
+	_ "MrRSS/docs" // Swagger docs
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+// @title           MrRSS API
+// @version         1.3.14
+// @description     MrRSS is a modern, cross-platform desktop RSS reader with auto-translation, smart feed discovery, and AI-powered summarization.
+
+// @contact.name   API Support
+// @contact.url    https://github.com/WCY-dt/MrRSS
+// @contact.email  mail@ch3nyang.top
+
+// @license.name  GPL-3.0
+// @license.url   https://www.gnu.org/licenses/gpl-3.0.en.html
+
+// @host      localhost:1234
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 var debugLogging = os.Getenv("MRRSS_DEBUG") != ""
 
@@ -234,6 +257,9 @@ func main() {
 	apiMux.HandleFunc("/api/freshrss/sync", func(w http.ResponseWriter, r *http.Request) { freshrssHandler.HandleSync(h, w, r) })
 	apiMux.HandleFunc("/api/freshrss/sync-feed", func(w http.ResponseWriter, r *http.Request) { freshrssHandler.HandleSyncFeed(h, w, r) })
 	apiMux.HandleFunc("/api/freshrss/status", func(w http.ResponseWriter, r *http.Request) { freshrssHandler.HandleSyncStatus(h, w, r) })
+
+	// Swagger Documentation
+	apiMux.HandleFunc("/swagger/*", httpSwagger.WrapHandler)
 
 	// Static Files
 	log.Println("Setting up static files...")

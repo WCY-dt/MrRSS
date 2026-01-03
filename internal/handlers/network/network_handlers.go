@@ -15,6 +15,14 @@ import (
 )
 
 // HandleDetectNetwork detects network speed and updates settings
+// @Summary      Detect network speed
+// @Description  Detect network speed and latency, then optimize max concurrent refreshes setting
+// @Tags         network
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  network.DetectionResult  "Network detection result (speed_level, bandwidth_mbps, latency_ms, max_concurrency)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /network/detect [post]
 func HandleDetectNetwork(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -70,6 +78,13 @@ func HandleDetectNetwork(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleGetNetworkInfo returns current network detection info from settings
+// @Summary      Get network info
+// @Description  Get the last network detection information (speed, bandwidth, latency, concurrent refreshes)
+// @Tags         network
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Network info (speed_level, bandwidth_mbps, latency_ms, max_concurrent_refreshes, last_network_test)"
+// @Router       /network/info [get]
 func HandleGetNetworkInfo(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	speedLevel, _ := h.DB.GetSetting("network_speed")
 	bandwidthStr, _ := h.DB.GetSetting("network_bandwidth_mbps")

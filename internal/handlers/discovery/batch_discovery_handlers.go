@@ -13,6 +13,14 @@ import (
 )
 
 // HandleDiscoverAllFeeds discovers feeds from all subscriptions that haven't been discovered yet.
+// @Summary      Discover feeds from all subscriptions
+// @Description  Discover new blogs by analyzing friend links from all feeds that haven't been discovered yet
+// @Tags         discovery
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Discovery results (discovered_from, feeds_found, feeds)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /discovery/all [post]
 func HandleDiscoverAllFeeds(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -104,6 +112,15 @@ discoveryLoop:
 }
 
 // HandleStartBatchDiscovery starts batch discovery in the background.
+// @Summary      Start batch discovery
+// @Description  Start an asynchronous blog discovery process for all undiscovered feeds
+// @Tags         discovery
+// @Accept       json
+// @Produce      json
+// @Success      202  {object}  map[string]interface{}  "Discovery started (status, total)"
+// @Failure      409  {object}  map[string]string  "Batch discovery already in progress"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /discovery/batch/start [post]
 func HandleStartBatchDiscovery(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -287,6 +304,13 @@ func HandleStartBatchDiscovery(h *core.Handler, w http.ResponseWriter, r *http.R
 }
 
 // HandleGetBatchDiscoveryProgress returns the current progress of batch discovery.
+// @Summary      Get batch discovery progress
+// @Description  Get the current progress and status of the batch discovery operation
+// @Tags         discovery
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  core.DiscoveryState  "Discovery state (is_running, is_complete, progress, feeds, error)"
+// @Router       /discovery/batch/progress [get]
 func HandleGetBatchDiscoveryProgress(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -309,6 +333,13 @@ func HandleGetBatchDiscoveryProgress(h *core.Handler, w http.ResponseWriter, r *
 }
 
 // HandleClearBatchDiscovery clears the batch discovery state.
+// @Summary      Clear batch discovery state
+// @Description  Clear the current batch discovery state and results
+// @Tags         discovery
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Clear status (status)"
+// @Router       /discovery/batch/clear [post]
 func HandleClearBatchDiscovery(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

@@ -18,6 +18,13 @@ import (
 const customCSSFileName = "custom_article.css"
 
 // HandleUploadCSSDialog is not available in server mode - returns 501 Not Implemented
+// @Summary      Upload CSS dialog (not available)
+// @Description  File dialog not available in server mode. Use /api/custom-css/upload endpoint instead
+// @Tags         custom-css
+// @Accept       json
+// @Produce      json
+// @Success      501  {object}  map[string]string  "Not implemented error"
+// @Router       /custom-css/dialog [post]
 func HandleUploadCSSDialog(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("File dialog not available in server mode")
 	w.Header().Set("Content-Type", "application/json")
@@ -28,6 +35,16 @@ func HandleUploadCSSDialog(h *core.Handler, w http.ResponseWriter, r *http.Reque
 }
 
 // HandleUploadCSS handles CSS file upload and saves it to the data directory
+// @Summary      Upload custom CSS file
+// @Description  Upload a custom CSS file to style article content (max 1MB, .css files only)
+// @Tags         custom-css
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  file  true  "CSS file to upload"
+// @Success      200  {object}  map[string]string  "Upload success (status, message)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid file or size)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /custom-css/upload [post]
 func HandleUploadCSS(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -104,6 +121,15 @@ func HandleUploadCSS(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleGetCSS returns the custom CSS file content
+// @Summary      Get custom CSS
+// @Description  Get the content of the uploaded custom CSS file
+// @Tags         custom-css
+// @Accept       json
+// @Produce      text/css
+// @Success      200  {string}  string  "CSS file content"
+// @Failure      404  {object}  map[string]string  "No custom CSS file configured"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /custom-css [get]
 func HandleGetCSS(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -141,6 +167,14 @@ func HandleGetCSS(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDeleteCSS deletes the custom CSS file and clears the setting
+// @Summary      Delete custom CSS
+// @Description  Delete the custom CSS file and clear the setting
+// @Tags         custom-css
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Delete success (status, message)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /custom-css [delete]
 func HandleDeleteCSS(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

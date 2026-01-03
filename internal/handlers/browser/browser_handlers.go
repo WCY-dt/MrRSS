@@ -16,10 +16,16 @@ import (
 )
 
 // HandleOpenURL opens a URL in the user's default web browser using Wails v3 Browser API.
-//
-// Request: POST /api/browser/open
-// Body: {"url": "https://example.com"}
-// Response: 200 OK or 400/500 on error
+// @Summary      Open URL in browser
+// @Description  Open a URL in the user's default web browser
+// @Tags         browser
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "Open URL request (url)"
+// @Success      200  {object}  map[string]string  "Success status (status) or redirect URL (redirect)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid URL)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /browser/open [post]
 func HandleOpenURL(h *handlers.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

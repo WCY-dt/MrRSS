@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "MrRSS"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "1.3.13"
+    !define INFO_PRODUCTVERSION "1.3.14"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright © 2026"

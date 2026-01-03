@@ -96,6 +96,19 @@ func proxyImagesInHTML(htmlContent, referer string) string {
 }
 
 // HandleMediaProxy serves cached media or downloads and caches it
+// HandleMediaProxy proxies media files with optional caching
+// @Summary      Proxy media file
+// @Description  Proxy and cache media files (images, videos, audio) from external URLs
+// @Tags         media
+// @Accept       json
+// @Produce      application/octet-stream
+// @Param        url      query     string  true  "Media URL to proxy"
+// @Param        referer  query     string  false  "Referer URL for hotlink protection"
+// @Success      200  {file}  file  "Media file"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid URL)"
+// @Failure      403  {object}  map[string]string  "Media proxy is disabled"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /media/proxy [get]
 func HandleMediaProxy(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -172,6 +185,15 @@ func HandleMediaProxy(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleMediaCacheCleanup performs manual cleanup of media cache
+// @Summary      Cleanup media cache
+// @Description  Clean up the media cache by age and size
+// @Tags         media
+// @Accept       json
+// @Produce      json
+// @Param        all  query     bool  false  "Clean all files (ignores age/size settings)"  default(false)
+// @Success      200  {object}  map[string]interface{}  "Cleanup result (success, files_cleaned)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /media/cache/cleanup [post]
 func HandleMediaCacheCleanup(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -247,6 +269,16 @@ func HandleMediaCacheCleanup(h *core.Handler, w http.ResponseWriter, r *http.Req
 }
 
 // HandleWebpageProxy proxies webpage content to bypass CSP restrictions in iframes
+// @Summary      Proxy webpage content
+// @Description  Proxy webpage HTML content to bypass CSP restrictions in iframes
+// @Tags         media
+// @Accept       json
+// @Produce      html
+// @Param        url  query     string  true  "Webpage URL to proxy"
+// @Success      200  {string}  string  "Webpage HTML content"
+// @Failure      400  {object}  map[string]string  "Bad request (missing or invalid URL)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /media/proxy-webpage [get]
 func HandleWebpageProxy(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -444,6 +476,15 @@ func proxyMediaDirectly(mediaURL, referer string, w http.ResponseWriter) error {
 }
 
 // HandleMediaCacheInfo returns information about the media cache
+// HandleMediaCacheInfo returns information about the media cache
+// @Summary      Get media cache info
+// @Description  Get media cache statistics (size in MB)
+// @Tags         media
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Cache info (cache_size_mb)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /media/cache/info [get]
 func HandleMediaCacheInfo(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 
 	// Get media cache directory

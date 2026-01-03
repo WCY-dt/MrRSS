@@ -3,7 +3,7 @@
   <h1>MrRSS</h1>
   <p><strong>A Modern, Cross-Platform Desktop RSS Reader</strong></p>
 
-   [![Version](https://img.shields.io/badge/version-1.3.13-blue.svg)](https://github.com/WCY-dt/MrRSS/releases)
+   [![Version](https://img.shields.io/badge/version-1.3.14-blue.svg)](https://github.com/WCY-dt/MrRSS/releases)
   [![License](https://img.shields.io/badge/license-GPLv3-green.svg)](LICENSE)
    [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
   [![Wails](https://img.shields.io/badge/Wails-v3%20alpha-red)](https://wails.io/)
@@ -244,7 +244,14 @@ go build -tags server -o mrrss-server .
 ./mrrss-server
 ```
 
-See [Server Mode Documentation](docs/SERVER_MODE.md) for complete API reference and deployment guide.
+Of course, pre-built server images based on ghcr.io are also provided:
+
+```bash
+docker run -d -p 1234:1234 ghcr.io/wcy-dt/mrrss:latest-amd64
+docker run -d -p 1234:1234 ghcr.io/wcy-dt/mrrss:latest-arm64
+```
+
+Please refer to the [Server Mode API Documentation](docs/SERVER_MODE/swagger.json) for a complete API reference.
 
 </div>
 

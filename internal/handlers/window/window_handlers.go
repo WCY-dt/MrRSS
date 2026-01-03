@@ -18,6 +18,13 @@ type WindowState struct {
 }
 
 // HandleGetWindowState returns the saved window state from database
+// @Summary      Get window state
+// @Description  Get the saved window state (position, size, maximized status)
+// @Tags         window
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Window state (x, y, width, height, maximized)"
+// @Router       /window/state [get]
 func HandleGetWindowState(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -53,6 +60,16 @@ func HandleGetWindowState(h *core.Handler, w http.ResponseWriter, r *http.Reques
 }
 
 // HandleSaveWindowState saves the current window state to database
+// @Summary      Save window state
+// @Description  Save the current window state (position, size, maximized status)
+// @Tags         window
+// @Accept       json
+// @Produce      json
+// @Param        state  body      WindowState  true  "Window state to save"
+// @Success      200  {string}  string  "Window state saved successfully"
+// @Failure      400  {object}  map[string]string  "Bad request"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /window/state [post]
 func HandleSaveWindowState(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

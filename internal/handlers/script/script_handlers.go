@@ -14,6 +14,14 @@ import (
 )
 
 // HandleGetScriptsDir returns the path to the scripts directory
+// @Summary      Get scripts directory path
+// @Description  Get the file system path to the scripts directory
+// @Tags         scripts
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Scripts directory path (scripts_dir)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /scripts/dir [get]
 func HandleGetScriptsDir(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -32,6 +40,15 @@ func HandleGetScriptsDir(h *core.Handler, w http.ResponseWriter, r *http.Request
 }
 
 // HandleOpenScriptsDir opens the scripts directory in the system file explorer
+// @Summary      Open scripts directory
+// @Description  Open the scripts directory in the system's file explorer/finder
+// @Tags         scripts
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Open status (status, scripts_dir)"
+// @Failure      400  {object}  map[string]string  "Unsupported platform"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /scripts/dir/open [post]
 func HandleOpenScriptsDir(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -70,6 +87,14 @@ func HandleOpenScriptsDir(h *core.Handler, w http.ResponseWriter, r *http.Reques
 }
 
 // HandleListScripts returns a list of available scripts in the scripts directory
+// @Summary      List available scripts
+// @Description  Get a list of all available scripts in the scripts directory (Python, Shell, PowerShell, Node.js, Ruby)
+// @Tags         scripts
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "List of scripts (scripts array with name, path, type)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /scripts/list [get]
 func HandleListScripts(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

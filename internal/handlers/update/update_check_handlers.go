@@ -15,6 +15,14 @@ import (
 
 // HandleCheckUpdates checks for the latest stable version on GitHub.
 // Pre-release versions (alpha, beta) are filtered out.
+// @Summary      Check for updates
+// @Description  Check GitHub for the latest stable release version (pre-releases are filtered out)
+// @Tags         update
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Update info (current_version, latest_version, update_available, download_url, release_notes)"
+// @Failure      500  {object}  map[string]interface{}  "Error checking for updates"
+// @Router       /update/check [get]
 func HandleCheckUpdates(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

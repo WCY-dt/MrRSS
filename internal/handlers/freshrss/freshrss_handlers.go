@@ -12,6 +12,16 @@ import (
 )
 
 // HandleSyncFeed syncs articles for a single FreshRSS feed
+// @Summary      Sync single FreshRSS feed
+// @Description  Synchronize articles for a specific FreshRSS feed/stream
+// @Tags         freshrss
+// @Accept       json
+// @Produce      json
+// @Param        stream_id  query     string  true  "FreshRSS stream ID"
+// @Success      200  {object}  map[string]interface{}  "Sync started status (status, message)"
+// @Failure      400  {object}  map[string]string  "Bad request (FreshRSS disabled or stream_id missing)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /freshrss/sync-feed [post]
 func HandleSyncFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -72,6 +82,15 @@ func HandleSyncFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleSync performs bidirectional synchronization with FreshRSS server
+// @Summary      Sync with FreshRSS
+// @Description  Perform bidirectional synchronization with FreshRSS server (pull and push changes)
+// @Tags         freshrss
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Sync started status (status, message)"
+// @Failure      400  {object}  map[string]string  "Bad request (FreshRSS disabled or incomplete settings)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /freshrss/sync [post]
 func HandleSync(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("[HandleSync] Sync request received")
 	if r.Method != http.MethodPost {
@@ -132,6 +151,13 @@ func HandleSync(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleSyncStatus returns the current sync status
+// @Summary      Get FreshRSS sync status
+// @Description  Get the current synchronization status with FreshRSS
+// @Tags         freshrss
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Sync status (pending_changes, failed_items, last_sync_time)"
+// @Router       /freshrss/status [get]
 func HandleSyncStatus(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

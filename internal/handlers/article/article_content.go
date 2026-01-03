@@ -10,6 +10,16 @@ import (
 )
 
 // HandleGetArticleContent fetches the article content from RSS feed dynamically.
+// @Summary      Get article content
+// @Description  Fetch the full HTML content of an article (uses cache if available)
+// @Tags         articles
+// @Accept       json
+// @Produce      json
+// @Param        id   query     int64   true  "Article ID"
+// @Success      200  {object}  map[string]string  "Article content (content, feed_url)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid article ID)"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /articles/content [get]
 func HandleGetArticleContent(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -53,6 +63,17 @@ func HandleGetArticleContent(h *core.Handler, w http.ResponseWriter, r *http.Req
 }
 
 // HandleFetchFullArticle fetches the full article content from the original URL using readability.
+// @Summary      Fetch full article content
+// @Description  Fetch the full article content from the original URL using readability extraction (requires full_text_fetch_enabled setting)
+// @Tags         articles
+// @Accept       json
+// @Produce      json
+// @Param        id   query     int64   true  "Article ID"
+// @Success      200  {object}  map[string]string  "Full article content (content, feed_url)"
+// @Failure      400  {object}  map[string]string  "Bad request (invalid ID or missing URL)"
+// @Failure      403  {object}  map[string]string  "Full-text fetching disabled"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /articles/fetch-full [post]
 func HandleFetchFullArticle(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

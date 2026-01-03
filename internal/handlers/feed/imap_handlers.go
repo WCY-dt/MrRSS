@@ -13,6 +13,17 @@ import (
 )
 
 // HandleTestIMAPConnection tests IMAP connection settings
+// @Summary      Test IMAP connection
+// @Description  Test IMAP server connection with provided credentials
+// @Tags         email
+// @Accept       json
+// @Produce      json
+// @Param        request  body      object  true  "IMAP connection test (email_imap_server, email_imap_port, email_username, email_password, email_folder)"
+// @Success      200  {object}  map[string]string  "Connection successful (message)"
+// @Failure      400  {object}  map[string]string  "Bad request (missing required fields)"
+// @Failure      401  {object}  map[string]string  "Authentication failed"
+// @Failure      500  {object}  map[string]string  "Internal server error"
+// @Router       /email/imap/test [post]
 func HandleTestIMAPConnection(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	log.Printf("[IMAP Test] Handler called, method: %s", r.Method)
 
