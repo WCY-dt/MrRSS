@@ -89,6 +89,10 @@ function close() {
   emit('close');
 }
 
+function insertRSSHubPrefix() {
+  url.value = 'rsshub://';
+}
+
 async function submit() {
   if (!isFormValid.value) {
     return;
@@ -162,6 +166,47 @@ async function submit() {
 
     if (props.mode === 'edit') {
       body.id = props.feed!.id;
+    }
+
+    // Special handling for RSSHub URLs - use dedicated endpoint
+    if (body.url && typeof body.url === 'string' && body.url.startsWith('rsshub://')) {
+      const route = body.url.replace('rsshub://', '');
+
+      try {
+        // Use the specialized RSSHub add endpoint
+        const rsshubResp = await fetch('/api/rsshub/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            route: route,
+            category: category.value,
+            title: title.value,
+          }),
+        });
+
+        if (rsshubResp.ok) {
+          const rsshubResult = await rsshubResp.json();
+          if (rsshubResult.success) {
+            emit('added');
+            resetForm();
+            window.showToast(t('feedAddedSuccess'), 'success');
+            close();
+            return;
+          }
+        }
+
+        // If RSSHub endpoint failed, try the generic add endpoint as fallback
+        const errorText = await rsshubResp.text();
+        throw new Error(errorText || 'RSSHub add failed');
+      } catch (e) {
+        console.error('RSSHub add failed:', e);
+        window.showToast(
+          `${t('errorAddingFeed')}: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          'error'
+        );
+        isSubmitting.value = false;
+        return;
+      }
     }
 
     const endpoint = props.mode === 'add' ? '/api/feeds/add' : '/api/feeds/update';
@@ -273,6 +318,14 @@ async function submit() {
               >
                 {{ t('emailNewsletter') }}
               </button>
+              {{ t('or') }}
+              <button
+                type="button"
+                class="text-xs text-accent hover:underline mx-1"
+                @click="insertRSSHubPrefix"
+              >
+                RSSHub
+              </button>
             </div>
           </div>
         </div>
@@ -326,6 +379,14 @@ async function submit() {
                 @click="feedType = 'email'"
               >
                 {{ t('emailNewsletter') }}
+              </button>
+              {{ t('or') }}
+              <button
+                type="button"
+                class="text-xs text-accent hover:underline mx-1"
+                @click="insertRSSHubPrefix"
+              >
+                RSSHub
               </button>
             </div>
           </div>

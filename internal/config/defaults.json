@@ -53,6 +53,8 @@
   "proxy_username": "",
   "refresh_mode": "fixed",
   "retry_timeout_seconds": 60,
+  "rsshub_api_key": "",
+  "rsshub_endpoint": "https://rsshub.app",
   "rules": "",
   "shortcuts": "",
   "shortcuts_enabled": true,

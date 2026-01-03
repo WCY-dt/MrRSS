@@ -81,6 +81,72 @@ func HandleSyncFeed(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// HandleTestConnection tests the connection to FreshRSS server
+func HandleTestConnection(h *core.Handler, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		ServerURL   string `json:"server_url"`
+		Username    string `json:"username"`
+		APIPassword string `json:"api_password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Invalid request body",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.ServerURL == "" || req.Username == "" || req.APIPassword == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "FreshRSS settings incomplete",
+		})
+		return
+	}
+
+	serverURL := req.ServerURL
+	username := req.Username
+	password := req.APIPassword
+
+	// Test connection
+	client := freshrss.NewClient(serverURL, username, password)
+	ctx := context.Background()
+
+	err := client.Login(ctx)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// Get subscription count
+	subscriptions, err := client.GetSubscriptions(ctx)
+	subscriptionCount := 0
+	if err == nil {
+		subscriptionCount = len(subscriptions)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":           true,
+		"subscriptionCount": subscriptionCount,
+		"message":           "Connection successful",
+	})
+}
+
 // HandleSync performs bidirectional synchronization with FreshRSS server
 // @Summary      Sync with FreshRSS
 // @Description  Perform bidirectional synchronization with FreshRSS server (pull and push changes)

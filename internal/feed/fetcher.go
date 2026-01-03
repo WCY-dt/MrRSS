@@ -3,6 +3,7 @@ package feed
 import (
 	"MrRSS/internal/database"
 	"MrRSS/internal/models"
+	"MrRSS/internal/rsshub"
 	"MrRSS/internal/rules"
 	"MrRSS/internal/translation"
 	"MrRSS/internal/utils"
@@ -104,6 +105,23 @@ func (f *Fetcher) GetTaskManager() *TaskManager {
 // GetCleanupManager returns the cleanup manager
 func (f *Fetcher) GetCleanupManager() *CleanupManager {
 	return f.cleanupManager
+}
+
+// transformRSSHubURL converts rsshub:// route to full URL
+func (f *Fetcher) transformRSSHubURL(url string) (string, error) {
+	if !rsshub.IsRSSHubURL(url) {
+		return url, nil
+	}
+
+	endpoint, _ := f.db.GetSetting("rsshub_endpoint")
+	if endpoint == "" {
+		endpoint = "https://rsshub.app"
+	}
+	apiKey, _ := f.db.GetEncryptedSetting("rsshub_api_key")
+
+	route := rsshub.ExtractRoute(url)
+	client := rsshub.NewClient(endpoint, apiKey)
+	return client.BuildURL(route), nil
 }
 
 // getDataDir returns the data directory path

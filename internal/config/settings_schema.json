@@ -487,6 +487,20 @@
       "encrypted": false,
       "frontend_key": "freshRSSLastSyncTime"
     },
+    "rsshub_endpoint": {
+      "type": "string",
+      "default": "https://rsshub.app",
+      "category": "integrations",
+      "encrypted": false,
+      "frontend_key": "rsshubEndpoint"
+    },
+    "rsshub_api_key": {
+      "type": "string",
+      "default": "",
+      "category": "integrations",
+      "encrypted": true,
+      "frontend_key": "rsshubAPIKey"
+    },
     "full_text_fetch_enabled": {
       "type": "bool",
       "default": true,

@@ -5,6 +5,7 @@ import { useSettingsAutoSave } from '@/composables/core/useSettingsAutoSave';
 import { useI18n } from 'vue-i18n';
 import ObsidianSettings from './ObsidianSettings.vue';
 import FreshRSSSettings from './FreshRSSSettings.vue';
+import RSSHubSettings from './RSSHubSettings.vue';
 
 interface Props {
   settings: SettingsData;
@@ -41,6 +42,8 @@ function handleUpdateSettings(updatedSettings: SettingsData) {
     <ObsidianSettings :settings="settings" @update:settings="handleUpdateSettings" />
 
     <FreshRSSSettings :settings="settings" @update:settings="handleUpdateSettings" />
+
+    <RSSHubSettings :settings="settings" @update:settings="handleUpdateSettings" />
   </div>
 </template>
 
