@@ -128,8 +128,6 @@ func (f *Fetcher) transformRSSHubURL(url string) (string, error) {
 
 	route := rsshub.ExtractRoute(url)
 	client := rsshub.NewClient(endpoint, apiKey)
-
-
 	return client.BuildURL(route), nil
 }
 
