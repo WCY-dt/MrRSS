@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
       />
 
       <!-- Original webpage view -->
-      <div v-if="!showContent" class="flex-1 bg-white w-full">
+      <div v-if="!showContent" class="flex-1 bg-bg-primary w-full">
         <iframe
           :key="article.id"
           :src="`/api/webpage/proxy?url=${encodeURIComponent(article.url)}`"

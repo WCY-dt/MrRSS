@@ -78,19 +78,19 @@ func HandleTranslateArticle(h *core.Handler, w http.ResponseWriter, r *http.Requ
 			limitReached = true
 			// Fallback to Google Translate
 			googleTranslator := translation.NewGoogleFreeTranslatorWithDB(h.DB)
-			translatedTitle, err = googleTranslator.Translate(req.Title, req.TargetLang)
+			translatedTitle, err = translation.TranslateMarkdownPreservingStructure(req.Title, googleTranslator, req.TargetLang)
 		} else {
 			// Apply rate limiting for AI requests
 			h.AITracker.WaitForRateLimit()
 
-			// Try AI translation first
-			translatedTitle, err = h.Translator.Translate(req.Title, req.TargetLang)
+			// Use markdown-preserving translation for better list structure
+			translatedTitle, err = translation.TranslateMarkdownAIPrompt(req.Title, h.Translator, req.TargetLang)
 
 			// If AI fails, fallback to Google Translate
 			if err != nil {
 				log.Printf("AI translation failed, falling back to Google Translate: %v", err)
 				googleTranslator := translation.NewGoogleFreeTranslatorWithDB(h.DB)
-				translatedTitle, err = googleTranslator.Translate(req.Title, req.TargetLang)
+				translatedTitle, err = translation.TranslateMarkdownPreservingStructure(req.Title, googleTranslator, req.TargetLang)
 			}
 
 			// Track AI usage only on success (whether AI or fallback)
@@ -99,8 +99,8 @@ func HandleTranslateArticle(h *core.Handler, w http.ResponseWriter, r *http.Requ
 			}
 		}
 	} else {
-		// Non-AI provider, no special handling needed
-		translatedTitle, err = h.Translator.Translate(req.Title, req.TargetLang)
+		// Non-AI provider, use markdown-preserving translation
+		translatedTitle, err = translation.TranslateMarkdownPreservingStructure(req.Title, h.Translator, req.TargetLang)
 	}
 
 	if err != nil {
@@ -227,19 +227,19 @@ func HandleTranslateText(h *core.Handler, w http.ResponseWriter, r *http.Request
 			log.Printf("AI usage limit reached, falling back to Google Translate")
 			// Fallback to Google Translate
 			googleTranslator := translation.NewGoogleFreeTranslatorWithDB(h.DB)
-			translatedText, err = googleTranslator.Translate(req.Text, req.TargetLang)
+			translatedText, err = translation.TranslateMarkdownPreservingStructure(req.Text, googleTranslator, req.TargetLang)
 		} else {
 			// Apply rate limiting for AI requests
 			h.AITracker.WaitForRateLimit()
 
-			// Try AI translation first
-			translatedText, err = h.Translator.Translate(req.Text, req.TargetLang)
+			// Use markdown-preserving translation for better list structure
+			translatedText, err = translation.TranslateMarkdownAIPrompt(req.Text, h.Translator, req.TargetLang)
 
 			// If AI fails, fallback to Google Translate
 			if err != nil {
 				log.Printf("AI translation failed, falling back to Google Translate: %v", err)
 				googleTranslator := translation.NewGoogleFreeTranslatorWithDB(h.DB)
-				translatedText, err = googleTranslator.Translate(req.Text, req.TargetLang)
+				translatedText, err = translation.TranslateMarkdownPreservingStructure(req.Text, googleTranslator, req.TargetLang)
 			}
 
 			// Track AI usage only on success (whether AI or fallback)
@@ -248,8 +248,8 @@ func HandleTranslateText(h *core.Handler, w http.ResponseWriter, r *http.Request
 			}
 		}
 	} else {
-		// Non-AI provider, no special handling needed
-		translatedText, err = h.Translator.Translate(req.Text, req.TargetLang)
+		// Non-AI provider, use markdown-preserving translation
+		translatedText, err = translation.TranslateMarkdownPreservingStructure(req.Text, h.Translator, req.TargetLang)
 	}
 
 	if err != nil {

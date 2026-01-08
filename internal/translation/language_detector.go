@@ -1,7 +1,6 @@
 package translation
 
 import (
-	"log"
 	"strings"
 	"sync"
 
@@ -62,45 +61,31 @@ func GetLanguageDetector() *LanguageDetector {
 // Returns empty string if detection fails or confidence is too low
 func (ld *LanguageDetector) DetectLanguage(text string) string {
 	if text == "" {
-		log.Printf("[Translation Debug] Language detection skipped: empty text")
 		return ""
 	}
 
 	// Clean text for better detection
-	originalText := text
 	text = strings.TrimSpace(text)
 	if len(text) < 3 {
-		log.Printf("[Translation Debug] Language detection skipped: text too short (len=%d)", len(text))
 		return ""
 	}
 
 	// Remove HTML tags if present
 	cleanText := removeHTMLTags(text)
 	textForDetection := text
-	usedCleaned := false
 
 	// Only use cleaned text if it's significantly different and has enough content
 	if len(cleanText) > 10 && len(cleanText) < len(text) {
 		textForDetection = cleanText
-		usedCleaned = true
 	}
 
 	// Detect language
 	language, exists := ld.detector.DetectLanguageOf(textForDetection)
 	if !exists {
-		log.Printf("[Translation Debug] Language detection failed: could not detect language (len=%d, usedCleaned=%v)", len(textForDetection), usedCleaned)
 		return ""
 	}
 
 	detectedCode := linguaToISOCode(language)
-	log.Printf("[Translation Debug] Language detected: %s (original: %s, len=%d, usedCleaned=%v, preview: %.50s...)",
-		detectedCode,
-		language.String(),
-		len(textForDetection),
-		usedCleaned,
-		originalText,
-	)
-
 	return detectedCode
 }
 
@@ -114,7 +99,6 @@ func (ld *LanguageDetector) ShouldTranslate(text, targetLang string) bool {
 
 	// If detection failed, assume translation is needed (fallback behavior)
 	if detectedLang == "" {
-		log.Printf("[Translation Debug] ShouldTranslate: true (detection failed, targetLang=%s, preview: %.50s...)", targetLang, text)
 		return true
 	}
 
@@ -122,16 +106,8 @@ func (ld *LanguageDetector) ShouldTranslate(text, targetLang string) bool {
 	detectedLang = normalizeLangCode(detectedLang)
 	targetLang = normalizeLangCode(targetLang)
 
-	shouldTranslate := detectedLang != targetLang
-	log.Printf("[Translation Debug] ShouldTranslate: %v (detected=%s, target=%s, preview: %.50s...)",
-		shouldTranslate,
-		detectedLang,
-		targetLang,
-		text,
-	)
-
 	// Check if already in target language
-	return shouldTranslate
+	return detectedLang != targetLang
 }
 
 // linguaToISOCode converts Lingua Language enum to ISO 639-1 code

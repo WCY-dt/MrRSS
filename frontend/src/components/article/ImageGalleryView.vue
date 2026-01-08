@@ -417,7 +417,7 @@ onUnmounted(() => {
 
 <style scoped>
 .image-gallery-container {
-  @apply flex flex-col h-full overflow-y-auto bg-bg-primary scroll-smooth;
+  @apply flex flex-col flex-1 h-full overflow-y-auto bg-bg-primary scroll-smooth;
 }
 
 .gallery-header {
@@ -484,7 +484,7 @@ onUnmounted(() => {
 }
 
 .empty-state {
-  @apply flex flex-col items-center justify-center h-full gap-4;
+  @apply flex flex-col items-center justify-center h-full w-full gap-4;
 }
 
 .loading-indicator {
