@@ -6,10 +6,11 @@
 
 /* Trigger button - based on TagSelector and RuleConditionItem */
 .select-trigger {
-  @apply w-full p-1.5 sm:p-2 border border-border rounded-md bg-bg-primary text-text-primary;
+  @apply w-full p-1.5 sm:p-2 border border-border bg-bg-primary text-text-primary;
   @apply flex items-center justify-between cursor-pointer hover:border-accent transition-colors;
   @apply text-xs sm:text-sm;
-  height: 38px;
+  height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
   box-sizing: border-box;
 }
 
@@ -33,8 +34,9 @@
 
 /* Dropdown menu */
 .select-dropdown {
-  @apply border border-border rounded-md bg-bg-primary;
+  @apply border border-border bg-bg-primary;
   @apply overflow-y-auto shadow-lg scroll-smooth;
+  border-radius: var(--ui-radius-surface);
   /* Position and dimensions are set via inline styles by useSelect */
 }
 
@@ -44,7 +46,7 @@
   @apply text-text-primary hover:bg-bg-tertiary;
   @apply text-xs sm:text-sm;
   min-height: 36px;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--ui-transition-fast);
 }
 
 .select-option:disabled {

@@ -47,7 +47,7 @@ const displayIcon = computed(() => {
 
 <template>
   <div
-    class="status-box flex flex-col gap-2 p-3 rounded-lg bg-bg-primary border w-full sm:min-w-[120px]"
+    class="status-box flex flex-col gap-2 p-3 bg-bg-primary border w-full sm:min-w-[120px]"
     :class="statusClass"
   >
     <span class="text-sm text-text-secondary text-left">{{ status.label }}</span>
@@ -62,9 +62,11 @@ const displayIcon = computed(() => {
 </template>
 
 <style scoped>
+@reference "../../../style.css";
 .status-box {
+  border-radius: var(--ui-radius-surface);
   transition:
-    border-color 0.2s,
-    color 0.2s;
+    border-color var(--ui-transition-fast),
+    color var(--ui-transition-fast);
 }
 </style>

@@ -7,7 +7,9 @@
 
 /* Secondary button style for settings */
 .btn-secondary {
-  @apply bg-bg-tertiary border border-border text-text-primary px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors;
+  @apply bg-bg-tertiary border border-border text-text-primary px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium hover:bg-bg-secondary transition-colors;
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
 }
 
 .btn-secondary:disabled {
@@ -16,22 +18,26 @@
 
 /* Sub setting item - nested settings with left border */
 .sub-setting-item {
-  @apply flex items-center sm:items-start justify-between gap-2 sm:gap-4 p-2 sm:p-2.5 rounded-md bg-bg-tertiary;
+  @apply flex items-center sm:items-start justify-between gap-2 sm:gap-4 p-2 sm:p-2.5 bg-bg-tertiary;
+  border-radius: var(--ui-radius-surface);
 }
 
 /* Sub setting item with column layout (for textarea) */
 .sub-setting-item-col {
-  @apply flex flex-col items-stretch gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-md bg-bg-tertiary;
+  @apply flex flex-col items-stretch gap-2 sm:gap-3 p-2 sm:p-2.5 bg-bg-tertiary;
+  border-radius: var(--ui-radius-surface);
 }
 
 /* Setting item with column layout (for complex content like custom headers) */
 .setting-item-col {
-  @apply flex flex-col items-stretch gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-bg-secondary border border-border;
+  @apply flex flex-col items-stretch gap-2 sm:gap-3 p-2 sm:p-3 bg-bg-secondary border border-border;
+  border-radius: var(--ui-radius-surface);
 }
 
 /* Status box group container */
 .status-box-group {
-  @apply flex flex-col sm:flex-row sm:items-stretch sm:justify-between gap-3 sm:gap-4 p-2 sm:p-3 rounded-lg bg-bg-secondary border border-border;
+  @apply flex flex-col sm:flex-row sm:items-stretch sm:justify-between gap-3 sm:gap-4 p-2 sm:p-3 bg-bg-secondary border border-border;
+  border-radius: var(--ui-radius-surface);
 }
 
 .status-box-group .status-box {
