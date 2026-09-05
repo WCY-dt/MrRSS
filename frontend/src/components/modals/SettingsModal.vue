@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAppStore } from '@/stores/app';
 import { useI18n } from 'vue-i18n';
-import { computed, nextTick, ref, onMounted, type Component, type Ref } from 'vue';
+import { computed, nextTick, ref, onMounted, watch, type Component, type Ref } from 'vue';
 import GeneralTab from './settings/general/GeneralTab.vue';
 import ReadingDisplayTab from './settings/reading/ReadingDisplayTab.vue';
 import FeedsTab from './settings/feeds/FeedsTab.vue';
@@ -79,7 +79,10 @@ const emit = defineEmits<{
 const activeTab: Ref<TabName> = ref('general');
 const showDiscoverAllModal = ref(false);
 const settingsContentRef = ref<HTMLElement | null>(null);
+const settingsSearchRef = ref<HTMLElement | null>(null);
 const settingsSearchQuery = ref('');
+const settingsSearchOpen = ref(false);
+const highlightedSearchIndex = ref(0);
 
 const settingsTabs: Array<{
   id: TabName;
@@ -162,6 +165,13 @@ const settingsTabs: Array<{
   },
 ];
 
+interface SettingsSearchResult {
+  id: string;
+  tab: TabName;
+  tabLabel: string;
+  label: string;
+}
+
 function collectSearchText(value: unknown): string[] {
   if (typeof value === 'string') return [value];
   if (Array.isArray(value)) return value.flatMap(collectSearchText);
@@ -171,32 +181,65 @@ function collectSearchText(value: unknown): string[] {
   return [];
 }
 
-const filteredSettingsTabs = computed(() => {
+const settingsSearchResults = computed<SettingsSearchResult[]>(() => {
   const query = settingsSearchQuery.value.trim().toLocaleLowerCase();
-  if (!query) return settingsTabs;
+  if (!query) return [];
 
-  return settingsTabs.filter((tab) => {
+  const results: Array<SettingsSearchResult & { rank: number }> = [];
+  const seen = new Set<string>();
+
+  for (const tab of settingsTabs) {
+    const tabLabel = t(tab.labelKey);
     const searchableText = [
-      t(tab.labelKey),
+      tabLabel,
       ...tab.searchNamespaces.flatMap((namespace) => collectSearchText(tm(namespace))),
     ];
-    return searchableText.some((text) => text.toLocaleLowerCase().includes(query));
-  });
+
+    for (const text of searchableText) {
+      const label = text.trim().replace(/\s+/g, ' ');
+      const normalized = label.toLocaleLowerCase();
+      const id = `${tab.id}:${normalized}`;
+      if (!label || !normalized.includes(query) || seen.has(id)) continue;
+
+      seen.add(id);
+      results.push({
+        id,
+        tab: tab.id,
+        tabLabel,
+        label,
+        rank: normalized === query ? 0 : normalized.startsWith(query) ? 1 : 2,
+      });
+    }
+  }
+
+  return results
+    .sort((left, right) => left.rank - right.rank || left.label.length - right.label.length)
+    .slice(0, 12)
+    .map(({ rank: _rank, ...result }) => result);
 });
 
-async function selectSettingsTab(tab: TabName) {
+function selectSettingsTab(tab: TabName) {
   activeTab.value = tab;
-  if (!settingsSearchQuery.value.trim()) return;
+  clearSettingsSearch();
+}
+
+async function selectSettingsSearchResult(result: SettingsSearchResult) {
+  activeTab.value = result.tab;
+  settingsSearchOpen.value = false;
 
   await nextTick();
-  const query = settingsSearchQuery.value.trim().toLocaleLowerCase();
   const candidates =
     settingsContentRef.value?.querySelectorAll<HTMLElement>(
       '.setting-item, .sub-setting-item, .setting-item-col, .setting-group'
     ) || [];
-  const match = Array.from(candidates).find((element) =>
-    element.textContent?.toLocaleLowerCase().includes(query)
-  );
+  const target = result.label.toLocaleLowerCase();
+  const query = settingsSearchQuery.value.trim().toLocaleLowerCase();
+  const match = Array.from(candidates)
+    .filter((element) => {
+      const text = element.textContent?.toLocaleLowerCase() || '';
+      return text.includes(target) || text.includes(query);
+    })
+    .sort((left, right) => (left.textContent?.length || 0) - (right.textContent?.length || 0))[0];
   if (!match) return;
 
   match.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -206,7 +249,48 @@ async function selectSettingsTab(tab: TabName) {
 
 function clearSettingsSearch() {
   settingsSearchQuery.value = '';
+  settingsSearchOpen.value = false;
+  highlightedSearchIndex.value = 0;
 }
+
+function handleSettingsSearchKeydown(event: KeyboardEvent) {
+  const resultCount = settingsSearchResults.value.length;
+  if (event.key === 'Escape') {
+    settingsSearchOpen.value = false;
+    return;
+  }
+  if (!resultCount) return;
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    settingsSearchOpen.value = true;
+    highlightedSearchIndex.value = (highlightedSearchIndex.value + 1) % resultCount;
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    settingsSearchOpen.value = true;
+    highlightedSearchIndex.value =
+      (highlightedSearchIndex.value - 1 + resultCount) % resultCount;
+  } else if (event.key === 'Enter') {
+    event.preventDefault();
+    const result = settingsSearchResults.value[highlightedSearchIndex.value];
+    if (result) void selectSettingsSearchResult(result);
+  }
+}
+
+function handleSettingsSearchFocusOut(event: FocusEvent) {
+  if (
+    event.relatedTarget instanceof Node &&
+    settingsSearchRef.value?.contains(event.relatedTarget)
+  ) {
+    return;
+  }
+  settingsSearchOpen.value = false;
+}
+
+watch(settingsSearchQuery, (query) => {
+  highlightedSearchIndex.value = 0;
+  settingsSearchOpen.value = Boolean(query.trim());
+});
 
 onMounted(async () => {
   try {
@@ -237,7 +321,11 @@ function handleDiscoverAll() {
           <PhGear :size="20" :weight="'fill'" class="sm:w-6 sm:h-6" />
           {{ t('setting.tab.settingsTitle') }}
         </h3>
-        <div class="relative ml-auto w-full max-w-xs">
+        <div
+          ref="settingsSearchRef"
+          class="relative ml-auto w-full max-w-xs"
+          @focusout="handleSettingsSearchFocusOut"
+        >
           <PhMagnifyingGlass
             :size="16"
             class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
@@ -248,6 +336,11 @@ function handleDiscoverAll() {
             class="w-full rounded-lg border border-border bg-bg-secondary py-2 pl-9 pr-9 text-sm text-text-primary outline-none transition-colors focus:border-accent"
             :placeholder="t('setting.search.placeholder')"
             :aria-label="t('setting.search.placeholder')"
+            :aria-expanded="settingsSearchOpen"
+            aria-autocomplete="list"
+            role="combobox"
+            @focus="settingsSearchOpen = Boolean(settingsSearchQuery.trim())"
+            @keydown="handleSettingsSearchKeydown"
           />
           <button
             v-if="settingsSearchQuery"
@@ -258,6 +351,42 @@ function handleDiscoverAll() {
           >
             <PhX :size="14" />
           </button>
+          <div
+            v-if="settingsSearchQuery.trim() && settingsSearchOpen"
+            class="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-full min-w-72 overflow-hidden rounded-xl border border-border bg-bg-primary py-1.5 shadow-2xl"
+            role="listbox"
+          >
+            <button
+              v-for="(result, index) in settingsSearchResults"
+              :key="result.id"
+              type="button"
+              role="option"
+              :aria-selected="highlightedSearchIndex === index"
+              :class="[
+                'flex w-full items-center gap-3 px-3 py-2 text-left transition-colors',
+                highlightedSearchIndex === index ? 'bg-bg-tertiary' : 'hover:bg-bg-secondary',
+              ]"
+              @mouseenter="highlightedSearchIndex = index"
+              @mousedown.prevent
+              @click="selectSettingsSearchResult(result)"
+            >
+              <component
+                :is="settingsTabs.find((tab) => tab.id === result.tab)?.icon"
+                :size="18"
+                class="shrink-0 text-text-secondary"
+              />
+              <span class="min-w-0">
+                <span class="block truncate text-sm text-text-primary">{{ result.label }}</span>
+                <span class="block text-xs text-text-secondary">{{ result.tabLabel }}</span>
+              </span>
+            </button>
+            <p
+              v-if="settingsSearchResults.length === 0"
+              class="m-0 px-3 py-5 text-center text-sm text-text-secondary"
+            >
+              {{ t('setting.search.noResults') }}
+            </p>
+          </div>
         </div>
         <span
           class="text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
@@ -271,7 +400,7 @@ function handleDiscoverAll() {
         <div class="w-48 sm:w-56 border-r border-border bg-bg-secondary shrink-0 overflow-y-scroll">
           <nav class="p-2 space-y-1">
             <button
-              v-for="tab in filteredSettingsTabs"
+              v-for="tab in settingsTabs"
               :key="tab.id"
               :class="['sidebar-tab-btn', activeTab === tab.id ? 'active' : '']"
               @click="selectSettingsTab(tab.id)"
@@ -279,12 +408,6 @@ function handleDiscoverAll() {
               <component :is="tab.icon" :size="22" />
               <span>{{ t(tab.labelKey) }}</span>
             </button>
-            <p
-              v-if="filteredSettingsTabs.length === 0"
-              class="px-3 py-6 text-center text-sm text-text-secondary"
-            >
-              {{ t('setting.search.noResults') }}
-            </p>
           </nav>
         </div>
 

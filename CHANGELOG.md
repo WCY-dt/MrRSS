@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add bilingual settings search that filters sections and jumps to the first matching option. (#1067)
+- Add bilingual settings search with ranked, keyboard-accessible results that open the exact setting without hiding navigation. (#1067)
 - Add an opt-out confirmation setting for bulk mark-as-read actions across article and sidebar menus. (#1063)
 - Add a floating back-to-top button for long articles. (#1057)
 - Show a live reading-progress bar while scrolling through an article. (#1058)
