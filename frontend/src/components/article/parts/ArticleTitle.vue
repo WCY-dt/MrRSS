@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { PhSpinnerGap, PhTranslate, PhArrowsClockwise } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
-import { formatDate } from '@/utils/date';
+import { formatDate, formatExactDateTime } from '@/utils/date';
 import { useI18n } from 'vue-i18n';
 import { useAppStore } from '@/stores/app';
 
@@ -110,7 +110,11 @@ function selectArticleFeed() {
       </template>
     </div>
     <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-      <span class="text-text-secondary">{{ formatDateWithI18n(article.published_at) }}</span>
+      <span
+        class="text-text-secondary"
+        :title="formatExactDateTime(article.published_at, locale)"
+        >{{ formatDateWithI18n(article.published_at) }}</span
+      >
       <span
         v-if="translationEnabled"
         class="flex items-center gap-1.5 sm:gap-2"
