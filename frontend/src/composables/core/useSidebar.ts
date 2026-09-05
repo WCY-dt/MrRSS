@@ -3,6 +3,7 @@ import { useAppStore } from '@/stores/app';
 import { useI18n } from 'vue-i18n';
 import { openInBrowser } from '@/utils/browser';
 import { useSidebarSort } from '@/composables/ui/useSidebarSort';
+import { useSettings } from '@/composables/core/useSettings';
 import type { Feed } from '@/types/models';
 
 interface TreeNode {
@@ -21,6 +22,7 @@ export function useSidebar() {
   const store = useAppStore();
   const contentOptionsFeed = ref<Feed | null>(null);
   const { compareFeeds, isPinned, togglePin } = useSidebarSort();
+  const { settings } = useSettings();
   const { t } = useI18n();
 
   // Load saved category state from localStorage
@@ -229,6 +231,16 @@ export function useSidebar() {
       return;
     }
     if (action === 'markAllRead') {
+      if (settings.value.confirm_mark_as_read) {
+        const confirmed = await window.showConfirm({
+          title: t('article.action.markAllReadConfirmTitle'),
+          message: t('article.action.markAllReadConfirmMessage'),
+          confirmText: t('common.confirm'),
+          cancelText: t('common.cancel'),
+          isDanger: false,
+        });
+        if (!confirmed) return;
+      }
       await store.markAllAsRead(feed.id);
       window.showToast(t('article.action.markedAllAsRead'), 'success');
     } else if (action === 'refreshFeed') {
@@ -405,6 +417,16 @@ export function useSidebar() {
       return;
     }
     if (action === 'markAllRead') {
+      if (settings.value.confirm_mark_as_read) {
+        const confirmed = await window.showConfirm({
+          title: t('article.action.markAllReadConfirmTitle'),
+          message: t('article.action.markAllReadConfirmMessage'),
+          confirmText: t('common.confirm'),
+          cancelText: t('common.cancel'),
+          isDanger: false,
+        });
+        if (!confirmed) return;
+      }
       // Use the category parameter for the API call
       const category = categoryName === 'uncategorized' ? '' : categoryName;
       await fetch(`/api/articles/mark-all-read?category=${encodeURIComponent(category)}`, {

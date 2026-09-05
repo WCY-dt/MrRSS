@@ -74,6 +74,13 @@
       "encrypted": false,
       "frontend_key": "hoverMarkAsRead"
     },
+    "confirm_mark_as_read": {
+      "type": "bool",
+      "default": true,
+      "category": "reading",
+      "encrypted": false,
+      "frontend_key": "confirm_mark_as_read"
+    },
     "translation_enabled": {
       "type": "bool",
       "default": false,

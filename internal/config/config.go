@@ -37,6 +37,7 @@ type Defaults struct {
 	BaiduAppId string                   `json:"baidu_app_id"`
 	BaiduSecretKey string               `json:"baidu_secret_key"`
 	CloseToTray bool                    `json:"close_to_tray"`
+	ConfirmMarkAsRead bool              `json:"confirm_mark_as_read"`
 	ContentFontFamily string            `json:"content_font_family"`
 	ContentFontSize int                 `json:"content_font_size"`
 	ContentLineHeight string            `json:"content_line_height"`
@@ -191,6 +192,8 @@ func GetString(key string) string {
 		return defaults.BaiduSecretKey
 	case "close_to_tray":
 		return strconv.FormatBool(defaults.CloseToTray)
+	case "confirm_mark_as_read":
+		return strconv.FormatBool(defaults.ConfirmMarkAsRead)
 	case "content_font_family":
 		return defaults.ContentFontFamily
 	case "content_font_size":

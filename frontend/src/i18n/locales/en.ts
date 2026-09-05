@@ -1066,6 +1066,9 @@ const en: TranslationMessages = {
         'Automatically display the full content of all articles when viewed as rendered content (may increase loading time)',
       defaultViewMode: 'Article View Mode',
       defaultViewModeDesc: 'Choose how articles should be displayed',
+      confirmMarkAsRead: 'Confirm Bulk Mark as Read',
+      confirmMarkAsReadDesc:
+        'Ask for confirmation before marking all, newer, or older articles as read',
       hideAdvancedSettings: 'Hide Advanced Settings',
       hideFromTimeline: 'Hide from Timeline',
       hideFromTimelineDesc: 'Hide this feed\'s articles from "All Articles" and "Unread" views',

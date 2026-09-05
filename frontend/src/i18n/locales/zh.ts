@@ -1038,6 +1038,8 @@ const zh: TranslationMessages = {
         '作为渲染内容查看时，自动显示所有文章的完整内容（可能会增加加载时间）',
       defaultViewMode: '文章查看模式',
       defaultViewModeDesc: '选择文章应如何显示',
+      confirmMarkAsRead: '批量标记已读前确认',
+      confirmMarkAsReadDesc: '将全部、以上或以下文章标记为已读前请求确认',
       hideAdvancedSettings: '隐藏高级设置',
       hideFromTimeline: '从时间线中隐藏',
       hideFromTimelineDesc: '在"全部文章"和"未读"视图中隐藏此订阅源的文章',

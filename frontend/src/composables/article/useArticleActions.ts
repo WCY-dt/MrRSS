@@ -1,6 +1,7 @@
 import { openInBrowser } from '@/utils/browser';
 import { copyArticleLink, copyArticleTitle } from '@/utils/clipboard';
 import { useAppStore } from '@/stores/app';
+import { useSettings } from '@/composables/core/useSettings';
 import type { Article } from '@/types/models';
 import type { Composer } from 'vue-i18n';
 
@@ -17,6 +18,7 @@ export function useArticleActions(
   ) => void | Promise<void>
 ) {
   const store = useAppStore();
+  const { settings } = useSettings();
 
   // Get effective view mode for an article based on feed settings and global settings
   function getEffectiveViewMode(article: Article): ViewMode {
@@ -239,13 +241,15 @@ export function useArticleActions(
             ? t('article.action.markAboveReadConfirmMessage')
             : t('article.action.markBelowReadConfirmMessage');
 
-        const confirmed = await window.showConfirm({
-          title: confirmTitle,
-          message: confirmMessage,
-          confirmText: t('common.confirm'),
-          cancelText: t('common.cancel'),
-          isDanger: false,
-        });
+        const confirmed = settings.value.confirm_mark_as_read
+          ? await window.showConfirm({
+              title: confirmTitle,
+              message: confirmMessage,
+              confirmText: t('common.confirm'),
+              cancelText: t('common.cancel'),
+              isDanger: false,
+            })
+          : true;
 
         if (!confirmed) {
           return;

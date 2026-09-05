@@ -24,6 +24,7 @@ export interface SettingsData {
   baidu_app_id: string;
   baidu_secret_key: string;
   close_to_tray: boolean;
+  confirm_mark_as_read: boolean;
   content_font_family: string;
   content_font_size: number;
   content_line_height: string;
