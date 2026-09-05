@@ -889,6 +889,10 @@ const shouldShowBottomMarkAllRead = computed(() => {
   );
 });
 
+const isUnreadEmptyState = computed(
+  () => store.currentFilter === 'unread' || store.showOnlyUnread
+);
+
 // Mark all currently visible articles as read
 async function markAllVisibleAsRead(): Promise<void> {
   const articleIds = filteredArticles.value.map((a) => a.id);
@@ -1136,9 +1140,18 @@ async function markAllVisibleAsRead(): Promise<void> {
         v-if="
           filteredArticles.length === 0 && !store.isLoading && !isFilterLoading && !isAISearchActive
         "
-        class="p-4 sm:p-5 text-center text-text-secondary text-sm sm:text-base"
+        class="flex flex-col items-center p-6 sm:p-8 text-center text-text-secondary"
       >
-        {{ t('article.content.noArticles') }}
+        <template v-if="isUnreadEmptyState">
+          <PhCheckCircle :size="40" weight="duotone" class="mb-3 text-green-500" />
+          <div class="text-base font-medium text-text-primary">
+            {{ t('article.list.allCaughtUp') }}
+          </div>
+          <div class="mt-1 text-sm">{{ t('article.list.noUnreadArticles') }}</div>
+        </template>
+        <template v-else>
+          {{ t('article.content.noArticles') }}
+        </template>
       </div>
 
       <!-- AI Search no results message -->

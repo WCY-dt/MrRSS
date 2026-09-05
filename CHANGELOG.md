@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace the misleading empty unread-list error copy with a clear all-caught-up state. (#1064)
 - Center article bodies at a readable 68-character line width with more consistent paragraph and list spacing. (#1059)
 
 ### Fixed

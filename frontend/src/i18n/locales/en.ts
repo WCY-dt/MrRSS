@@ -95,6 +95,8 @@ const en: TranslationMessages = {
     list: {
       markAllVisibleAsRead: 'Mark All Visible as Read',
       allArticlesLoaded: 'All articles loaded',
+      allCaughtUp: "You're all caught up",
+      noUnreadArticles: 'There are no unread articles left.',
     },
     navigation: {
       goToAllArticles: 'Go to All Articles',
