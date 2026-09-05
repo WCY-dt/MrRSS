@@ -81,6 +81,7 @@ const en: TranslationMessages = {
       fetchingArticleContent: 'Fetching article content from RSS feed...',
       loadingContent: 'Loading content',
       noArticles: 'No articles found.',
+      readingProgress: 'Reading progress',
       noContentAvailable: 'No content available',
       renderContent: 'Render Content',
       selectArticle: 'Select an article to start reading',

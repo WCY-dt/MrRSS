@@ -78,6 +78,7 @@ const zh: TranslationMessages = {
       fetchingArticleContent: '正在获取 RSS 订阅源中的文章内容...',
       loadingContent: '加载内容中',
       noArticles: '未找到文章',
+      readingProgress: '阅读进度',
       noContentAvailable: '暂无内容',
       renderContent: '渲染内容',
       selectArticle: '选择一篇文章开始阅读',

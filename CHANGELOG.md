@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Show a live reading-progress bar while scrolling through an article. (#1058)
+
 ### Fixed
 
 - Keep the article-summary heading stationary when generated content and action buttons appear. (#1068)

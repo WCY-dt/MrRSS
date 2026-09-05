@@ -76,6 +76,7 @@ const { settings: appSettings, fetchSettings } = useSettings();
 const store = useAppStore();
 const isChatPanelOpen = ref(false);
 const articleScrollContainer = ref<HTMLElement | null>(null);
+const readingProgress = ref(0);
 const { onContextMenu: onTextContextMenu } = useArticleSelectionMenu(articleScrollContainer);
 const ARTICLE_SCROLL_POSITIONS_KEY = 'mrrssArticleScrollPositions';
 let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -244,6 +245,25 @@ function scheduleSaveArticleScrollPosition() {
     saveArticleScrollPosition();
     scrollSaveTimer = null;
   }, 200);
+}
+
+function updateReadingProgress() {
+  const container = articleScrollContainer.value;
+  if (!container) {
+    readingProgress.value = 0;
+    return;
+  }
+
+  const scrollableHeight = container.scrollHeight - container.clientHeight;
+  readingProgress.value =
+    scrollableHeight > 0
+      ? Math.min(100, Math.max(0, (container.scrollTop / scrollableHeight) * 100))
+      : 100;
+}
+
+function handleArticleScroll() {
+  updateReadingProgress();
+  scheduleSaveArticleScrollPosition();
 }
 
 function restoreArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
@@ -902,6 +922,7 @@ watch(
       if (articleScrollContainer.value) {
         articleScrollContainer.value.scrollTop = 0;
       }
+      readingProgress.value = 0;
       pendingScrollRestoreArticleId = newId ?? null;
       pendingScrollRestoreAttempts = 0;
 
@@ -1019,6 +1040,8 @@ watch(
 
 onMounted(async () => {
   await loadSettings();
+  await nextTick();
+  updateReadingProgress();
   if (props.article) {
     pendingScrollRestoreArticleId = props.article.id;
     pendingScrollRestoreAttempts = 0;
@@ -1118,11 +1141,24 @@ onBeforeUnmount(() => {
 <template>
   <div class="relative flex-1 overflow-hidden bg-bg-primary">
     <div
+      class="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5 bg-border/40"
+      role="progressbar"
+      :aria-label="t('article.content.readingProgress')"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      :aria-valuenow="Math.round(readingProgress)"
+    >
+      <div
+        class="h-full bg-accent transition-[width] duration-100 ease-out"
+        :style="{ width: `${readingProgress}%` }"
+      ></div>
+    </div>
+    <div
       ref="articleScrollContainer"
       class="h-full overflow-y-scroll p-3 sm:p-6 scroll-smooth"
       @click="handleContainerClick"
       @contextmenu="onTextContextMenu"
-      @scroll="scheduleSaveArticleScrollPosition"
+      @scroll="handleArticleScroll"
     >
       <div
         class="max-w-3xl mx-auto bg-bg-primary [container-type:inline-size]"
