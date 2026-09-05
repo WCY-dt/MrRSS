@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { PhList, PhTextT, PhTextTSlash, PhEye, PhEyeSlash } from '@phosphor-icons/vue';
+import { PhCircle, PhList, PhTextT, PhTextTSlash } from '@phosphor-icons/vue';
 
 interface Props {
   showTextOverlay: boolean;
@@ -50,8 +50,7 @@ const { t } = useI18n();
         "
         @click="emit('toggleShowOnlyUnread')"
       >
-        <PhEyeSlash v-if="showOnlyUnread" :size="20" />
-        <PhEye v-else :size="20" />
+        <PhCircle :size="20" :weight="showOnlyUnread ? 'fill' : 'regular'" />
       </button>
 
       <!-- Toggle text overlay button -->

@@ -10,8 +10,6 @@ import {
   PhFunnel,
   PhTrash,
   PhCheckCircle,
-  PhEye,
-  PhEyeSlash,
   PhCircle,
   PhClock,
   PhLightning,
@@ -200,10 +198,49 @@ function searchFieldLabel(field: 'title' | 'summary' | 'content'): string {
   return t(`aiSearch.matchFields.${field}`);
 }
 
-const { showArticleContextMenu } = useArticleActions(t, defaultViewMode, async () => {
-  await store.fetchUnreadCounts();
-  await store.fetchFilterCounts();
-});
+const { showArticleContextMenu } = useArticleActions(
+  t,
+  defaultViewMode,
+  async () => {
+    await store.fetchUnreadCounts();
+    await store.fetchFilterCounts();
+  },
+  preserveRelativeReadPosition
+);
+
+async function preserveRelativeReadPosition(
+  referenceArticle: Article,
+  direction: 'above' | 'below'
+): Promise<void> {
+  const list = listRef.value;
+  const anchor = list?.querySelector<HTMLElement>(
+    `[data-article-id="${referenceArticle.id}"]`
+  );
+  const anchorTop = anchor?.getBoundingClientRect().top;
+  const referenceTime = new Date(referenceArticle.published_at).getTime();
+
+  if (Number.isFinite(referenceTime)) {
+    filteredArticles.value.forEach((article) => {
+      const publishedTime = new Date(article.published_at).getTime();
+      if (
+        Number.isFinite(publishedTime) &&
+        (direction === 'above' ? publishedTime > referenceTime : publishedTime < referenceTime)
+      ) {
+        article.is_read = true;
+      }
+    });
+  }
+
+  await nextTick();
+  if (list && anchorTop !== undefined) {
+    const updatedAnchor = list.querySelector<HTMLElement>(
+      `[data-article-id="${referenceArticle.id}"]`
+    );
+    if (updatedAnchor) {
+      list.scrollTop += updatedAnchor.getBoundingClientRect().top - anchorTop;
+    }
+  }
+}
 
 // Virtual rendering: only render visible articles + buffer
 const visibleArticles = computed(() => {
@@ -620,14 +657,15 @@ async function refreshArticles(): Promise<void> {
 }
 
 async function markAllAsRead(): Promise<void> {
-  // Show confirmation dialog
-  const confirmed = await window.showConfirm({
-    title: t('article.action.markAllReadConfirmTitle'),
-    message: t('article.action.markAllReadConfirmMessage'),
-    confirmText: t('common.confirm'),
-    cancelText: t('common.cancel'),
-    isDanger: false,
-  });
+  const confirmed = settings.value.confirm_mark_as_read
+    ? await window.showConfirm({
+        title: t('article.action.markAllReadConfirmTitle'),
+        message: t('article.action.markAllReadConfirmMessage'),
+        confirmText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        isDanger: false,
+      })
+    : true;
 
   if (!confirmed) {
     return;
@@ -849,6 +887,10 @@ const shouldShowBottomMarkAllRead = computed(() => {
   );
 });
 
+const isUnreadEmptyState = computed(
+  () => store.currentFilter === 'unread' || store.showOnlyUnread
+);
+
 // Mark all currently visible articles as read
 async function markAllVisibleAsRead(): Promise<void> {
   const articleIds = filteredArticles.value.map((a) => a.id);
@@ -924,10 +966,10 @@ async function markAllVisibleAsRead(): Promise<void> {
             "
             @click="store.toggleShowOnlyUnread()"
           >
-            <component
-              :is="store.showOnlyUnread ? PhEyeSlash : PhEye"
+            <PhCircle
               :size="18"
               class="sm:w-5 sm:h-5"
+              :weight="store.showOnlyUnread ? 'fill' : 'regular'"
             />
           </button>
           <div class="relative">
@@ -1096,9 +1138,18 @@ async function markAllVisibleAsRead(): Promise<void> {
         v-if="
           filteredArticles.length === 0 && !store.isLoading && !isFilterLoading && !isAISearchActive
         "
-        class="p-4 sm:p-5 text-center text-text-secondary text-sm sm:text-base"
+        class="flex flex-col items-center p-6 sm:p-8 text-center text-text-secondary"
       >
-        {{ t('article.content.noArticles') }}
+        <template v-if="isUnreadEmptyState">
+          <PhCheckCircle :size="40" weight="duotone" class="mb-3 text-green-500" />
+          <div class="text-base font-medium text-text-primary">
+            {{ t('article.list.allCaughtUp') }}
+          </div>
+          <div class="mt-1 text-sm">{{ t('article.list.noUnreadArticles') }}</div>
+        </template>
+        <template v-else>
+          {{ t('article.content.noArticles') }}
+        </template>
       </div>
 
       <!-- AI Search no results message -->

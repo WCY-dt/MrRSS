@@ -25,6 +25,7 @@ const zh: TranslationMessages = {
       markBelowReadConfirmTitle: '将以下标记为已读',
       markAsRead: '标记为已读',
       markAsUnread: '标记为未读',
+      backToTop: '返回顶部',
       markBelowAsRead: '将以下标记为已读',
       markedAllAsRead: '所有文章已标记为已读',
       markedNArticlesAsRead: '已标记 {count} 篇文章为已读',
@@ -78,6 +79,7 @@ const zh: TranslationMessages = {
       fetchingArticleContent: '正在获取 RSS 订阅源中的文章内容...',
       loadingContent: '加载内容中',
       noArticles: '未找到文章',
+      readingProgress: '阅读进度',
       noContentAvailable: '暂无内容',
       renderContent: '渲染内容',
       selectArticle: '选择一篇文章开始阅读',
@@ -90,6 +92,8 @@ const zh: TranslationMessages = {
     list: {
       markAllVisibleAsRead: '全部标记为已读',
       allArticlesLoaded: '已加载全部文章',
+      allCaughtUp: '已读完全部文章',
+      noUnreadArticles: '当前没有未读文章，稍后再来看看吧。',
     },
     navigation: {
       goToAllArticles: '转到所有文章',
@@ -572,6 +576,11 @@ const zh: TranslationMessages = {
     },
   },
   setting: {
+    search: {
+      clear: '清除设置搜索',
+      noResults: '没有匹配的设置',
+      placeholder: '搜索设置',
+    },
     about: {
       version: '版本',
       viewOnGitHub: '在 GitHub 上查看',
@@ -1036,6 +1045,8 @@ const zh: TranslationMessages = {
         '作为渲染内容查看时，自动显示所有文章的完整内容（可能会增加加载时间）',
       defaultViewMode: '文章查看模式',
       defaultViewModeDesc: '选择文章应如何显示',
+      confirmMarkAsRead: '批量标记已读前确认',
+      confirmMarkAsReadDesc: '将全部、以上或以下文章标记为已读前请求确认',
       hideAdvancedSettings: '隐藏高级设置',
       hideFromTimeline: '从时间线中隐藏',
       hideFromTimelineDesc: '在"全部文章"和"未读"视图中隐藏此订阅源的文章',

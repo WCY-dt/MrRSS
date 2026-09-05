@@ -38,7 +38,9 @@ async function handleClick() {
 <style scoped>
 @reference "../../../../style.css";
 .btn {
-  @apply px-3 sm:px-4 py-1.5 sm:py-2 rounded-md cursor-pointer flex items-center gap-1.5 sm:gap-2 font-medium transition-colors shrink-0;
+  @apply px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium transition-colors shrink-0;
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
 }
 
 .btn:disabled {

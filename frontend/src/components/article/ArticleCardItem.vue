@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PhEyeSlash, PhStar, PhClockCountdown } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
-import { formatDate as formatDateUtil } from '@/utils/date';
+import { formatDate as formatDateUtil, formatExactDateTime } from '@/utils/date';
 import { getProxiedMediaUrl, isMediaCacheEnabled } from '@/utils/mediaProxy';
 import { useAppStore } from '@/stores/app';
 import { imageCache } from '@/utils/imageCache';
@@ -205,7 +205,9 @@ function handleImageError(event: Event) {
       <!-- Meta info -->
       <div class="card-meta">
         <span class="feed-name">{{ article.feed_title }}</span>
-        <span class="publish-date">{{ formatDateWithI18n(article.published_at) }}</span>
+        <span class="publish-date" :title="formatExactDateTime(article.published_at, locale)">
+          {{ formatDateWithI18n(article.published_at) }}
+        </span>
       </div>
     </div>
   </div>

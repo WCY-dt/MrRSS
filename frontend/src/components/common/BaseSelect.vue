@@ -452,6 +452,8 @@ onUnmounted(() => {
 }
 
 .input-field {
-  @apply p-1.5 sm:p-2 border border-border rounded-md bg-bg-secondary text-text-primary focus:border-accent focus:outline-none transition-colors text-xs sm:text-sm;
+  @apply p-1.5 sm:p-2 border border-border bg-bg-secondary text-text-primary focus:border-accent focus:outline-none transition-colors text-xs sm:text-sm;
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-control);
 }
 </style>

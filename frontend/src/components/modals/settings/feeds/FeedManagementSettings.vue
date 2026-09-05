@@ -602,7 +602,9 @@ onUnmounted(() =>
                 :title="
                   feed.last_update_status === 'failed'
                     ? getFriendlyErrorMessage(feed.last_error || '')
-                    : feed.last_update_status || ''
+                    : feed.last_update_status === 'success'
+                      ? t('setting.update.updateSuccess')
+                      : ''
                 "
                 data-testid="feed-status"
               >

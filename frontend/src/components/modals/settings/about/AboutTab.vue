@@ -122,7 +122,8 @@ function formatBytes(bytes: number): string {
 
     <div
       v-if="updateInfo && !updateInfo.error"
-      class="mt-3 sm:mt-4 mx-auto max-w-md text-left bg-bg-secondary p-3 sm:p-4 rounded-lg border border-border"
+      class="mt-3 sm:mt-4 mx-auto max-w-full text-left bg-bg-secondary p-3 sm:p-4 rounded-lg border border-border"
+      :class="updateInfo.has_update ? 'w-full max-w-md' : 'w-fit'"
     >
       <div class="flex items-start gap-2 sm:gap-3">
         <PhArrowCircleUp

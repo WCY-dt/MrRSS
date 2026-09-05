@@ -24,6 +24,10 @@ button[title] > img {
     --ui-font-family: Inter, 'Noto Sans CJK SC', system-ui, sans-serif;
     --ui-font-size: 16px;
     --ui-font-scale: 1;
+    --ui-radius-control: 0.5rem;
+    --ui-radius-surface: 0.75rem;
+    --ui-control-height: 2.375rem;
+    --ui-transition-fast: 150ms ease;
   }
 
   .dark-mode {
@@ -73,6 +77,12 @@ textarea,
   -moz-user-select: text;
   -ms-user-select: text;
   user-select: text;
+}
+
+/* Keep keyboard focus feedback consistent across native and custom controls. */
+:where(button, a, input, textarea, select, [role='button']):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
+  outline-offset: 2px;
 }
 
 /* Allow text selection in article content area */

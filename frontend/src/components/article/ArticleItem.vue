@@ -4,7 +4,7 @@ import { ref, computed, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PhEyeSlash, PhStar, PhClockCountdown } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
-import { formatDate as formatDateUtil } from '@/utils/date';
+import { formatDate as formatDateUtil, formatExactDateTime } from '@/utils/date';
 import { getProxiedMediaUrl, isMediaCacheEnabled } from '@/utils/mediaProxy';
 import { useShowPreviewImages } from '@/composables/ui/useShowPreviewImages';
 import { useAppStore } from '@/stores/app';
@@ -381,7 +381,11 @@ onUnmounted(() => {
               alt="RSSHub"
             />
           </template>
-          <span class="whitespace-nowrap">{{ formatDateWithI18n(article.published_at) }}</span>
+          <span
+            class="whitespace-nowrap"
+            :title="formatExactDateTime(article.published_at, locale)"
+            >{{ formatDateWithI18n(article.published_at) }}</span
+          >
         </div>
       </div>
     </div>

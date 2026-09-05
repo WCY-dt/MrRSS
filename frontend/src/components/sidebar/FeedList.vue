@@ -21,6 +21,8 @@ import {
   PhCheck,
   PhPushPin,
   PhFloppyDisk,
+  PhSortAscending,
+  PhCaretDown,
 } from '@phosphor-icons/vue';
 import type { Feed } from '@/types/models';
 import type { FilterCondition, SavedFilter } from '@/types/filter';
@@ -128,6 +130,9 @@ const draggingFilterId = ref<number | null>(null);
 // Compact mode setting (layout_mode === 'compact')
 const { entries: categoryEntries } = useCategoryOrder();
 const { mode: sidebarSortMode, setMode: setSidebarSortMode } = useSidebarSort();
+const sortMenuRef = ref<HTMLElement | null>(null);
+const showSortMenu = ref(false);
+const currentSidebarSortLabel = computed(() => t(`sidebar.order.${sidebarSortMode.value}`));
 
 const compactMode = computed(() => {
   return settings.value.layout_mode === 'compact';
@@ -146,6 +151,7 @@ onMounted(async () => {
   window.addEventListener('layout-mode-changed', handleLayoutModeChange);
   // Listen for category expansion events
   window.addEventListener('categories-expanded', handleCategoriesExpanded);
+  document.addEventListener('click', handleSortMenuClickOutside);
 });
 
 // Handle layout mode changes
@@ -168,8 +174,24 @@ function handleCategoriesExpanded() {
 onUnmounted(() => {
   window.removeEventListener('layout-mode-changed', handleLayoutModeChange);
   window.removeEventListener('categories-expanded', handleCategoriesExpanded);
+  document.removeEventListener('click', handleSortMenuClickOutside);
   if (autoExpandTimeout) clearTimeout(autoExpandTimeout);
 });
+
+function handleSortMenuClickOutside(event: MouseEvent) {
+  if (
+    showSortMenu.value &&
+    event.target instanceof Node &&
+    !sortMenuRef.value?.contains(event.target)
+  ) {
+    showSortMenu.value = false;
+  }
+}
+
+function selectSidebarSortMode(mode: string) {
+  showSortMenu.value = false;
+  void setSidebarSortMode(mode);
+}
 
 // Edit mode for drag reordering
 const isEditMode = ref(false);
@@ -677,17 +699,53 @@ function handleFilterDragEnd() {
             </div>
           </div>
 
-          <div class="px-2 pb-2">
-            <select
-              :value="sidebarSortMode"
+          <div ref="sortMenuRef" class="relative px-2 py-1">
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+              :title="t('sidebar.order.sort')"
               :aria-label="t('sidebar.order.sort')"
-              class="w-full rounded bg-bg-tertiary text-text-secondary text-xs p-1.5"
-              @change="setSidebarSortMode(($event.target as HTMLSelectElement).value)"
+              :aria-expanded="showSortMenu"
+              @click="showSortMenu = !showSortMenu"
+              @keydown.esc="showSortMenu = false"
             >
-              <option v-for="mode in sidebarSortModes" :key="mode" :value="mode">
-                {{ t(`sidebar.order.${mode}`) }}
-              </option>
-            </select>
+              <PhSortAscending :size="15" class="shrink-0" />
+              <span class="min-w-0 flex-1 truncate text-left">{{ currentSidebarSortLabel }}</span>
+              <PhCaretDown
+                :size="12"
+                class="shrink-0 transition-transform"
+                :class="showSortMenu ? 'rotate-180' : ''"
+              />
+            </button>
+            <Transition
+              enter-active-class="transition duration-100 ease-out"
+              enter-from-class="-translate-y-1 opacity-0"
+              enter-to-class="translate-y-0 opacity-100"
+              leave-active-class="transition duration-75 ease-in"
+              leave-from-class="translate-y-0 opacity-100"
+              leave-to-class="-translate-y-1 opacity-0"
+            >
+              <div
+                v-if="showSortMenu"
+                class="absolute left-2 right-2 top-full z-30 overflow-hidden rounded-lg border border-border bg-bg-primary py-1 shadow-xl"
+              >
+                <button
+                  v-for="mode in sidebarSortModes"
+                  :key="mode"
+                  type="button"
+                  class="flex w-full items-center gap-2 px-2.5 py-2 text-left text-xs text-text-primary transition-colors hover:bg-bg-tertiary"
+                  :class="sidebarSortMode === mode ? 'bg-bg-secondary text-accent' : ''"
+                  @click="selectSidebarSortMode(mode)"
+                >
+                  <PhCheck
+                    :size="14"
+                    class="shrink-0"
+                    :class="sidebarSortMode === mode ? 'opacity-100' : 'opacity-0'"
+                  />
+                  <span>{{ t(`sidebar.order.${mode}`) }}</span>
+                </button>
+              </div>
+            </Transition>
           </div>
           <!-- Categories List -->
           <div
