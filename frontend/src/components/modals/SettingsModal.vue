@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAppStore } from '@/stores/app';
 import { useI18n } from 'vue-i18n';
-import { ref, onMounted, type Ref } from 'vue';
+import { computed, nextTick, ref, onMounted, type Component, type Ref } from 'vue';
 import GeneralTab from './settings/general/GeneralTab.vue';
 import ReadingDisplayTab from './settings/reading/ReadingDisplayTab.vue';
 import FeedsTab from './settings/feeds/FeedsTab.vue';
@@ -27,6 +27,8 @@ import {
   PhKeyboard,
   PhChartBar,
   PhInfo,
+  PhMagnifyingGlass,
+  PhX,
 } from '@phosphor-icons/vue';
 import type { TabName } from '@/types/settings';
 import type { ThemePreference } from '@/stores/app';
@@ -36,7 +38,7 @@ import { useFeedManagement } from '@/composables/feed/useFeedManagement';
 import { useModalClose, LARGE_MODAL_Z_INDEX } from '@/composables/ui/useModalClose';
 
 const store = useAppStore();
-const { t } = useI18n();
+const { t, tm } = useI18n();
 
 // Modal close handling - use lower z-index for large modal so nested modals appear on top
 const { zIndex: modalZIndex } = useModalClose(() => emit('close'), LARGE_MODAL_Z_INDEX);
@@ -76,6 +78,135 @@ const emit = defineEmits<{
 
 const activeTab: Ref<TabName> = ref('general');
 const showDiscoverAllModal = ref(false);
+const settingsContentRef = ref<HTMLElement | null>(null);
+const settingsSearchQuery = ref('');
+
+const settingsTabs: Array<{
+  id: TabName;
+  icon: Component;
+  labelKey: string;
+  searchNamespaces: string[];
+}> = [
+  {
+    id: 'general',
+    icon: PhSlidersHorizontal,
+    labelKey: 'setting.tab.general',
+    searchNamespaces: ['setting.general', 'setting.update', 'setting.database'],
+  },
+  {
+    id: 'reading',
+    icon: PhBookOpen,
+    labelKey: 'setting.tab.readingAndDisplay',
+    searchNamespaces: ['setting.reading', 'setting.typography', 'setting.customization'],
+  },
+  {
+    id: 'feeds',
+    icon: PhRss,
+    labelKey: 'sidebar.feedList.feeds',
+    searchNamespaces: ['setting.feed', 'modal.feed', 'modal.discovery'],
+  },
+  {
+    id: 'content',
+    icon: PhTextT,
+    labelKey: 'setting.tab.content',
+    searchNamespaces: ['setting.content', 'setting.translation'],
+  },
+  {
+    id: 'ai',
+    icon: PhBrain,
+    labelKey: 'setting.tab.ai',
+    searchNamespaces: ['setting.ai', 'aiErrors'],
+  },
+  {
+    id: 'rules',
+    icon: PhFunnel,
+    labelKey: 'modal.rule.rules',
+    searchNamespaces: ['setting.rule', 'modal.rule'],
+  },
+  {
+    id: 'network',
+    icon: PhGlobe,
+    labelKey: 'setting.tab.network',
+    searchNamespaces: ['setting.network'],
+  },
+  {
+    id: 'plugins',
+    icon: PhPuzzlePiece,
+    labelKey: 'setting.tab.plugins',
+    searchNamespaces: [
+      'setting.plugins',
+      'setting.freshrss',
+      'setting.rsshub',
+      'setting.notion',
+      'setting.obsidian',
+      'setting.zotero',
+    ],
+  },
+  {
+    id: 'shortcuts',
+    icon: PhKeyboard,
+    labelKey: 'setting.shortcut.shortcuts',
+    searchNamespaces: ['setting.shortcut'],
+  },
+  {
+    id: 'statistics',
+    icon: PhChartBar,
+    labelKey: 'setting.statistic.statistics',
+    searchNamespaces: ['setting.statistic'],
+  },
+  {
+    id: 'about',
+    icon: PhInfo,
+    labelKey: 'setting.tab.about',
+    searchNamespaces: ['setting.about', 'setting.update'],
+  },
+];
+
+function collectSearchText(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(collectSearchText);
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).flatMap(collectSearchText);
+  }
+  return [];
+}
+
+const filteredSettingsTabs = computed(() => {
+  const query = settingsSearchQuery.value.trim().toLocaleLowerCase();
+  if (!query) return settingsTabs;
+
+  return settingsTabs.filter((tab) => {
+    const searchableText = [
+      t(tab.labelKey),
+      ...tab.searchNamespaces.flatMap((namespace) => collectSearchText(tm(namespace))),
+    ];
+    return searchableText.some((text) => text.toLocaleLowerCase().includes(query));
+  });
+});
+
+async function selectSettingsTab(tab: TabName) {
+  activeTab.value = tab;
+  if (!settingsSearchQuery.value.trim()) return;
+
+  await nextTick();
+  const query = settingsSearchQuery.value.trim().toLocaleLowerCase();
+  const candidates =
+    settingsContentRef.value?.querySelectorAll<HTMLElement>(
+      '.setting-item, .sub-setting-item, .setting-item-col, .setting-group'
+    ) || [];
+  const match = Array.from(candidates).find((element) =>
+    element.textContent?.toLocaleLowerCase().includes(query)
+  );
+  if (!match) return;
+
+  match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  match.setAttribute('data-settings-search-match', 'true');
+  window.setTimeout(() => match.removeAttribute('data-settings-search-match'), 1600);
+}
+
+function clearSettingsSearch() {
+  settingsSearchQuery.value = '';
+}
 
 onMounted(async () => {
   try {
@@ -101,11 +232,33 @@ function handleDiscoverAll() {
     <div
       class="bg-bg-primary w-full max-w-5xl h-full sm:h-[800px] sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in mx-2 sm:mx-4 my-2 sm:my-4"
     >
-      <div class="p-3 sm:p-5 border-b border-border flex justify-between items-center shrink-0">
+      <div class="p-3 sm:p-5 border-b border-border flex items-center gap-3 shrink-0">
         <h3 class="text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2">
           <PhGear :size="20" :weight="'fill'" class="sm:w-6 sm:h-6" />
           {{ t('setting.tab.settingsTitle') }}
         </h3>
+        <div class="relative ml-auto w-full max-w-xs">
+          <PhMagnifyingGlass
+            :size="16"
+            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+          />
+          <input
+            v-model="settingsSearchQuery"
+            type="search"
+            class="w-full rounded-lg border border-border bg-bg-secondary py-2 pl-9 pr-9 text-sm text-text-primary outline-none transition-colors focus:border-accent"
+            :placeholder="t('setting.search.placeholder')"
+            :aria-label="t('setting.search.placeholder')"
+          />
+          <button
+            v-if="settingsSearchQuery"
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary"
+            :title="t('setting.search.clear')"
+            @click="clearSettingsSearch"
+          >
+            <PhX :size="14" />
+          </button>
+        </div>
         <span
           class="text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
           @click="emit('close')"
@@ -118,87 +271,26 @@ function handleDiscoverAll() {
         <div class="w-48 sm:w-56 border-r border-border bg-bg-secondary shrink-0 overflow-y-scroll">
           <nav class="p-2 space-y-1">
             <button
-              :class="['sidebar-tab-btn', activeTab === 'general' ? 'active' : '']"
-              @click="activeTab = 'general'"
+              v-for="tab in filteredSettingsTabs"
+              :key="tab.id"
+              :class="['sidebar-tab-btn', activeTab === tab.id ? 'active' : '']"
+              @click="selectSettingsTab(tab.id)"
             >
-              <PhSlidersHorizontal :size="22" />
-              <span>{{ t('setting.tab.general') }}</span>
+              <component :is="tab.icon" :size="22" />
+              <span>{{ t(tab.labelKey) }}</span>
             </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'reading' ? 'active' : '']"
-              @click="activeTab = 'reading'"
+            <p
+              v-if="filteredSettingsTabs.length === 0"
+              class="px-3 py-6 text-center text-sm text-text-secondary"
             >
-              <PhBookOpen :size="22" />
-              <span>{{ t('setting.tab.readingAndDisplay') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'feeds' ? 'active' : '']"
-              @click="activeTab = 'feeds'"
-            >
-              <PhRss :size="22" />
-              <span>{{ t('sidebar.feedList.feeds') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'content' ? 'active' : '']"
-              @click="activeTab = 'content'"
-            >
-              <PhTextT :size="22" />
-              <span>{{ t('setting.tab.content') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'ai' ? 'active' : '']"
-              @click="activeTab = 'ai'"
-            >
-              <PhBrain :size="22" />
-              <span>{{ t('setting.tab.ai') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'rules' ? 'active' : '']"
-              @click="activeTab = 'rules'"
-            >
-              <PhFunnel :size="22" />
-              <span>{{ t('modal.rule.rules') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'network' ? 'active' : '']"
-              @click="activeTab = 'network'"
-            >
-              <PhGlobe :size="22" />
-              <span>{{ t('setting.tab.network') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'plugins' ? 'active' : '']"
-              @click="activeTab = 'plugins'"
-            >
-              <PhPuzzlePiece :size="22" />
-              <span>{{ t('setting.tab.plugins') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'shortcuts' ? 'active' : '']"
-              @click="activeTab = 'shortcuts'"
-            >
-              <PhKeyboard :size="22" />
-              <span>{{ t('setting.shortcut.shortcuts') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'statistics' ? 'active' : '']"
-              @click="activeTab = 'statistics'"
-            >
-              <PhChartBar :size="22" />
-              <span>{{ t('setting.statistic.statistics') }}</span>
-            </button>
-            <button
-              :class="['sidebar-tab-btn', activeTab === 'about' ? 'active' : '']"
-              @click="activeTab = 'about'"
-            >
-              <PhInfo :size="22" />
-              <span>{{ t('setting.tab.about') }}</span>
-            </button>
+              {{ t('setting.search.noResults') }}
+            </p>
           </nav>
         </div>
 
         <!-- Content Area -->
         <div
+          ref="settingsContentRef"
           class="flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth"
           data-settings-content
         >
@@ -320,6 +412,12 @@ function handleDiscoverAll() {
   width: 3px;
   background: var(--accent-color);
   border-radius: 0 2px 2px 0;
+}
+
+:deep([data-settings-search-match='true']) {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  transition: outline-color 0.2s ease;
 }
 
 .btn-primary {

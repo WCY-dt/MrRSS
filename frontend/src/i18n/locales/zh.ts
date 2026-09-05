@@ -576,6 +576,11 @@ const zh: TranslationMessages = {
     },
   },
   setting: {
+    search: {
+      clear: '清除设置搜索',
+      noResults: '没有匹配的设置',
+      placeholder: '搜索设置',
+    },
     about: {
       version: '版本',
       viewOnGitHub: '在 GitHub 上查看',

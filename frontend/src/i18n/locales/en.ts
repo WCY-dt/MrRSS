@@ -592,6 +592,11 @@ const en: TranslationMessages = {
     },
   },
   setting: {
+    search: {
+      clear: 'Clear settings search',
+      noResults: 'No matching settings',
+      placeholder: 'Search settings',
+    },
     about: {
       version: 'Version',
       viewOnGitHub: 'View on GitHub',
