@@ -27,6 +27,7 @@ const en: TranslationMessages = {
       markBelowReadConfirmTitle: 'Mark Below as Read',
       markAsRead: 'Mark as Read',
       markAsUnread: 'Mark as Unread',
+      backToTop: 'Back to top',
       markBelowAsRead: 'Mark Below as Read',
       markedAllAsRead: 'All articles marked as read',
       markedNArticlesAsRead: 'Marked {count} articles as read',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PhSpinnerGap, PhArticleNyTimes } from '@phosphor-icons/vue';
+import { PhSpinnerGap, PhArticleNyTimes, PhArrowUp } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
 import ArticleTitle from './parts/ArticleTitle.vue';
 import ArticleSummary from './parts/ArticleSummary.vue';
@@ -77,6 +77,7 @@ const store = useAppStore();
 const isChatPanelOpen = ref(false);
 const articleScrollContainer = ref<HTMLElement | null>(null);
 const readingProgress = ref(0);
+const showBackToTop = ref(false);
 const { onContextMenu: onTextContextMenu } = useArticleSelectionMenu(articleScrollContainer);
 const ARTICLE_SCROLL_POSITIONS_KEY = 'mrrssArticleScrollPositions';
 let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -255,6 +256,7 @@ function updateReadingProgress() {
   }
 
   const scrollableHeight = container.scrollHeight - container.clientHeight;
+  showBackToTop.value = container.scrollTop > 480;
   readingProgress.value =
     scrollableHeight > 0
       ? Math.min(100, Math.max(0, (container.scrollTop / scrollableHeight) * 100))
@@ -264,6 +266,10 @@ function updateReadingProgress() {
 function handleArticleScroll() {
   updateReadingProgress();
   scheduleSaveArticleScrollPosition();
+}
+
+function scrollToArticleTop() {
+  articleScrollContainer.value?.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function restoreArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
@@ -923,6 +929,7 @@ watch(
         articleScrollContainer.value.scrollTop = 0;
       }
       readingProgress.value = 0;
+      showBackToTop.value = false;
       pendingScrollRestoreArticleId = newId ?? null;
       pendingScrollRestoreAttempts = 0;
 
@@ -1242,6 +1249,26 @@ onBeforeUnmount(() => {
       :article-id="article.id"
       :scroll-container="articleScrollContainer"
     />
+
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-2 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <button
+        v-if="showBackToTop"
+        class="absolute bottom-6 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-bg-secondary/95 text-text-secondary shadow-lg backdrop-blur-sm transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+        :class="showChatButton && !isChatPanelOpen ? 'right-24' : 'right-6'"
+        :title="t('article.action.backToTop')"
+        :aria-label="t('article.action.backToTop')"
+        @click="scrollToArticleTop"
+      >
+        <PhArrowUp :size="20" />
+      </button>
+    </Transition>
 
     <!-- Chat Button (shown when content is loaded and chat is enabled) -->
     <ArticleChatButton v-if="showChatButton && !isChatPanelOpen" @click="isChatPanelOpen = true" />

@@ -25,6 +25,7 @@ const zh: TranslationMessages = {
       markBelowReadConfirmTitle: '将以下标记为已读',
       markAsRead: '标记为已读',
       markAsUnread: '标记为未读',
+      backToTop: '返回顶部',
       markBelowAsRead: '将以下标记为已读',
       markedAllAsRead: '所有文章已标记为已读',
       markedNArticlesAsRead: '已标记 {count} 篇文章为已读',

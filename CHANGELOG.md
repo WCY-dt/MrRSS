@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a floating back-to-top button for long articles. (#1057)
 - Show a live reading-progress bar while scrolling through an article. (#1058)
 
 ### Fixed
