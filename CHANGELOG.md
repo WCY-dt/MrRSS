@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace the sidebar's boxed native sort field with a lightweight menu aligned with the surrounding navigation controls. (#1071)
 - Unify shared button, form-control, dropdown, settings-card and keyboard-focus styling. (#1071)
 - Standardize read and unread controls on hollow and filled circle icons across article views. (#1070)
 - Show publication timestamps to minute precision when hovering article dates. (#1066)
