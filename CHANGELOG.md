@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Let collapsed article-summary cards shrink to their header instead of leaving a large blank area. (#1056)
 - Keep the article list anchored at the selected item after marking newer or older articles as read. (#1055)
 
 ## [1.3.29] - 2026-09-05

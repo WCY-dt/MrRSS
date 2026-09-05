@@ -343,9 +343,7 @@ async function handleSummaryLinkClick(event: MouseEvent) {
 
 <style scoped>
 .summary-container {
-  min-height: 8rem;
   transition:
-    min-height 0.2s ease,
     background-color 0.2s ease,
     border-color 0.2s ease;
 }
