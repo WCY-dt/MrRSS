@@ -200,10 +200,49 @@ function searchFieldLabel(field: 'title' | 'summary' | 'content'): string {
   return t(`aiSearch.matchFields.${field}`);
 }
 
-const { showArticleContextMenu } = useArticleActions(t, defaultViewMode, async () => {
-  await store.fetchUnreadCounts();
-  await store.fetchFilterCounts();
-});
+const { showArticleContextMenu } = useArticleActions(
+  t,
+  defaultViewMode,
+  async () => {
+    await store.fetchUnreadCounts();
+    await store.fetchFilterCounts();
+  },
+  preserveRelativeReadPosition
+);
+
+async function preserveRelativeReadPosition(
+  referenceArticle: Article,
+  direction: 'above' | 'below'
+): Promise<void> {
+  const list = listRef.value;
+  const anchor = list?.querySelector<HTMLElement>(
+    `[data-article-id="${referenceArticle.id}"]`
+  );
+  const anchorTop = anchor?.getBoundingClientRect().top;
+  const referenceTime = new Date(referenceArticle.published_at).getTime();
+
+  if (Number.isFinite(referenceTime)) {
+    filteredArticles.value.forEach((article) => {
+      const publishedTime = new Date(article.published_at).getTime();
+      if (
+        Number.isFinite(publishedTime) &&
+        (direction === 'above' ? publishedTime > referenceTime : publishedTime < referenceTime)
+      ) {
+        article.is_read = true;
+      }
+    });
+  }
+
+  await nextTick();
+  if (list && anchorTop !== undefined) {
+    const updatedAnchor = list.querySelector<HTMLElement>(
+      `[data-article-id="${referenceArticle.id}"]`
+    );
+    if (updatedAnchor) {
+      list.scrollTop += updatedAnchor.getBoundingClientRect().top - anchorTop;
+    }
+  }
+}
 
 // Virtual rendering: only render visible articles + buffer
 const visibleArticles = computed(() => {

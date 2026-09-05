@@ -5,11 +5,16 @@ import type { Article } from '@/types/models';
 import type { Composer } from 'vue-i18n';
 
 type ViewMode = 'original' | 'rendered' | 'external';
+type RelativeReadDirection = 'above' | 'below';
 
 export function useArticleActions(
   t: Composer['t'],
   defaultViewMode: { value: ViewMode },
-  onReadStatusChange?: () => void
+  onReadStatusChange?: () => void | Promise<void>,
+  onRelativeRead?: (
+    article: Article,
+    direction: RelativeReadDirection
+  ) => void | Promise<void>
 ) {
   const store = useAppStore();
 
@@ -221,7 +226,8 @@ export function useArticleActions(
       }
     } else if (action === 'markAboveAsRead' || action === 'markBelowAsRead') {
       try {
-        const direction = action === 'markAboveAsRead' ? 'above' : 'below';
+        const direction: RelativeReadDirection =
+          action === 'markAboveAsRead' ? 'above' : 'below';
 
         // Show confirmation dialog
         const confirmTitle =
@@ -268,13 +274,14 @@ export function useArticleActions(
 
         const data = await res.json();
 
-        // Refresh the article list to show updated read status
-        if (onReadStatusChange) {
-          onReadStatusChange();
+        // Update the visible list in place so it never clears and loses its scroll position.
+        if (onRelativeRead) {
+          await onRelativeRead(article, direction);
         }
 
-        // Refresh articles from server
-        await store.fetchArticles();
+        if (onReadStatusChange) {
+          await onReadStatusChange();
+        }
 
         window.showToast(
           t('article.action.markedNArticlesAsRead', { count: data.count || 0 }),
