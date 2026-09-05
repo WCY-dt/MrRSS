@@ -49,7 +49,7 @@ const contentStyle = computed(() => {
   <!-- Content display with inline translations -->
   <div v-if="articleContent">
     <div
-      class="prose prose-sm sm:prose-lg max-w-none text-text-primary prose-content"
+      class="prose prose-sm sm:prose-lg mx-auto w-full max-w-[68ch] text-text-primary prose-content"
       :class="{ 'custom-css-active': hasCustomCSS }"
       :style="contentStyle"
       v-html="articleContent"
