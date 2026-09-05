@@ -49,7 +49,9 @@ export function useArticleActions(
       {
         label: article.is_read ? t('article.action.markAsUnread') : t('article.action.markAsRead'),
         action: 'toggleRead',
-        icon: article.is_read ? 'ph-envelope' : 'ph-envelope-open',
+        icon: 'ph-circle',
+        iconWeight: article.is_read ? 'regular' : 'fill',
+        iconColor: article.is_read ? '' : 'text-accent',
       },
       {
         label: t('article.action.markAboveAsRead'),

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Standardize read and unread controls on hollow and filled circle icons across article views. (#1070)
 - Show publication timestamps to minute precision when hovering article dates. (#1066)
 - Let the up-to-date status card shrink to its content when no download action is present. (#1065)
 - Replace the misleading empty unread-list error copy with a clear all-caught-up state. (#1064)

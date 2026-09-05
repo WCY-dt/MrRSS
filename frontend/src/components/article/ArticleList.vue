@@ -10,8 +10,6 @@ import {
   PhFunnel,
   PhTrash,
   PhCheckCircle,
-  PhEye,
-  PhEyeSlash,
   PhCircle,
   PhClock,
   PhLightning,
@@ -968,10 +966,10 @@ async function markAllVisibleAsRead(): Promise<void> {
             "
             @click="store.toggleShowOnlyUnread()"
           >
-            <component
-              :is="store.showOnlyUnread ? PhEyeSlash : PhEye"
+            <PhCircle
               :size="18"
               class="sm:w-5 sm:h-5"
+              :weight="store.showOnlyUnread ? 'fill' : 'regular'"
             />
           </button>
           <div class="relative">
