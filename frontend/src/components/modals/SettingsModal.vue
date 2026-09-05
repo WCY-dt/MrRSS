@@ -198,7 +198,10 @@ function handleDiscoverAll() {
         </div>
 
         <!-- Content Area -->
-        <div class="flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth">
+        <div
+          class="flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth"
+          data-settings-content
+        >
           <GeneralTab
             v-if="activeTab === 'general'"
             :settings="settings"
