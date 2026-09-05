@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Localize AI chat failures and feed update-status tooltips instead of exposing English backend values. (#1062)
 - Keep AI feature toggles anchored while their dependent settings expand or collapse. (#1061)
 - Use the theme's neutral primary text color consistently in AI profile forms and article chat. (#1060)
 - Keep the article-summary heading stationary when generated content and action buttons appear. (#1068)

@@ -13,6 +13,7 @@ import {
   PhPencil,
 } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
+import { readAIError } from '@/utils/aiError';
 
 interface ChatMessage {
   id: number;
@@ -292,36 +293,20 @@ async function sendMessage() {
 
       isFirstMessage.value = false;
     } else {
-      const errorText = await response.text();
       console.error('AI chat request failed:', response.status);
-
-      let errorMessage = t('article.chat.aiChatError');
-      let persistedSessionID = 0;
-      try {
-        const errorData = JSON.parse(errorText);
-        persistedSessionID = Number(errorData.session_id || 0);
-        // Extract error message from various possible formats
-        if (typeof errorData.error === 'string') {
-          errorMessage = errorData.error;
-        } else if (errorData.error?.message) {
-          errorMessage = errorData.error.message;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (typeof errorData === 'string') {
-          errorMessage = errorData;
-        } else {
-          errorMessage = t('article.chat.aiChatError');
-        }
-      } catch {
-        errorMessage = t('article.chat.aiChatError');
-      }
+      const chatError = await readAIError(response);
+      const errorPayload =
+        chatError.payload !== null && typeof chatError.payload === 'object'
+          ? (chatError.payload as Record<string, unknown>)
+          : null;
+      const persistedSessionID = Number(errorPayload?.session_id || 0);
 
       if (persistedSessionID > 0) {
         currentSessionId.value = persistedSessionID;
         await loadSessions();
         await selectSession(persistedSessionID, true);
       }
-      window.showToast(errorMessage, 'error');
+      window.showToast(chatError.message, 'error');
     }
   } catch (e) {
     console.error('AI chat error:', e);
