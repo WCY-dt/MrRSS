@@ -42,6 +42,8 @@ export interface Feed {
   last_fetched_at: string;
   position?: number; // Position within category for custom ordering
   is_discovered?: boolean;
+  link?: string; // Website homepage returned by the feed parser
+  // Kept for compatibility with older API payloads.
   website_url?: string;
   image_url?: string;
   last_error?: string;

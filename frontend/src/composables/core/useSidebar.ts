@@ -273,7 +273,7 @@ export function useSidebar() {
       window.dispatchEvent(new CustomEvent('show-edit-feed', { detail: feed }));
     } else if (action === 'openWebsite') {
       // Handle RSSHub URLs - need to transform rsshub:// to full URL
-      let urlToOpen = feed.website_url || feed.url;
+      let urlToOpen = feed.link || feed.website_url || feed.url;
       if (urlToOpen.startsWith('rsshub://')) {
         try {
           const response = await fetch('/api/rsshub/transform-url', {
