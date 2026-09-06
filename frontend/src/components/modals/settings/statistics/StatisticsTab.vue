@@ -18,6 +18,7 @@ import {
   PhCalendarStar,
 } from '@phosphor-icons/vue';
 import { ButtonControl } from '@/components/settings';
+import BaseSelect from '@/components/common/BaseSelect.vue';
 
 const { t } = useI18n();
 
@@ -170,9 +171,9 @@ function handleIntervalClick() {
   }
 }
 
-function onIntervalChange(event: Event) {
-  const target = event.target as HTMLSelectElement;
-  setPeriod(target.value as Period);
+function onIntervalChange(value: string | number) {
+  selectedInterval.value = value as Period;
+  setPeriod(selectedInterval.value);
 }
 
 async function resetStatistics() {
@@ -269,28 +270,14 @@ onMounted(async () => {
             <PhCalendar :size="16" />
             <span class="text-xs font-medium">{{ t('setting.feed.fixedInterval') }}</span>
           </div>
-          <div class="relative flex items-center" @click.stop>
-            <select
-              v-model="selectedInterval"
-              class="appearance-none -webkit-appearance-none -moz-appearance-none flex items-center gap-1.5 px-3 pr-6 py-2 bg-bg-primary text-text-primary border-none border-l border-border text-xs font-medium cursor-pointer transition-all hover:bg-bg-primary hover:border-l-accent focus:outline-none focus:bg-bg-primary focus:border-l-accent"
-              @change="onIntervalChange"
-            >
-              <option
-                v-for="option in intervalOptions"
-                :key="option.value"
-                :value="option.value"
-                class="bg-bg-primary text-text-primary"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-            <!-- Custom dropdown arrow -->
-            <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60">
-              <svg
-                class="w-0 h-0 border-l-[3px] border-l-text-primary border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"
-                :class="['week', 'month', 'year'].includes(selectedPeriod) ? 'border-l-white' : ''"
-              ></svg>
-            </div>
+          <div class="flex items-center border-l border-border" @click.stop>
+            <BaseSelect
+              :model-value="selectedInterval"
+              :options="intervalOptions"
+              width="w-28"
+              size="xs"
+              @update:model-value="onIntervalChange"
+            />
           </div>
         </div>
 
