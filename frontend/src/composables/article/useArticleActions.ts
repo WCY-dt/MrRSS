@@ -118,7 +118,7 @@ export function useArticleActions(
       {
         label: t('article.action.goToFeed'),
         action: 'goToFeed',
-        icon: 'ph-arrow-bend-left-down',
+        icon: 'ph-rss-simple',
       },
       { separator: true },
       {
