@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { PhCaretDown, PhCaretRight } from '@phosphor-icons/vue';
+import { PhArrowClockwise, PhCaretDown, PhCaretRight } from '@phosphor-icons/vue';
 import type { Feed } from '@/types/models';
 import { useFeedForm } from '@/composables/feed/useFeedForm';
 import { useSettings } from '@/composables/core/useSettings';
@@ -15,6 +15,7 @@ import CategorySelector from './parts/CategorySelector.vue';
 import TagSelector from './parts/TagSelector.vue';
 import FeedContentOptions from './parts/FeedContentOptions.vue';
 import AdvancedSettings from './parts/AdvancedSettings.vue';
+import { useAppStore } from '@/stores/app';
 
 interface Props {
   mode: 'add' | 'edit';
@@ -25,6 +26,8 @@ const props = defineProps<Props>();
 
 const { t } = useI18n();
 const { settings } = useSettings();
+const store = useAppStore();
+const isReloading = ref(false);
 
 // Check if RSSHub is enabled
 const isRSSHubEnabled = computed(() => {
@@ -96,6 +99,23 @@ const emit = defineEmits<{
 
 function close() {
   emit('close');
+}
+
+async function reloadFeed() {
+  if (!props.feed || isReloading.value) return;
+
+  isReloading.value = true;
+  try {
+    const response = await fetch(`/api/feeds/refresh?id=${props.feed.id}`, { method: 'POST' });
+    if (!response.ok) throw new Error(`Feed refresh failed: ${response.status}`);
+    window.showToast(t('modal.feed.feedRefreshStarted'), 'success');
+    store.pollProgress();
+  } catch (error) {
+    console.error('Failed to reload feed:', error);
+    window.showToast(t('modal.feed.feedRefreshFailed'), 'error');
+  } finally {
+    isReloading.value = false;
+  }
 }
 
 function insertRSSHubPrefix() {
@@ -624,6 +644,7 @@ const submitButtonText = computed(() => {
     <template #footer>
       <ModalFooter
         align="right"
+        class="sm:w-full"
         :secondary-button="{
           label: t('common.cancel'),
           disabled: isSubmitting,
@@ -635,7 +656,19 @@ const submitButtonText = computed(() => {
           loading: isSubmitting,
           onClick: submit,
         }"
-      />
+      >
+        <template v-if="mode === 'edit' && feed" #left>
+          <button
+            type="button"
+            class="sm:mr-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg border border-border text-sm sm:text-base font-semibold text-text-primary hover:bg-bg-tertiary transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+            :disabled="isSubmitting || isReloading"
+            @click="reloadFeed"
+          >
+            <PhArrowClockwise :size="18" :class="{ 'animate-spin': isReloading }" />
+            {{ isReloading ? t('modal.feed.reloadingFeed') : t('modal.feed.reloadFeed') }}
+          </button>
+        </template>
+      </ModalFooter>
     </template>
   </BaseModal>
 </template>
