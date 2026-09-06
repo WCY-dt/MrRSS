@@ -37,7 +37,7 @@ async function updateSetting(key: keyof SettingsData, value: any) {
       ? document.activeElement.closest<HTMLElement>('.setting-item')
       : null;
   const scrollContainer = anchor?.closest<HTMLElement>('[data-settings-content]');
-  const anchorTop = anchor?.getBoundingClientRect().top;
+  const scrollTop = scrollContainer?.scrollTop;
 
   emit('update:settings', {
     ...props.settings,
@@ -45,8 +45,8 @@ async function updateSetting(key: keyof SettingsData, value: any) {
   });
 
   await nextTick();
-  if (anchor && scrollContainer && anchorTop !== undefined) {
-    scrollContainer.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
+  if (scrollContainer && scrollTop !== undefined) {
+    scrollContainer.scrollTop = scrollTop;
   }
 }
 

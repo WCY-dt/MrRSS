@@ -414,7 +414,7 @@ function handleDiscoverAll() {
         <!-- Content Area -->
         <div
           ref="settingsContentRef"
-          class="flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth"
+          class="settings-content flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth overscroll-contain"
           data-settings-content
         >
           <GeneralTab
@@ -535,6 +535,10 @@ function handleDiscoverAll() {
   width: 3px;
   background: var(--accent-color);
   border-radius: 0 2px 2px 0;
+}
+
+.settings-content {
+  overflow-anchor: none;
 }
 
 :deep([data-settings-search-match='true']) {
