@@ -41,7 +41,11 @@ interface ChatSession {
 interface Props {
   article: Article;
   articleContent: string;
-  settings: { ai_chat_enabled: boolean; ai_chat_profile_id: string };
+  settings: {
+    ai_chat_enabled: boolean;
+    ai_chat_profile_id: string;
+    ai_chat_quick_prompts: string;
+  };
 }
 
 const props = defineProps<Props>();
@@ -69,6 +73,31 @@ const selectedProfileId = ref(props.settings.ai_chat_profile_id || '');
 const profileOptions = computed(() =>
   profiles.value.map((profile) => ({ value: String(profile.id), label: profile.name }))
 );
+
+const summaryPrompts = computed(() => [
+  t('article.chat.promptConciseSummary'),
+  t('article.chat.promptKeyPoints'),
+  t('article.chat.promptDetailedSummary'),
+]);
+
+const questionPrompts = computed(() => [
+  t('article.chat.promptMainContent'),
+  t('article.chat.promptKeyPeople'),
+  t('article.chat.promptMainViews'),
+  t('article.chat.promptKeyInformation'),
+  t('article.chat.promptExplain'),
+  t('article.chat.promptAnalyze'),
+  t('article.chat.promptVerify'),
+]);
+
+const customPrompts = computed<string[]>(() => {
+  try {
+    const parsed = JSON.parse(props.settings.ai_chat_quick_prompts || '[]');
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+});
 
 // Resize functionality
 const isResizing = ref(false);
@@ -334,6 +363,11 @@ async function sendMessage() {
   }
 }
 
+async function sendSuggestedPrompt(prompt: string) {
+  inputMessage.value = prompt;
+  await sendMessage();
+}
+
 async function copyMessage(content: string) {
   const copied = await copyToClipboard(content);
   window.showToast(
@@ -503,9 +537,60 @@ const currentSessionTitle = computed(() => {
         <div ref="chatContainer" class="flex-1 overflow-y-auto p-3 space-y-3 scroll-smooth">
           <div
             v-if="messages.length === 0"
-            class="flex items-center justify-center h-full text-text-secondary text-sm"
+            class="space-y-4 py-2 text-sm"
           >
-            {{ t('article.chat.aiChatWelcome') }}
+            <p class="text-center text-text-secondary">{{ t('article.chat.aiChatWelcome') }}</p>
+
+            <section class="space-y-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {{ t('article.chat.summarySuggestions') }}
+              </h3>
+              <div class="grid gap-2 sm:grid-cols-3">
+                <button
+                  v-for="prompt in summaryPrompts"
+                  :key="prompt"
+                  type="button"
+                  class="cursor-pointer rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left text-text-primary transition-colors hover:border-accent hover:bg-bg-tertiary"
+                  @click="sendSuggestedPrompt(prompt)"
+                >
+                  {{ prompt }}
+                </button>
+              </div>
+            </section>
+
+            <section class="space-y-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {{ t('article.chat.questionSuggestions') }}
+              </h3>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <button
+                  v-for="prompt in questionPrompts"
+                  :key="prompt"
+                  type="button"
+                  class="cursor-pointer rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left text-text-primary transition-colors hover:border-accent hover:bg-bg-tertiary"
+                  @click="sendSuggestedPrompt(prompt)"
+                >
+                  {{ prompt }}
+                </button>
+              </div>
+            </section>
+
+            <section v-if="customPrompts.length > 0" class="space-y-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {{ t('article.chat.customSuggestions') }}
+              </h3>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <button
+                  v-for="prompt in customPrompts"
+                  :key="prompt"
+                  type="button"
+                  class="cursor-pointer rounded-lg border border-border bg-bg-secondary px-3 py-2 text-left text-text-primary transition-colors hover:border-accent hover:bg-bg-tertiary"
+                  @click="sendSuggestedPrompt(prompt)"
+                >
+                  {{ prompt }}
+                </button>
+              </div>
+            </section>
           </div>
           <div
             v-for="(msg, index) in messages"

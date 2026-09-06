@@ -8,6 +8,7 @@ export interface SettingsData {
   ai_api_key: string;
   ai_chat_enabled: boolean;
   ai_chat_profile_id: string;
+  ai_chat_quick_prompts: string;
   ai_custom_headers: string;
   ai_endpoint: string;
   ai_model: string;
