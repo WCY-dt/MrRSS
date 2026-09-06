@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Creates the next patch release branch and its draft pull request.
 
@@ -21,12 +21,14 @@ function Invoke-CheckedCommand {
         [string]$Command,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
+        [string[]]$Arguments,
+
+        [int[]]$AllowedExitCodes = @(0)
     )
 
     $output = & $Command @Arguments 2>&1
     $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
+    if ($exitCode -notin $AllowedExitCodes) {
         $details = ($output | Out-String).Trim()
         if ($details) {
             throw "命令执行失败（退出码 $exitCode）：$Command $($Arguments -join ' ')`n$details"
@@ -95,15 +97,42 @@ function Get-VersionFromFile {
     )
 
     $file = Read-TextFile -Path $Path
+    return Get-VersionFromText -Content $file.Content -Source $Path
+}
+
+function Get-VersionFromText {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Content,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Source
+    )
+
     $match = [regex]::Match(
-        $file.Content,
+        $Content,
         '(?m)^\s*const\s+Version\s*=\s*"(?<version>\d+\.\d+\.\d+)"\s*$'
     )
     if (-not $match.Success) {
-        throw "无法从 $Path 中识别版本号，期望格式为 const Version = `"1.2.3`"。"
+        throw "无法从 $Source 中识别版本号，期望格式为 const Version = `"1.2.3`"。"
     }
 
     return $match.Groups['version'].Value
+}
+
+function Get-VersionFromGitReference {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Reference,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $content = @(
+        Invoke-CheckedCommand -Command 'git' -Arguments @('show', "${Reference}:$Path")
+    ) -join "`n"
+    return Get-VersionFromText -Content $content -Source "${Reference}:$Path"
 }
 
 function Get-NextPatchVersion {
@@ -135,7 +164,7 @@ function Update-VersionReferences {
     $matchingFiles = @(
         Invoke-CheckedCommand -Command 'git' -Arguments @(
             'grep', '-Il', '-F', $OldVersion, '--', '.'
-        )
+        ) -AllowedExitCodes @(0, 1)
     )
     $versionPattern = [regex]::new(
         "(?<![0-9])$([regex]::Escape($OldVersion))(?![0-9])"
@@ -152,27 +181,45 @@ function Update-VersionReferences {
         }
 
         $file = Read-TextFile -Path $relativePath
-        $replacementLimit = [int]::MaxValue
+        $updatedContent = $file.Content
         if ($fileName -ieq 'package-lock.json') {
-            $replacementLimit = 2
+            $versionFieldLimit = 2
         }
         elseif ($fileName -ieq 'package.json') {
-            $replacementLimit = 1
+            $versionFieldLimit = 1
+        }
+        else {
+            $versionFieldLimit = 0
         }
 
-        $updatedContent = $versionPattern.Replace(
-            $file.Content,
-            { param($match) $NewVersion },
-            $replacementLimit
-        )
+        if ($versionFieldLimit -gt 0) {
+            # Only inspect the first one/two JSON version fields. This remains
+            # safe when resuming after one of those fields was already updated.
+            $jsonVersionPattern = [regex]::new(
+                '(?m)"version"\s*:\s*"(?<value>[^"]+)"'
+            )
+            $versionFieldsToUpdate = @(
+                $jsonVersionPattern.Matches($file.Content) |
+                    Select-Object -First $versionFieldLimit |
+                    Where-Object { $_.Groups['value'].Value -eq $OldVersion }
+            )
+            foreach ($versionField in ($versionFieldsToUpdate | Sort-Object Index -Descending)) {
+                $valueGroup = $versionField.Groups['value']
+                $updatedContent = $updatedContent.Remove($valueGroup.Index, $valueGroup.Length)
+                $updatedContent = $updatedContent.Insert($valueGroup.Index, $NewVersion)
+            }
+        }
+        else {
+            $updatedContent = $versionPattern.Replace(
+                $file.Content,
+                { param($match) $NewVersion }
+            )
+        }
+
         if ($updatedContent -ne $file.Content) {
             Write-TextFile -Path $relativePath -Content $updatedContent -Encoding $file.Encoding
             $updatedFiles.Add($relativePath)
         }
-    }
-
-    if ($updatedFiles.Count -eq 0) {
-        throw "项目中没有找到可从 $OldVersion 更新到 $NewVersion 的版本引用。"
     }
 
     return $updatedFiles
@@ -233,6 +280,16 @@ foreach ($requiredCommand in @('git', 'gh')) {
     }
 }
 
+$originalConsoleOutputEncoding = [Console]::OutputEncoding
+$utf8OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = $utf8OutputEncoding
+$OutputEncoding = $utf8OutputEncoding
+
+# Build emoji labels from Unicode code points so Windows PowerShell 5.1 does
+# not depend on the source file encoding when passing them to GitHub CLI.
+$versionLabel = [char]::ConvertFromUtf32(0x1F4C8) + 'version'
+$documentationLabel = [char]::ConvertFromUtf32(0x1F4D1) + 'documentation'
+
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $repositoryRoot
 try {
@@ -255,59 +312,132 @@ try {
         throw "找不到版本文件：$($versionCandidates -join ' 或 ')"
     }
 
-    # Read the version before performing any Git mutation, as the release input.
     $initialVersion = Get-VersionFromFile -Path $versionFile
-    $initialNextVersion = Get-NextPatchVersion -Version $initialVersion
-    Write-Host "识别到当前版本：$initialVersion；候选新版本：$initialNextVersion" -ForegroundColor Cyan
+    Write-Host "启动时识别到版本：$initialVersion" -ForegroundColor DarkCyan
+    $startingBranch = (
+        Invoke-CheckedCommand -Command 'git' -Arguments @('branch', '--show-current')
+    ) -join "`n"
+    $startingBranch = $startingBranch.Trim()
+    if (-not $startingBranch) {
+        throw '当前处于 detached HEAD，无法确定发布分支。'
+    }
 
+    $releaseBranchMatch = [regex]::Match(
+        $startingBranch,
+        '^release/v(?<version>\d+\.\d+\.\d+)$'
+    )
     $workingTreeStatus = @(
         Invoke-CheckedCommand -Command 'git' -Arguments @('status', '--porcelain', '--untracked-files=normal')
     )
-    if ($workingTreeStatus.Count -gt 0) {
+    if ($workingTreeStatus.Count -gt 0 -and -not $releaseBranchMatch.Success) {
         throw "工作区存在未提交改动。请先提交或暂存这些改动，再重新运行脚本。`n$($workingTreeStatus -join "`n")"
     }
 
     Invoke-CheckedCommand -Command 'gh' -Arguments @('auth', 'status') | Out-Null
-    Invoke-CheckedCommand -Command 'git' -Arguments @('checkout', 'main') | Out-Null
-    Invoke-CheckedCommand -Command 'git' -Arguments @('pull', '--ff-only', 'origin', 'main') | Out-Null
+    $repositoryInfo = ConvertFrom-CommandJson -InputObject @(
+        Invoke-CheckedCommand -Command 'gh' -Arguments @(
+            'repo', 'view', '--json', 'nameWithOwner'
+        )
+    )
+    $githubRepository = [string]$repositoryInfo.nameWithOwner
+    $isResumingRelease = $false
+    $releaseBranchExists = $false
+    $remoteBranchExists = $false
 
-    # The remote update may have changed the version. Always release from the
-    # version now present on the freshly updated main branch.
-    $oldVersion = Get-VersionFromFile -Path $versionFile
-    $newVersion = Get-NextPatchVersion -Version $oldVersion
-    if ($oldVersion -ne $initialVersion) {
-        Write-Host "拉取 main 后版本已更新为 $oldVersion；新版本调整为 $newVersion。" -ForegroundColor Yellow
+    if ($releaseBranchMatch.Success) {
+        # A failed run can leave the user on a partially updated release branch.
+        # Use that branch's version instead of incrementing it again.
+        $isResumingRelease = $true
+        $releaseBranchExists = $true
+        $releaseBranch = $startingBranch
+        $newVersion = $releaseBranchMatch.Groups['version'].Value
+
+        Invoke-CheckedCommand -Command 'git' -Arguments @('fetch', 'origin', 'main') | Out-Null
+        $oldVersion = Get-VersionFromGitReference -Reference 'origin/main' -Path $versionFile
+        $expectedVersion = Get-NextPatchVersion -Version $oldVersion
+        if ($newVersion -ne $expectedVersion) {
+            if ($newVersion -eq $oldVersion) {
+                throw "release 分支版本 $newVersion 已经出现在 main 中；该发布可能已经完成。"
+            }
+
+            throw "当前分支 $releaseBranch 与 main 的下一修订版本 $expectedVersion 不匹配。"
+        }
+
+        $remoteBranch = @(
+            Invoke-CheckedCommand -Command 'git' -Arguments @('ls-remote', '--heads', 'origin', $releaseBranch)
+        )
+        $remoteBranchExists = $remoteBranch.Count -gt 0
+        if ($remoteBranchExists -and $workingTreeStatus.Count -eq 0) {
+            Invoke-CheckedCommand -Command 'git' -Arguments @(
+                'pull', '--ff-only', 'origin', $releaseBranch
+            ) | Out-Null
+        }
+    }
+    else {
+        Invoke-CheckedCommand -Command 'git' -Arguments @('checkout', 'main') | Out-Null
+        Invoke-CheckedCommand -Command 'git' -Arguments @('pull', '--ff-only', 'origin', 'main') | Out-Null
+
+        $oldVersion = Get-VersionFromFile -Path $versionFile
+        $newVersion = Get-NextPatchVersion -Version $oldVersion
+        $releaseBranch = "release/v$newVersion"
+
+        $localBranch = @(
+            Invoke-CheckedCommand -Command 'git' -Arguments @('branch', '--list', $releaseBranch)
+        )
+        $releaseBranchExists = $localBranch.Count -gt 0
+        $remoteBranch = @(
+            Invoke-CheckedCommand -Command 'git' -Arguments @('ls-remote', '--heads', 'origin', $releaseBranch)
+        )
+        $remoteBranchExists = $remoteBranch.Count -gt 0
+
+        if ($releaseBranchExists) {
+            Invoke-CheckedCommand -Command 'git' -Arguments @('checkout', $releaseBranch) | Out-Null
+            if ($remoteBranchExists) {
+                Invoke-CheckedCommand -Command 'git' -Arguments @(
+                    'pull', '--ff-only', 'origin', $releaseBranch
+                ) | Out-Null
+            }
+            $isResumingRelease = $true
+        }
+        elseif ($remoteBranchExists) {
+            Invoke-CheckedCommand -Command 'git' -Arguments @(
+                'checkout', '-b', $releaseBranch, '--track', "origin/$releaseBranch"
+            ) | Out-Null
+            $releaseBranchExists = $true
+            $isResumingRelease = $true
+        }
     }
 
-    $releaseBranch = "release/v$newVersion"
     $releaseTitle = "release: Upgrade version to v$newVersion"
-
-    $localBranch = @(
-        Invoke-CheckedCommand -Command 'git' -Arguments @('branch', '--list', $releaseBranch)
-    )
-    if ($localBranch.Count -gt 0) {
-        throw "本地分支已存在：$releaseBranch"
+    $releaseWorktreeVersion = Get-VersionFromFile -Path $versionFile
+    if ($releaseWorktreeVersion -ne $oldVersion -and $releaseWorktreeVersion -ne $newVersion) {
+        throw "发布分支中的版本为 $releaseWorktreeVersion，预期为 $oldVersion 或 $newVersion。"
     }
 
-    $remoteBranch = @(
-        Invoke-CheckedCommand -Command 'git' -Arguments @('ls-remote', '--heads', 'origin', $releaseBranch)
-    )
-    if ($remoteBranch.Count -gt 0) {
-        throw "远程分支已存在：$releaseBranch"
+    if ($isResumingRelease) {
+        Write-Host "检测到未完成的发布流程，将继续使用 $releaseBranch（版本 $newVersion）。" -ForegroundColor Cyan
+    }
+    else {
+        Write-Host "识别到当前版本：$oldVersion；将创建版本：$newVersion。" -ForegroundColor Cyan
     }
 
     $labels = ConvertFrom-CommandJson -InputObject @(
-        Invoke-CheckedCommand -Command 'gh' -Arguments @('label', 'list', '--limit', '1000', '--json', 'name')
+        Invoke-CheckedCommand -Command 'gh' -Arguments @(
+            'label', 'list', '--repo', $githubRepository,
+            '--limit', '1000', '--json', 'name'
+        )
     )
-    foreach ($requiredLabel in @('📈version', '📑documentation')) {
-        if ($requiredLabel -notin @($labels | ForEach-Object { $_.name })) {
+    $labelNames = @($labels | ForEach-Object { [string]$_.name })
+    foreach ($requiredLabel in @($versionLabel, $documentationLabel)) {
+        if ($requiredLabel -notin $labelNames) {
             throw "GitHub 仓库中不存在标签：$requiredLabel"
         }
     }
 
     $previousRelease = ConvertFrom-CommandJson -InputObject @(
         Invoke-CheckedCommand -Command 'gh' -Arguments @(
-            'release', 'view', '--json', 'tagName,publishedAt,url'
+            'release', 'view', '--repo', $githubRepository,
+            '--json', 'tagName,publishedAt,url'
         )
     )
     $previousReleaseTime = [DateTimeOffset]::Parse(
@@ -318,34 +448,80 @@ try {
     $existingOpenPullRequests = @(
         ConvertFrom-CommandJson -InputObject @(
             Invoke-CheckedCommand -Command 'gh' -Arguments @(
-                'pr', 'list', '--state', 'open', '--limit', '10000',
+                'pr', 'list', '--repo', $githubRepository,
+                '--state', 'open', '--limit', '10000',
                 '--json', 'number,headRefName,baseRefName,isDraft,url'
             )
         ) | Sort-Object number
     )
+    $releasePullRequests = @(
+        $existingOpenPullRequests | Where-Object { $_.headRefName -eq $releaseBranch }
+    )
+    if ($releasePullRequests.Count -gt 1) {
+        throw "分支 $releaseBranch 对应多个 Open PR，无法安全判断应该继续哪一个。"
+    }
+
+    $hasExistingReleasePullRequest = $releasePullRequests.Count -eq 1
+    if ($hasExistingReleasePullRequest) {
+        $newPullRequest = $releasePullRequests[0]
+        $isResumingRelease = $true
+    }
+
+    $pullRequestsForRetargetPreview = @(
+        $existingOpenPullRequests |
+            Where-Object { -not $hasExistingReleasePullRequest -or $_.number -ne $newPullRequest.number }
+    )
     $existingOpenPullRequestNumbers = @(
-        $existingOpenPullRequests | ForEach-Object { $_.number }
+        $pullRequestsForRetargetPreview | ForEach-Object { $_.number }
     )
     $existingOpenPullRequestText = Format-NumberList -Numbers $existingOpenPullRequestNumbers
+    $pendingChangesText = Format-NumberList -Numbers @()
+    $pendingChanges = @(
+        Invoke-CheckedCommand -Command 'git' -Arguments @('status', '--porcelain')
+    )
+    if ($pendingChanges.Count -gt 0) {
+        $pendingChangesText = $pendingChanges -join "`n     "
+    }
 
     Write-Host ''
     Write-Host '即将执行以下发布操作：' -ForegroundColor Yellow
-    Write-Host "  1. 创建分支 $releaseBranch 并把版本更新为 $newVersion"
+    if ($releaseBranchExists) {
+        Write-Host "  1. 继续使用分支 $releaseBranch，并完成版本 $newVersion 的更新"
+    }
+    else {
+        Write-Host "  1. 创建分支 $releaseBranch 并把版本更新为 $newVersion"
+    }
     Write-Host "  2. 提交并推送到 origin，提交信息为：$releaseTitle"
-    Write-Host '  3. 创建带 📈version、📑documentation 标签的 Draft PR，目标为 main'
-    Write-Host "  4. 将现有 $($existingOpenPullRequests.Count) 个 Open/Draft PR 的目标分支改为 $releaseBranch"
+    if ($hasExistingReleasePullRequest) {
+        Write-Host "  3. 继续使用已有 Draft PR #$($newPullRequest.number)"
+    }
+    else {
+        Write-Host "  3. 创建带 $versionLabel、$documentationLabel 标签的 Draft PR，目标为 main"
+    }
+    Write-Host "  4. 将现有 $($pullRequestsForRetargetPreview.Count) 个 Open/Draft PR 的目标分支改为 $releaseBranch"
     Write-Host "     PR：$existingOpenPullRequestText"
+    if ($pendingChanges.Count -gt 0) {
+        Write-Host "  当前 release 分支上将一并提交的改动：`n     $pendingChangesText" -ForegroundColor Yellow
+    }
     $confirmation = Read-Host '直接按 Enter 确认并继续；输入任意内容取消'
     if ($confirmation.Length -ne 0) {
         Write-Host '已取消，未创建发布分支，也未修改远程仓库。' -ForegroundColor Yellow
         return
     }
 
-    Invoke-CheckedCommand -Command 'git' -Arguments @('checkout', '-b', $releaseBranch) | Out-Null
+    if (-not $releaseBranchExists) {
+        Invoke-CheckedCommand -Command 'git' -Arguments @('checkout', '-b', $releaseBranch) | Out-Null
+        $releaseBranchExists = $true
+    }
 
     $updatedFiles = @(Update-VersionReferences -OldVersion $oldVersion -NewVersion $newVersion)
+    if ($updatedFiles.Count -gt 0) {
+        Write-Host "已更新 $($updatedFiles.Count) 个版本文件。" -ForegroundColor Green
+    }
+    else {
+        Write-Host "版本引用已经是 $newVersion，跳过重复替换。" -ForegroundColor Green
+    }
     $unreleasedAdded = Ensure-UnreleasedHeading -Path 'CHANGELOG.md'
-    Write-Host "已更新 $($updatedFiles.Count) 个版本文件。" -ForegroundColor Green
     if ($unreleasedAdded) {
         Write-Host '已在 CHANGELOG.md 中添加 ## [Unreleased]。' -ForegroundColor Green
     }
@@ -359,38 +535,44 @@ try {
     $pendingChanges = @(
         Invoke-CheckedCommand -Command 'git' -Arguments @('status', '--porcelain')
     )
-    if ($pendingChanges.Count -eq 0) {
-        throw '版本更新后没有产生任何待提交改动。'
+    if ($pendingChanges.Count -gt 0) {
+        Invoke-CheckedCommand -Command 'git' -Arguments @('add', '--all') | Out-Null
+        Invoke-CheckedCommand -Command 'git' -Arguments @('commit', '-m', $releaseTitle) | Out-Null
     }
-
-    Invoke-CheckedCommand -Command 'git' -Arguments @('add', '--all') | Out-Null
-    Invoke-CheckedCommand -Command 'git' -Arguments @('commit', '-m', $releaseTitle) | Out-Null
+    else {
+        Write-Host '发布改动已经提交，跳过重复 commit。' -ForegroundColor Green
+    }
     Invoke-CheckedCommand -Command 'git' -Arguments @(
         'push', '--set-upstream', 'origin', $releaseBranch
     ) | Out-Null
 
-    Invoke-CheckedCommand -Command 'gh' -Arguments @(
-        'pr', 'create',
-        '--draft',
-        '--base', 'main',
-        '--head', $releaseBranch,
-        '--title', $releaseTitle,
-        '--body=',
-        '--label', '📈version',
-        '--label', '📑documentation'
-    ) | Out-Null
-
-    $newPullRequest = ConvertFrom-CommandJson -InputObject @(
+    if (-not $hasExistingReleasePullRequest) {
         Invoke-CheckedCommand -Command 'gh' -Arguments @(
-            'pr', 'view', $releaseBranch,
-            '--json', 'number,url,title,state,isDraft,headRefName,baseRefName'
+            'pr', 'create',
+            '--draft',
+            '--base', 'main',
+            '--head', $releaseBranch,
+            '--title', $releaseTitle,
+            '--body=',
+            '--label', $versionLabel,
+            '--label', $documentationLabel,
+            '--repo', $githubRepository
+        ) | Out-Null
+
+        $newPullRequest = ConvertFrom-CommandJson -InputObject @(
+            Invoke-CheckedCommand -Command 'gh' -Arguments @(
+                'pr', 'view', $releaseBranch,
+                '--repo', $githubRepository,
+                '--json', 'number,url,title,state,isDraft,headRefName,baseRefName'
+            )
         )
-    )
+    }
 
     $pullRequestsToRetarget = @(
         ConvertFrom-CommandJson -InputObject @(
             Invoke-CheckedCommand -Command 'gh' -Arguments @(
-                'pr', 'list', '--state', 'open', '--limit', '10000',
+                'pr', 'list', '--repo', $githubRepository,
+                '--state', 'open', '--limit', '10000',
                 '--json', 'number,headRefName,baseRefName,isDraft,url'
             )
         ) | Where-Object { $_.number -ne $newPullRequest.number }
@@ -399,7 +581,8 @@ try {
     foreach ($pullRequest in $pullRequestsToRetarget) {
         if ($pullRequest.baseRefName -ne $releaseBranch) {
             Invoke-CheckedCommand -Command 'gh' -Arguments @(
-                'pr', 'edit', [string]$pullRequest.number, '--base', $releaseBranch
+                'pr', 'edit', [string]$pullRequest.number,
+                '--repo', $githubRepository, '--base', $releaseBranch
             ) | Out-Null
         }
     }
@@ -407,7 +590,8 @@ try {
     $allIssues = @(
         ConvertFrom-CommandJson -InputObject @(
             Invoke-CheckedCommand -Command 'gh' -Arguments @(
-                'issue', 'list', '--state', 'all', '--limit', '10000',
+                'issue', 'list', '--repo', $githubRepository,
+                '--state', 'all', '--limit', '10000',
                 '--json', 'number,createdAt'
             )
         )
@@ -427,7 +611,8 @@ try {
     $currentOpenPullRequests = @(
         ConvertFrom-CommandJson -InputObject @(
             Invoke-CheckedCommand -Command 'gh' -Arguments @(
-                'pr', 'list', '--state', 'open', '--limit', '10000', '--json', 'number'
+                'pr', 'list', '--repo', $githubRepository,
+                '--state', 'open', '--limit', '10000', '--json', 'number'
             )
         ) |
             Where-Object { $_.number -ne $newPullRequest.number } |
@@ -466,4 +651,5 @@ catch {
 }
 finally {
     Pop-Location
+    [Console]::OutputEncoding = $originalConsoleOutputEncoding
 }
