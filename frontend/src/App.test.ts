@@ -115,7 +115,7 @@ describe('App', () => {
 
   it('keeps long toast messages inside narrow viewports', () => {
     const toast = readFileSync('src/components/common/Toast.vue', 'utf8');
-    expect(toast).toContain('calc(100vw-2rem)');
+    expect(toast).toContain('calc(100vw - 2rem)');
     expect(toast).toContain('overflow-wrap: anywhere');
     expect(toast).toContain('min-w-0 flex-1');
     expect(toast).toContain('shrink-0');
