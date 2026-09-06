@@ -359,14 +359,17 @@ func main() {
 	var systemTray *application.SystemTray
 
 	setupSystemTray := func() {
-		if systemTray != nil {
-			return // Already set up
+		if systemTray == nil {
+			systemTray = app.SystemTray.New()
+			systemTray.SetIcon(getAppIcon())
+			// Handle clicks on tray icon to show window. Register this only once.
+			systemTray.OnClick(func() {
+				showMainWindow()
+			})
 		}
 
-		systemTray = app.SystemTray.New()
-		systemTray.SetIcon(getAppIcon())
-
-		// Create tray menu
+		// Rebuild the menu whenever the window is sent to the tray so a language
+		// change made in settings is reflected without restarting the app.
 		trayMenu := app.NewMenu()
 
 		// Get language for labels
@@ -376,8 +379,8 @@ func main() {
 		}
 
 		var showLabel, refreshLabel, quitLabel string
-		switch lang {
-		case "zh-CN", "zh", "zh-cn":
+		switch {
+		case strings.HasPrefix(strings.ToLower(strings.TrimSpace(lang)), "zh"):
 			showLabel = "显示 MrRSS"
 			refreshLabel = "立即刷新"
 			quitLabel = "退出"
@@ -405,11 +408,6 @@ func main() {
 		})
 
 		systemTray.SetMenu(trayMenu)
-
-		// Handle clicks on tray icon to show window
-		systemTray.OnClick(func() {
-			showMainWindow()
-		})
 	}
 
 	// Fullscreen exits asynchronously on macOS. Hide on its completion event,
