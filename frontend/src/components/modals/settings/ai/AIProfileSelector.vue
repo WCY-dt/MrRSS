@@ -65,6 +65,7 @@ function handleChange(value: string | number) {
       :options="profileOptions"
       :disabled="disabled || profiles.length === 0"
       :placeholder="profiles.length === 0 ? t('setting.ai.noProfiles') : ''"
+      width="w-44 sm:w-56"
       :searchable="true"
       @update:model-value="handleChange"
     />
