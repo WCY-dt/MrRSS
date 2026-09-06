@@ -96,6 +96,7 @@ var AllSettings = []SettingDef{
 	{Key: "proxy_type", Encrypted: false},
 	{Key: "proxy_username", Encrypted: true},
 	{Key: "refresh_mode", Encrypted: false},
+	{Key: "remember_article_position", Encrypted: false},
 	{Key: "retry_timeout_seconds", Encrypted: false},
 	{Key: "rsshub_api_key", Encrypted: true},
 	{Key: "rsshub_enabled", Encrypted: false},

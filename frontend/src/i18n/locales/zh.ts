@@ -1047,6 +1047,8 @@ const zh: TranslationMessages = {
       defaultViewModeDesc: '选择文章应如何显示',
       confirmMarkAsRead: '批量标记已读前确认',
       confirmMarkAsReadDesc: '将全部、以上或以下文章标记为已读前请求确认',
+      rememberArticlePosition: '记住文章阅读位置',
+      rememberArticlePositionDesc: '再次打开文章时回到上次阅读的位置',
       hideAdvancedSettings: '隐藏高级设置',
       hideFromTimeline: '从时间线中隐藏',
       hideFromTimelineDesc: '在"全部文章"和"未读"视图中隐藏此订阅源的文章',

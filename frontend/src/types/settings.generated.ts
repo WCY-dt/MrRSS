@@ -84,6 +84,7 @@ export interface SettingsData {
   proxy_type: string;
   proxy_username: string;
   refresh_mode: string;
+  remember_article_position: boolean;
   retry_timeout_seconds: number;
   rsshub_api_key: string;
   rsshub_enabled: boolean;

@@ -78,6 +78,7 @@
   "proxy_type": "https",
   "proxy_username": "",
   "refresh_mode": "fixed",
+  "remember_article_position": true,
   "retry_timeout_seconds": 60,
   "rsshub_api_key": "",
   "rsshub_enabled": false,

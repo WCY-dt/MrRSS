@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { PhCheckCircle, PhCursorClick, PhEyeSlash } from '@phosphor-icons/vue';
+import { PhBookmarkSimple, PhCheckCircle, PhCursorClick, PhEyeSlash } from '@phosphor-icons/vue';
 import { SettingGroup, SettingWithToggle } from '@/components/settings';
 import '@/components/settings/styles.css';
 import type { SettingsData } from '@/types/settings';
@@ -41,6 +41,14 @@ function updateSetting(key: keyof SettingsData, value: any) {
       :description="t('setting.reading.confirmMarkAsReadDesc')"
       :model-value="settings.confirm_mark_as_read"
       @update:model-value="updateSetting('confirm_mark_as_read', $event)"
+    />
+
+    <SettingWithToggle
+      :icon="PhBookmarkSimple"
+      :title="t('setting.reading.rememberArticlePosition')"
+      :description="t('setting.reading.rememberArticlePositionDesc')"
+      :model-value="settings.remember_article_position"
+      @update:model-value="updateSetting('remember_article_position', $event)"
     />
 
     <SettingWithToggle

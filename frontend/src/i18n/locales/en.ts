@@ -1076,6 +1076,8 @@ const en: TranslationMessages = {
       confirmMarkAsRead: 'Confirm Bulk Mark as Read',
       confirmMarkAsReadDesc:
         'Ask for confirmation before marking all, newer, or older articles as read',
+      rememberArticlePosition: 'Remember article position',
+      rememberArticlePositionDesc: 'Return to the last reading position when reopening an article',
       hideAdvancedSettings: 'Hide Advanced Settings',
       hideFromTimeline: 'Hide from Timeline',
       hideFromTimelineDesc: 'Hide this feed\'s articles from "All Articles" and "Unread" views',
