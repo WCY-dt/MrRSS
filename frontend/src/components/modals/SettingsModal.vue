@@ -40,7 +40,7 @@ import { useModalClose, LARGE_MODAL_Z_INDEX } from '@/composables/ui/useModalClo
 const store = useAppStore();
 const { t, tm } = useI18n();
 
-// Modal close handling - use lower z-index for large modal so nested modals appear on top
+// Modal close handling; nested modals are placed above this layer automatically.
 const { zIndex: modalZIndex } = useModalClose(() => emit('close'), LARGE_MODAL_Z_INDEX);
 
 // Use composables
