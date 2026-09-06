@@ -1,4 +1,4 @@
-<h1><img src="imgs/logo-rounded.png" alt="MrRSS logo" style="height: 40px;"/>&nbsp;MrRSS</h1>
+﻿<h1><img src="imgs/logo-rounded.png" alt="MrRSS logo" style="height: 40px;"/>&nbsp;MrRSS</h1>
 
 <a href="https://trendshift.io/repositories/15731" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15731" alt="DevXDojo%2FMrRSS | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
@@ -8,7 +8,7 @@
    <strong>English</strong> | <a href="README_zh.md">简体中文</a>
 </p>
 
-[![Version](https://img.shields.io/badge/version-1.3.31-blue.svg)](https://github.com/DevXDojo/MrRSS/releases)
+[![Version](https://img.shields.io/badge/version-1.3.32-blue.svg)](https://github.com/DevXDojo/MrRSS/releases)
 [![License](https://img.shields.io/badge/license-GPLv3-green.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.27+-00ADD8?logo=go)](https://go.dev/)
 [![Wails](https://img.shields.io/badge/Wails-v3%20alpha-red)](https://wails.io/)
