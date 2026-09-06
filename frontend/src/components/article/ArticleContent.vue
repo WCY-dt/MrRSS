@@ -1286,7 +1286,10 @@ onBeforeUnmount(() => {
       v-if="isChatPanelOpen"
       :article="article"
       :article-content="articleContent"
-      :settings="{ ai_chat_enabled: appSettings.ai_chat_enabled }"
+      :settings="{
+        ai_chat_enabled: appSettings.ai_chat_enabled,
+        ai_chat_profile_id: appSettings.ai_chat_profile_id,
+      }"
       @close="isChatPanelOpen = false"
     />
   </div>

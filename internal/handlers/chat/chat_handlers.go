@@ -30,6 +30,7 @@ type ChatRequest struct {
 	ArticleURL     string        `json:"article_url,omitempty"`
 	ArticleContent string        `json:"article_content,omitempty"`
 	IsFirstMessage bool          `json:"is_first_message,omitempty"`
+	ProfileID      int64         `json:"profile_id,omitempty"`
 }
 
 // ChatResponse represents the response from the AI chat
@@ -102,7 +103,17 @@ func HandleAIChat(h *core.Handler, w http.ResponseWriter, r *http.Request) {
 	// Get AI settings - try ProfileProvider first
 	var apiKey, endpoint, model string
 	if h.AIProfileProvider != nil {
-		cfg, err := h.AIProfileProvider.GetConfigForFeature(ai.FeatureChat)
+		var cfg *ai.ClientConfig
+		var err error
+		if req.ProfileID > 0 {
+			cfg, err = h.AIProfileProvider.GetConfigForProfile(req.ProfileID)
+		} else {
+			cfg, err = h.AIProfileProvider.GetConfigForFeature(ai.FeatureChat)
+		}
+		if req.ProfileID > 0 && err != nil {
+			writeChatError(w, "Selected AI profile is unavailable", http.StatusBadRequest, sessionID)
+			return
+		}
 		if err == nil && cfg != nil && (cfg.APIKey != "" || cfg.Endpoint != "") {
 			apiKey = cfg.APIKey
 			endpoint = cfg.Endpoint

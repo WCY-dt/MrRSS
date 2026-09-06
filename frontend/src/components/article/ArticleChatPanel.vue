@@ -11,9 +11,14 @@ import {
   PhPlus,
   PhTrash,
   PhPencil,
+  PhCopy,
+  PhGear,
 } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
 import { readAIError } from '@/utils/aiError';
+import { copyToClipboard } from '@/utils/clipboard';
+import { useAIProfiles } from '@/composables/ai/useAIProfiles';
+import BaseSelect from '@/components/common/BaseSelect.vue';
 
 interface ChatMessage {
   id: number;
@@ -36,7 +41,7 @@ interface ChatSession {
 interface Props {
   article: Article;
   articleContent: string;
-  settings: { ai_chat_enabled: boolean };
+  settings: { ai_chat_enabled: boolean; ai_chat_profile_id: string };
 }
 
 const props = defineProps<Props>();
@@ -46,6 +51,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { profiles, defaultProfile, fetchProfiles } = useAIProfiles();
 
 const isOpen = ref(true);
 const isLoading = ref(false);
@@ -58,6 +64,11 @@ const sessions = ref<ChatSession[]>([]);
 const showSessions = ref(false);
 const editingSessionId = ref<number | null>(null);
 const editingSessionTitle = ref('');
+const selectedProfileId = ref(props.settings.ai_chat_profile_id || '');
+
+const profileOptions = computed(() =>
+  profiles.value.map((profile) => ({ value: String(profile.id), label: profile.name }))
+);
 
 // Resize functionality
 const isResizing = ref(false);
@@ -69,6 +80,10 @@ const panelElement = ref<HTMLElement | null>(null);
 
 // Initialize: load sessions for this article
 onMounted(async () => {
+  await fetchProfiles();
+  if (!selectedProfileId.value && defaultProfile.value) {
+    selectedProfileId.value = String(defaultProfile.value.id);
+  }
   await loadSessions();
   // Auto-select the most recent session if available
   if (sessions.value.length > 0) {
@@ -263,6 +278,7 @@ async function sendMessage() {
       article_url: props.article.url,
       // Include article content to ensure AI has context
       article_content: articleContent,
+      profile_id: Number(selectedProfileId.value) || undefined,
     };
 
     const response = await fetch('/api/ai-chat', {
@@ -318,6 +334,18 @@ async function sendMessage() {
   }
 }
 
+async function copyMessage(content: string) {
+  const copied = await copyToClipboard(content);
+  window.showToast(
+    copied ? t('common.toast.copiedToClipboard') : t('common.errors.failedToCopy'),
+    copied ? 'success' : 'error'
+  );
+}
+
+function openAISettings() {
+  window.dispatchEvent(new CustomEvent('show-settings', { detail: { tab: 'ai' } }));
+}
+
 function scrollToBottom() {
   if (chatContainer.value) {
     chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
@@ -367,6 +395,22 @@ const currentSessionTitle = computed(() => {
             </button>
           </div>
           <div class="flex items-center gap-1">
+            <BaseSelect
+              v-if="profileOptions.length > 0"
+              v-model="selectedProfileId"
+              :options="profileOptions"
+              width="w-28 sm:w-36"
+              size="xs"
+              :disabled="isLoading"
+              :title="t('article.chat.selectProfile')"
+            />
+            <button
+              class="p-1 hover:bg-bg-tertiary rounded-lg transition-colors"
+              :title="t('article.chat.openAISettings')"
+              @click.stop="openAISettings"
+            >
+              <PhGear :size="18" class="text-text-secondary" />
+            </button>
             <button
               class="p-1 hover:bg-bg-tertiary rounded-lg transition-colors"
               :disabled="isLoading"
@@ -466,33 +510,44 @@ const currentSessionTitle = computed(() => {
           <div
             v-for="(msg, index) in messages"
             :key="index"
-            class="flex"
+            class="flex group"
             :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
           >
-            <div
-              class="max-w-[80%] rounded-lg px-3 py-2 text-sm select-text cursor-text"
-              :class="
-                msg.role === 'user' ? 'bg-accent text-white' : 'bg-bg-secondary text-text-primary'
-              "
-            >
-              <!-- Thinking section -->
+            <div class="flex items-start gap-1" :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
               <div
-                v-if="msg.thinking"
-                class="mb-2 p-2 bg-bg-tertiary border-l-2 border-accent rounded text-xs text-text-secondary"
+                class="max-w-[80%] rounded-lg px-3 py-2 text-sm select-text cursor-text"
+                :class="
+                  msg.role === 'user'
+                    ? 'bg-accent text-white'
+                    : 'bg-bg-secondary text-text-primary'
+                "
               >
-                <div class="font-bold mb-1 flex items-center gap-1">
-                  <PhSpinner :size="12" class="animate-spin" />
-                  {{ t('article.chat.thinking') }}
+                <!-- Thinking section -->
+                <div
+                  v-if="msg.thinking"
+                  class="mb-2 p-2 bg-bg-tertiary border-l-2 border-accent rounded text-xs text-text-secondary"
+                >
+                  <div class="font-bold mb-1 flex items-center gap-1">
+                    <PhSpinner :size="12" class="animate-spin" />
+                    {{ t('article.chat.thinking') }}
+                  </div>
+                  <div class="whitespace-pre-wrap">{{ msg.thinking }}</div>
                 </div>
-                <div class="whitespace-pre-wrap">{{ msg.thinking }}</div>
+                <!-- Message content with pre-rendered HTML from backend -->
+                <div
+                  v-if="msg.role === 'assistant' && msg.html"
+                  class="prose prose-sm max-w-none"
+                  v-html="msg.html"
+                ></div>
+                <div v-else class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
               </div>
-              <!-- Message content with pre-rendered HTML from backend -->
-              <div
-                v-if="msg.role === 'assistant' && msg.html"
-                class="prose prose-sm max-w-none"
-                v-html="msg.html"
-              ></div>
-              <div v-else class="whitespace-pre-wrap break-words">{{ msg.content }}</div>
+              <button
+                class="p-1 rounded text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-bg-tertiary hover:text-text-primary transition-all"
+                :title="t('article.chat.copyMessage')"
+                @click="copyMessage(msg.content)"
+              >
+                <PhCopy :size="14" />
+              </button>
             </div>
           </div>
           <div v-if="isLoading" class="flex justify-start">

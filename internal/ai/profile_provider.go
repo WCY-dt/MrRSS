@@ -90,14 +90,29 @@ func (p *ProfileProvider) GetConfigForFeature(feature FeatureType) (*ClientConfi
 		}, nil
 	}
 
-	cfg := &ClientConfig{
+	return configFromProfile(profile), nil
+}
+
+// GetConfigForProfile returns the AI client config for an explicitly selected profile.
+func (p *ProfileProvider) GetConfigForProfile(profileID int64) (*ClientConfig, error) {
+	profile, err := p.db.GetAIProfile(profileID)
+	if err != nil {
+		return nil, err
+	}
+	return configFromProfile(profile), nil
+}
+
+func configFromProfile(profile *models.AIProfile) *ClientConfig {
+	if profile == nil {
+		return nil
+	}
+
+	return &ClientConfig{
 		APIKey:        profile.APIKey,
 		Endpoint:      profile.Endpoint,
 		Model:         profile.Model,
 		CustomHeaders: profile.CustomHeaders, // Keep as string, will be parsed by client
 	}
-
-	return cfg, nil
 }
 
 // HasProfileConfigured checks if a specific profile is configured for a feature

@@ -40,6 +40,14 @@ import { useModalClose, LARGE_MODAL_Z_INDEX } from '@/composables/ui/useModalClo
 const store = useAppStore();
 const { t, tm } = useI18n();
 
+interface Props {
+  initialTab?: TabName;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  initialTab: 'general',
+});
+
 // Modal close handling; nested modals are placed above this layer automatically.
 const { zIndex: modalZIndex } = useModalClose(() => emit('close'), LARGE_MODAL_Z_INDEX);
 
@@ -76,7 +84,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-const activeTab: Ref<TabName> = ref('general');
+const activeTab: Ref<TabName> = ref(props.initialTab);
 const showDiscoverAllModal = ref(false);
 const settingsContentRef = ref<HTMLElement | null>(null);
 const settingsSearchRef = ref<HTMLElement | null>(null);

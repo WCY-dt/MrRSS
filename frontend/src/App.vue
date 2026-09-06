@@ -26,6 +26,7 @@ import { useSettings } from './composables/core/useSettings';
 import { useCustomCSS } from './composables/ui/useCustomCSS';
 import { resolveFontFamily } from './utils/fontDetector';
 import type { Feed } from './types/models';
+import type { TabName } from './types/settings';
 
 const store = useAppStore();
 const { t } = useI18n();
@@ -56,6 +57,7 @@ const showAddFeed = ref(false);
 const showEditFeed = ref(false);
 const feedToEdit = ref<Feed | null>(null);
 const showSettings = ref(false);
+const settingsInitialTab = ref<TabName>('general');
 const showDiscoverBlogs = ref(false);
 const feedToDiscover = ref<Feed | null>(null);
 const isSidebarOpen = ref(true);
@@ -262,7 +264,9 @@ window.addEventListener('show-edit-feed', (e) => {
   feedToEdit.value = customEvent.detail;
   showEditFeed.value = true;
 });
-window.addEventListener('show-settings', () => {
+window.addEventListener('show-settings', (e) => {
+  const requestedTab = (e as CustomEvent<{ tab?: TabName }>).detail?.tab;
+  settingsInitialTab.value = requestedTab || 'general';
   showSettings.value = true;
 });
 window.addEventListener('show-discover-blogs', (e) => {
@@ -363,7 +367,11 @@ function onFeedUpdated(): void {
       @close="showEditFeed = false"
       @updated="onFeedUpdated"
     />
-    <SettingsModal v-if="showSettings" @close="showSettings = false" />
+    <SettingsModal
+      v-if="showSettings"
+      :initial-tab="settingsInitialTab"
+      @close="showSettings = false"
+    />
     <DiscoverFeedsModal
       v-if="showDiscoverBlogs && feedToDiscover"
       :feed="feedToDiscover"
