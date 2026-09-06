@@ -259,7 +259,7 @@ onMounted(async () => {
         <!-- Fixed Interval with Dropdown -->
         <div
           :class="[
-            'flex items-center justify-between p-0 overflow-hidden border rounded-lg cursor-pointer text-xs font-medium transition-all',
+            'flex items-center justify-between p-0 overflow-visible border rounded-lg cursor-pointer text-xs font-medium transition-all',
             ['week', 'month', 'year'].includes(selectedPeriod)
               ? 'period-btn-active'
               : 'period-btn-inactive',
