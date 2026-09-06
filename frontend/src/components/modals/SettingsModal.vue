@@ -336,7 +336,7 @@ function handleDiscoverAll() {
           />
           <input
             v-model="settingsSearchQuery"
-            type="search"
+            type="text"
             class="w-full rounded-lg border border-border bg-bg-secondary py-2 pl-9 pr-9 text-sm text-text-primary outline-none transition-colors focus:border-accent"
             :placeholder="t('setting.search.placeholder')"
             :aria-label="t('setting.search.placeholder')"
