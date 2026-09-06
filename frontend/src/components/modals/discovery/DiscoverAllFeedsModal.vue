@@ -56,7 +56,7 @@ const subscribeButtonText = computed(() => {
 const subscribeButtonLabel = computed(() => {
   const baseText = subscribeButtonText.value;
   if (hasSelection.value && !isSubscribing.value) {
-    return `${baseText} (${selectedFeeds.size})`;
+    return `${baseText} (${selectedFeeds.value.size})`;
   }
   return baseText;
 });
@@ -123,7 +123,7 @@ watch(
 
       <!-- Results -->
       <DiscoveryResults
-        v-if="discoveredFeeds.length > 0"
+        v-else-if="discoveredFeeds.length > 0"
         :discovered-feeds="discoveredFeeds"
         :selected-feeds="selectedFeeds"
         :all-selected="allSelected"
@@ -158,33 +158,8 @@ watch(
           loading: isSubscribing,
           onClick: subscribeSelected,
         }"
-      >
-        <template #right>
-          <button
-            :disabled="!hasSelection || isSubscribing"
-            :class="[
-              'btn-primary flex items-center justify-center gap-2 text-sm sm:text-base',
-              (!hasSelection || isSubscribing) && 'opacity-50 cursor-not-allowed',
-            ]"
-            @click="subscribeSelected"
-          >
-            <PhCircleNotch v-if="isSubscribing" :size="16" class="animate-spin" />
-            {{ subscribeButtonText }}
-            <span
-              v-if="hasSelection && !isSubscribing"
-              class="bg-white/20 px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm"
-              >({{ selectedFeeds.size }})</span
-            >
-          </button>
-        </template>
-      </ModalFooter>
+      />
     </template>
   </BaseModal>
 </template>
 
-<style scoped>
-@reference "../../../style.css";
-.btn-primary {
-  @apply px-4 sm:px-6 py-2 sm:py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-all font-medium shadow-sm hover:shadow-md;
-}
-</style>

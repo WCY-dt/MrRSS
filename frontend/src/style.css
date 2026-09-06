@@ -14,6 +14,7 @@ button[title] > img {
     --bg-tertiary: #e9ecef;
     --text-primary: #212529;
     --text-secondary: #6c757d;
+    --text-tertiary: #868e96;
     --accent-color: #007bff;
     --accent-hover: #0056b3;
     --accent-fill: #007bff;
@@ -38,6 +39,7 @@ button[title] > img {
     --bg-tertiary: #2d2d2d;
     --text-primary: #e0e0e0;
     --text-secondary: #a0a0a0;
+    --text-tertiary: #808080;
     --accent-color: #4daafc;
     --accent-hover: #2b87d9;
     --accent-fill: #347fbd;
