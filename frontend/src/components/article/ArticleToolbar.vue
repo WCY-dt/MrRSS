@@ -13,11 +13,12 @@ import {
   PhClockCountdown,
   PhArrowSquareOut,
   PhLinkSimple,
+  PhTextT,
   PhTranslate,
   PhArrowClockwise,
 } from '@phosphor-icons/vue';
 import type { Article } from '@/types/models';
-import { copyArticleLink } from '@/utils/clipboard';
+import { copyArticleLink, copyArticleTitle } from '@/utils/clipboard';
 
 const { t } = useI18n();
 const { settings, fetchSettings } = useSettings();
@@ -58,6 +59,15 @@ defineEmits<{
 
 async function copyLink(article: Article) {
   const success = await copyArticleLink(article.url);
+  if (success) {
+    window.showToast(t('common.toast.copiedToClipboard'), 'success');
+  } else {
+    window.showToast(t('common.errors.failedToCopy'), 'error');
+  }
+}
+
+async function copyTitle(article: Article) {
+  const success = await copyArticleTitle(article.title);
   if (success) {
     window.showToast(t('common.toast.copiedToClipboard'), 'success');
   } else {
@@ -183,6 +193,15 @@ async function copyLink(article: Article) {
         @click="$emit('openOriginal')"
       >
         <PhArrowSquareOut :size="18" class="sm:w-5 sm:h-5" />
+      </button>
+      <button
+        class="action-btn"
+        :title="t('common.contextMenu.copyTitle')"
+        :disabled="!article.title"
+        :aria-label="t('common.contextMenu.copyTitle')"
+        @click="copyTitle(article)"
+      >
+        <PhTextT :size="18" class="sm:w-5 sm:h-5" />
       </button>
       <button
         class="action-btn"

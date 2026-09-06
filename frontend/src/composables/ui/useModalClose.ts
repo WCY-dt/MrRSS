@@ -4,13 +4,13 @@ import { onMounted, onUnmounted } from 'vue';
 const modalStack: Array<{ zIndex: number; close: () => void }> = [];
 
 // Base z-index for modals
-// Note: SettingsModal should use a lower z-index (40) so its nested modals (default 50) appear on top
+// Regular modal base layer. Nested modals are raised above the active stack automatically.
 const BASE_Z_INDEX = 50;
 // Z-index increment for nested modals
 const Z_INDEX_INCREMENT = 10;
 
-// Special z-index for large modals like SettingsModal
-export const LARGE_MODAL_Z_INDEX = 40;
+// Large application modals must cover floating panels such as AI chat (z-50).
+export const LARGE_MODAL_Z_INDEX = 60;
 
 // Get the next available z-index
 function getNextZIndex(baseZIndex?: number): number {

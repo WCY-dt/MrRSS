@@ -43,6 +43,7 @@ const showRefreshTooltip = ref(false);
 const temporarilyKeepArticles = ref<Set<number>>(new Set());
 // Flag to control when scroll position should be restored
 const shouldRestoreScroll = ref(false);
+const pendingFeedArticleId = ref<number | null>(null);
 
 // Card mode modal state
 const showCardModal = ref(false);
@@ -56,6 +57,25 @@ const hasScrolledToBottom = ref(false);
 // Layout mode computed
 const layoutMode = computed(() => settings.value.layout_mode || 'normal');
 const isCardMode = computed(() => layoutMode.value === 'card');
+
+async function scrollPendingFeedArticleIntoView(): Promise<void> {
+  const articleId = pendingFeedArticleId.value;
+  if (!articleId || !listRef.value) return;
+
+  await nextTick();
+  const articleElement = listRef.value.querySelector<HTMLElement>(
+    `[data-article-id="${articleId}"]`
+  );
+  if (articleElement) {
+    articleElement.scrollIntoView({ block: 'nearest' });
+    pendingFeedArticleId.value = null;
+  }
+}
+
+function onArticleFeedSelected(): void {
+  pendingFeedArticleId.value = store.currentArticleId;
+  void scrollPendingFeedArticleIntoView();
+}
 
 interface Props {
   isSidebarOpen?: boolean;
@@ -350,6 +370,7 @@ onMounted(async () => {
   window.addEventListener('toggle-filter', onToggleFilter);
   // Listen for mark-all-read events (from keyboard shortcut)
   window.addEventListener('mark-all-as-read', onMarkAllAsRead);
+  window.addEventListener('article-feed-selected', onArticleFeedSelected);
 });
 
 // Watch for articles array length changes (list content changes)
@@ -371,6 +392,9 @@ watch(
 watch(
   () => store.articles,
   async () => {
+    if (pendingFeedArticleId.value) {
+      await scrollPendingFeedArticleIntoView();
+    }
     // Re-setup observer to observe newly added articles
     if (translationSettings.value.enabled && listRef.value) {
       await nextTick();
@@ -458,6 +482,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('refresh-articles', onRefreshArticles);
   window.removeEventListener('toggle-filter', onToggleFilter);
   window.removeEventListener('mark-all-as-read', onMarkAllAsRead);
+  window.removeEventListener('article-feed-selected', onArticleFeedSelected);
 });
 
 interface CustomEventDetail {
@@ -782,10 +807,17 @@ async function openCardModal(article: Article): Promise<void> {
   }
 }
 
-function closeCardModal(): void {
+async function closeCardModal(): Promise<void> {
+  const articleId = cardModalArticle.value?.id;
   showCardModal.value = false;
   cardModalArticle.value = null;
   cardModalContent.value = '';
+
+  if (!articleId || !listRef.value) return;
+  await nextTick();
+  listRef.value
+    .querySelector<HTMLElement>(`[data-article-id="${articleId}"]`)
+    ?.scrollIntoView({ block: 'nearest' });
 }
 
 function cardModalPrevious(): void {

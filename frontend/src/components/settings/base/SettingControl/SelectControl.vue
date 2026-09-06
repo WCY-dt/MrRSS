@@ -41,7 +41,6 @@ const widthClass = (width?: string) => {
     :disabled="disabled"
     :width="widthClass(width)"
     :class="{ 'opacity-50 cursor-not-allowed': disabled }"
-    bg-mode="secondary"
     @update:model-value="emit('update:modelValue', $event)"
   />
 </template>

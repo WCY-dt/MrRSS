@@ -56,12 +56,16 @@
 .select-option.selected {
   background-color: var(--accent-color);
   color: white;
+  transition:
+    background-color var(--ui-transition-fast),
+    filter var(--ui-transition-fast);
 }
 
-/* Selected items should not show hover or focus effects */
+/* Keep selected options identifiable while still providing pointer feedback. */
 .select-option.selected:hover,
 .select-option.selected.focused {
   background-color: var(--accent-color);
+  filter: brightness(0.88);
 }
 
 /* Ensure child elements also display correctly in selected state */

@@ -57,7 +57,9 @@ function handleClose() {
 <style scoped>
 @reference "../../style.css";
 .toast {
-  @apply z-[60] px-5 py-3 rounded-lg shadow-lg border w-[min(28rem,calc(100vw-2rem))] max-w-md;
+  @apply z-[60] px-5 py-3 rounded-lg shadow-lg border;
+  width: max-content;
+  max-width: min(28rem, calc(100vw - 2rem));
 }
 .toast-show {
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);

@@ -64,7 +64,7 @@ async function save() {
 }
 </script>
 <template>
-  <fieldset class="space-y-3 border-t border-border pt-4" :disabled="loading || saving">
+  <fieldset class="space-y-3 border-t border-border py-4" :disabled="loading || saving">
     <legend class="text-sm font-medium text-text-primary">
       {{ t('modal.feed.contentOptions') }}
     </legend>

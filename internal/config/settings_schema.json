@@ -81,6 +81,13 @@
       "encrypted": false,
       "frontend_key": "confirm_mark_as_read"
     },
+    "remember_article_position": {
+      "type": "bool",
+      "default": true,
+      "category": "reading",
+      "encrypted": false,
+      "frontend_key": "remember_article_position"
+    },
     "translation_enabled": {
       "type": "bool",
       "default": false,
@@ -311,6 +318,13 @@
       "category": "ai",
       "encrypted": false,
       "frontend_key": "aiChatEnabled"
+    },
+    "ai_chat_quick_prompts": {
+      "type": "string",
+      "default": "[]",
+      "category": "ai",
+      "encrypted": false,
+      "frontend_key": "ai_chat_quick_prompts"
     },
     "ai_search_enabled": {
       "type": "bool",

@@ -219,7 +219,7 @@ function loadArticleScrollPositions(): Record<string, number> {
 
 function saveArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
   const container = articleScrollContainer.value;
-  if (!container || !articleId) return;
+  if (!appSettings.value.remember_article_position || !container || !articleId) return;
 
   const positions = loadArticleScrollPositions();
   positions[String(articleId)] = Math.round(container.scrollTop);
@@ -235,6 +235,8 @@ function saveArticleScrollPosition(articleId: number | null | undefined = props.
 }
 
 function scheduleSaveArticleScrollPosition() {
+  if (!appSettings.value.remember_article_position) return;
+
   if (pendingScrollRestoreArticleId === props.article?.id) {
     return;
   }
@@ -275,6 +277,12 @@ function scrollToArticleTop() {
 function restoreArticleScrollPosition(articleId: number | null | undefined = props.article?.id) {
   const container = articleScrollContainer.value;
   if (!container || !articleId) return;
+
+  if (!appSettings.value.remember_article_position) {
+    pendingScrollRestoreArticleId = null;
+    pendingScrollRestoreAttempts = 0;
+    return;
+  }
 
   const savedTop = loadArticleScrollPositions()[String(articleId)];
   if (savedTop === undefined) {
@@ -930,7 +938,7 @@ watch(
       }
       readingProgress.value = 0;
       showBackToTop.value = false;
-      pendingScrollRestoreArticleId = newId ?? null;
+      pendingScrollRestoreArticleId = appSettings.value.remember_article_position ? (newId ?? null) : null;
       pendingScrollRestoreAttempts = 0;
 
       // Cancel any ongoing summary generation for the previous article
@@ -1278,7 +1286,11 @@ onBeforeUnmount(() => {
       v-if="isChatPanelOpen"
       :article="article"
       :article-content="articleContent"
-      :settings="{ ai_chat_enabled: appSettings.ai_chat_enabled }"
+      :settings="{
+        ai_chat_enabled: appSettings.ai_chat_enabled,
+        ai_chat_profile_id: appSettings.ai_chat_profile_id,
+        ai_chat_quick_prompts: appSettings.ai_chat_quick_prompts,
+      }"
       @close="isChatPanelOpen = false"
     />
   </div>

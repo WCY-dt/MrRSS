@@ -14,8 +14,11 @@ button[title] > img {
     --bg-tertiary: #e9ecef;
     --text-primary: #212529;
     --text-secondary: #6c757d;
+    --text-tertiary: #868e96;
     --accent-color: #007bff;
     --accent-hover: #0056b3;
+    --accent-fill: #007bff;
+    --accent-fill-hover: #0056b3;
     --border-color: #dee2e6;
     --mark-bg-color: rgba(255, 220, 100, 0.4);
     --table-stripe-color: rgba(0, 0, 0, 0.04);
@@ -36,14 +39,26 @@ button[title] > img {
     --bg-tertiary: #2d2d2d;
     --text-primary: #e0e0e0;
     --text-secondary: #a0a0a0;
+    --text-tertiary: #808080;
     --accent-color: #4daafc;
     --accent-hover: #2b87d9;
+    --accent-fill: #347fbd;
+    --accent-fill-hover: #2b6c9f;
     --border-color: #3e3e42;
     --mark-bg-color: rgba(255, 220, 100, 0.25);
     --table-stripe-color: rgba(255, 255, 255, 0.06);
     --code-bg-color: #1e1e1e;
     --code-border-color: #3e3e42;
   }
+}
+
+/* Keep accent text vivid while softening large filled surfaces in dark mode. */
+.dark-mode .bg-accent {
+  background-color: var(--accent-fill);
+}
+
+.dark-mode .hover\:bg-accent-hover:hover {
+  background-color: var(--accent-fill-hover);
 }
 
 body {

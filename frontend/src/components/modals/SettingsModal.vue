@@ -40,7 +40,15 @@ import { useModalClose, LARGE_MODAL_Z_INDEX } from '@/composables/ui/useModalClo
 const store = useAppStore();
 const { t, tm } = useI18n();
 
-// Modal close handling - use lower z-index for large modal so nested modals appear on top
+interface Props {
+  initialTab?: TabName;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  initialTab: 'general',
+});
+
+// Modal close handling; nested modals are placed above this layer automatically.
 const { zIndex: modalZIndex } = useModalClose(() => emit('close'), LARGE_MODAL_Z_INDEX);
 
 // Use composables
@@ -76,7 +84,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-const activeTab: Ref<TabName> = ref('general');
+const activeTab: Ref<TabName> = ref(props.initialTab);
 const showDiscoverAllModal = ref(false);
 const settingsContentRef = ref<HTMLElement | null>(null);
 const settingsSearchRef = ref<HTMLElement | null>(null);
@@ -316,14 +324,18 @@ function handleDiscoverAll() {
     <div
       class="bg-bg-primary w-full max-w-5xl h-full sm:h-[800px] sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in mx-2 sm:mx-4 my-2 sm:my-4"
     >
-      <div class="p-3 sm:p-5 border-b border-border flex items-center gap-3 shrink-0">
-        <h3 class="text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2">
+      <div
+        class="grid grid-cols-[minmax(0,1fr)_minmax(12rem,20rem)_minmax(0,1fr)] items-center gap-3 border-b border-border p-3 sm:p-5 shrink-0"
+      >
+        <h3
+          class="justify-self-start text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2"
+        >
           <PhGear :size="20" :weight="'fill'" class="sm:w-6 sm:h-6" />
           {{ t('setting.tab.settingsTitle') }}
         </h3>
         <div
           ref="settingsSearchRef"
-          class="relative ml-auto w-full max-w-xs"
+          class="relative w-full justify-self-center"
           @focusout="handleSettingsSearchFocusOut"
         >
           <PhMagnifyingGlass
@@ -332,7 +344,7 @@ function handleDiscoverAll() {
           />
           <input
             v-model="settingsSearchQuery"
-            type="search"
+            type="text"
             class="w-full rounded-lg border border-border bg-bg-secondary py-2 pl-9 pr-9 text-sm text-text-primary outline-none transition-colors focus:border-accent"
             :placeholder="t('setting.search.placeholder')"
             :aria-label="t('setting.search.placeholder')"
@@ -389,7 +401,7 @@ function handleDiscoverAll() {
           </div>
         </div>
         <span
-          class="text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
+          class="justify-self-end text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
           @click="emit('close')"
           >&times;</span
         >
@@ -414,7 +426,7 @@ function handleDiscoverAll() {
         <!-- Content Area -->
         <div
           ref="settingsContentRef"
-          class="flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth"
+          class="settings-content flex-1 overflow-y-scroll p-3 sm:p-6 min-h-0 scroll-smooth overscroll-contain"
           data-settings-content
         >
           <GeneralTab
@@ -535,6 +547,10 @@ function handleDiscoverAll() {
   width: 3px;
   background: var(--accent-color);
   border-radius: 0 2px 2px 0;
+}
+
+.settings-content {
+  overflow-anchor: none;
 }
 
 :deep([data-settings-search-match='true']) {

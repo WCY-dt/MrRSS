@@ -42,6 +42,7 @@ export default {
         text: {
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
         },
         accent: {
           DEFAULT: 'var(--accent-color)',

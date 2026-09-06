@@ -21,6 +21,7 @@ type Defaults struct {
 	AIAPIKey string                     `json:"ai_api_key"`
 	AIChatEnabled bool                  `json:"ai_chat_enabled"`
 	AIChatProfileId string              `json:"ai_chat_profile_id"`
+	AIChatQuickPrompts string           `json:"ai_chat_quick_prompts"`
 	AICustomHeaders string              `json:"ai_custom_headers"`
 	AIEndpoint string                   `json:"ai_endpoint"`
 	AIModel string                      `json:"ai_model"`
@@ -97,6 +98,7 @@ type Defaults struct {
 	ProxyType string                    `json:"proxy_type"`
 	ProxyUsername string                `json:"proxy_username"`
 	RefreshMode string                  `json:"refresh_mode"`
+	RememberArticlePosition bool        `json:"remember_article_position"`
 	RetryTimeoutSeconds int             `json:"retry_timeout_seconds"`
 	RsshubAPIKey string                 `json:"rsshub_api_key"`
 	RsshubEnabled bool                  `json:"rsshub_enabled"`
@@ -160,6 +162,8 @@ func GetString(key string) string {
 		return strconv.FormatBool(defaults.AIChatEnabled)
 	case "ai_chat_profile_id":
 		return defaults.AIChatProfileId
+	case "ai_chat_quick_prompts":
+		return defaults.AIChatQuickPrompts
 	case "ai_custom_headers":
 		return defaults.AICustomHeaders
 	case "ai_endpoint":
@@ -312,6 +316,8 @@ func GetString(key string) string {
 		return defaults.ProxyUsername
 	case "refresh_mode":
 		return defaults.RefreshMode
+	case "remember_article_position":
+		return strconv.FormatBool(defaults.RememberArticlePosition)
 	case "retry_timeout_seconds":
 		return strconv.Itoa(defaults.RetryTimeoutSeconds)
 	case "rsshub_api_key":

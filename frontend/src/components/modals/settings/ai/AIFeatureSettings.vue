@@ -7,6 +7,7 @@ import {
   PhTrash,
   PhBroom,
   PhMagnifyingGlass,
+  PhLightning,
 } from '@phosphor-icons/vue';
 import {
   TipBox,
@@ -16,6 +17,7 @@ import {
   SubSettingItem,
 } from '@/components/settings';
 import AIProfileSelector from './AIProfileSelector.vue';
+import AIChatQuickPromptsSettings from './AIChatQuickPromptsSettings.vue';
 import '@/components/settings/styles.css';
 import type { SettingsData } from '@/types/settings';
 
@@ -37,7 +39,7 @@ async function updateSetting(key: keyof SettingsData, value: any) {
       ? document.activeElement.closest<HTMLElement>('.setting-item')
       : null;
   const scrollContainer = anchor?.closest<HTMLElement>('[data-settings-content]');
-  const anchorTop = anchor?.getBoundingClientRect().top;
+  const scrollTop = scrollContainer?.scrollTop;
 
   emit('update:settings', {
     ...props.settings,
@@ -45,8 +47,8 @@ async function updateSetting(key: keyof SettingsData, value: any) {
   });
 
   await nextTick();
-  if (anchor && scrollContainer && anchorTop !== undefined) {
-    scrollContainer.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
+  if (scrollContainer && scrollTop !== undefined) {
+    scrollContainer.scrollTop = scrollTop;
   }
 }
 
@@ -126,6 +128,17 @@ async function clearAllChatSessions() {
         <AIProfileSelector
           :model-value="props.settings.ai_chat_profile_id"
           @update:model-value="updateSetting('ai_chat_profile_id', $event)"
+        />
+      </SubSettingItem>
+
+      <SubSettingItem
+        :icon="PhLightning"
+        :title="t('setting.ai.quickPrompts')"
+        :description="t('setting.ai.quickPromptsDesc')"
+      >
+        <AIChatQuickPromptsSettings
+          :model-value="props.settings.ai_chat_quick_prompts"
+          @update:model-value="updateSetting('ai_chat_quick_prompts', $event)"
         />
       </SubSettingItem>
 

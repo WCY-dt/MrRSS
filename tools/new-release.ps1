@@ -60,13 +60,56 @@ function Read-TextFile {
         [string]$Path
     )
 
-    $reader = [System.IO.StreamReader]::new($Path, [System.Text.Encoding]::UTF8, $true)
-    try {
-        $content = $reader.ReadToEnd()
-        $encoding = $reader.CurrentEncoding
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $preambleLength = 0
+
+    # Detect the original byte-order mark explicitly. StreamReader's detected
+    # UTF-8 encoding may emit a BOM when written back even if the source file
+    # did not have one, which makes package.json invalid for some Node tools.
+    if (
+        $bytes.Length -ge 4 -and
+        $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE -and
+        $bytes[2] -eq 0x00 -and $bytes[3] -eq 0x00
+    ) {
+        $encoding = [System.Text.UTF32Encoding]::new($false, $true, $true)
+        $preambleLength = 4
     }
-    finally {
-        $reader.Dispose()
+    elseif (
+        $bytes.Length -ge 4 -and
+        $bytes[0] -eq 0x00 -and $bytes[1] -eq 0x00 -and
+        $bytes[2] -eq 0xFE -and $bytes[3] -eq 0xFF
+    ) {
+        $encoding = [System.Text.UTF32Encoding]::new($true, $true, $true)
+        $preambleLength = 4
+    }
+    elseif (
+        $bytes.Length -ge 3 -and
+        $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    ) {
+        $encoding = [System.Text.UTF8Encoding]::new($true, $true)
+        $preambleLength = 3
+    }
+    elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+        $encoding = [System.Text.UnicodeEncoding]::new($false, $true, $true)
+        $preambleLength = 2
+    }
+    elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+        $encoding = [System.Text.UnicodeEncoding]::new($true, $true, $true)
+        $preambleLength = 2
+    }
+    else {
+        $encoding = [System.Text.UTF8Encoding]::new($false, $true)
+    }
+
+    try {
+        $content = $encoding.GetString(
+            $bytes,
+            $preambleLength,
+            $bytes.Length - $preambleLength
+        )
+    }
+    catch {
+        throw "无法按文本编码读取 $Path：$($_.Exception.Message)"
     }
 
     return [pscustomobject]@{
