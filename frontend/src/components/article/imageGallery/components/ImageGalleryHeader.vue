@@ -41,7 +41,7 @@ const { t } = useI18n();
     <div class="flex items-center gap-2">
       <!-- Show only unread toggle button -->
       <button
-        class="p-1 sm:p-1.5 rounded hover:bg-bg-tertiary text-text-secondary transition-colors"
+        class="p-1 sm:p-1.5 rounded hover:bg-bg-tertiary text-text-secondary transition-colors cursor-pointer"
         :class="showOnlyUnread ? 'text-accent' : ''"
         :title="
           showOnlyUnread
@@ -55,7 +55,7 @@ const { t } = useI18n();
 
       <!-- Toggle text overlay button -->
       <button
-        class="p-1 sm:p-1.5 rounded hover:bg-bg-tertiary text-text-secondary transition-colors"
+        class="p-1 sm:p-1.5 rounded hover:bg-bg-tertiary text-text-secondary transition-colors cursor-pointer"
         :title="showTextOverlay ? t('setting.reading.hideText') : t('setting.reading.showText')"
         @click="emit('toggleTextOverlay')"
       >
