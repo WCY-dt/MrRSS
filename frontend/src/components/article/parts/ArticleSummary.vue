@@ -187,7 +187,7 @@ async function handleSummaryLinkClick(event: MouseEvent) {
   >
     <!-- Summary Header -->
     <div
-      class="flex items-center justify-between gap-2 cursor-pointer select-none"
+      class="flex min-h-[30px] items-center justify-between gap-2 cursor-pointer select-none"
       @click="toggleSummary"
     >
       <div class="flex items-center gap-2">
@@ -343,9 +343,7 @@ async function handleSummaryLinkClick(event: MouseEvent) {
 
 <style scoped>
 .summary-container {
-  min-height: 8rem;
   transition:
-    min-height 0.2s ease,
     background-color 0.2s ease,
     border-color 0.2s ease;
 }

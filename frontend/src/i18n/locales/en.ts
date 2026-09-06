@@ -27,6 +27,7 @@ const en: TranslationMessages = {
       markBelowReadConfirmTitle: 'Mark Below as Read',
       markAsRead: 'Mark as Read',
       markAsUnread: 'Mark as Unread',
+      backToTop: 'Back to top',
       markBelowAsRead: 'Mark Below as Read',
       markedAllAsRead: 'All articles marked as read',
       markedNArticlesAsRead: 'Marked {count} articles as read',
@@ -81,6 +82,7 @@ const en: TranslationMessages = {
       fetchingArticleContent: 'Fetching article content from RSS feed...',
       loadingContent: 'Loading content',
       noArticles: 'No articles found.',
+      readingProgress: 'Reading progress',
       noContentAvailable: 'No content available',
       renderContent: 'Render Content',
       selectArticle: 'Select an article to start reading',
@@ -93,6 +95,8 @@ const en: TranslationMessages = {
     list: {
       markAllVisibleAsRead: 'Mark All Visible as Read',
       allArticlesLoaded: 'All articles loaded',
+      allCaughtUp: "You're all caught up",
+      noUnreadArticles: 'There are no unread articles left.',
     },
     navigation: {
       goToAllArticles: 'Go to All Articles',
@@ -588,6 +592,11 @@ const en: TranslationMessages = {
     },
   },
   setting: {
+    search: {
+      clear: 'Clear settings search',
+      noResults: 'No matching settings',
+      placeholder: 'Search settings',
+    },
     about: {
       version: 'Version',
       viewOnGitHub: 'View on GitHub',
@@ -1064,6 +1073,9 @@ const en: TranslationMessages = {
         'Automatically display the full content of all articles when viewed as rendered content (may increase loading time)',
       defaultViewMode: 'Article View Mode',
       defaultViewModeDesc: 'Choose how articles should be displayed',
+      confirmMarkAsRead: 'Confirm Bulk Mark as Read',
+      confirmMarkAsReadDesc:
+        'Ask for confirmation before marking all, newer, or older articles as read',
       hideAdvancedSettings: 'Hide Advanced Settings',
       hideFromTimeline: 'Hide from Timeline',
       hideFromTimelineDesc: 'Hide this feed\'s articles from "All Articles" and "Unread" views',

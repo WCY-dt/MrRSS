@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   PhRobot,
@@ -31,11 +31,23 @@ const emit = defineEmits<{
   'update:settings': [settings: SettingsData];
 }>();
 
-function updateSetting(key: keyof SettingsData, value: any) {
+async function updateSetting(key: keyof SettingsData, value: any) {
+  const anchor =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest<HTMLElement>('.setting-item')
+      : null;
+  const scrollContainer = anchor?.closest<HTMLElement>('[data-settings-content]');
+  const anchorTop = anchor?.getBoundingClientRect().top;
+
   emit('update:settings', {
     ...props.settings,
     [key]: value,
   });
+
+  await nextTick();
+  if (anchor && scrollContainer && anchorTop !== undefined) {
+    scrollContainer.scrollTop += anchor.getBoundingClientRect().top - anchorTop;
+  }
 }
 
 const isDeleting = ref(false);

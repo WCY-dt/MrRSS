@@ -148,8 +148,8 @@
 }
 
 .prose p {
-  margin-top: 1.25em;
-  margin-bottom: 1.25em;
+  margin-top: 1em;
+  margin-bottom: 1em;
   line-height: var(--content-line-height, 1.75);
   /* Prevent overflow from long words/links */
   overflow-wrap: break-word;
@@ -365,8 +365,8 @@
 
 .prose ul,
 .prose ol {
-  margin-top: 1.25em;
-  margin-bottom: 1.25em;
+  margin-top: 1em;
+  margin-bottom: 1em;
   padding-left: 1.625em;
 }
 

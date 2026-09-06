@@ -1,17 +1,24 @@
 import { openInBrowser } from '@/utils/browser';
 import { copyArticleLink, copyArticleTitle } from '@/utils/clipboard';
 import { useAppStore } from '@/stores/app';
+import { useSettings } from '@/composables/core/useSettings';
 import type { Article } from '@/types/models';
 import type { Composer } from 'vue-i18n';
 
 type ViewMode = 'original' | 'rendered' | 'external';
+type RelativeReadDirection = 'above' | 'below';
 
 export function useArticleActions(
   t: Composer['t'],
   defaultViewMode: { value: ViewMode },
-  onReadStatusChange?: () => void
+  onReadStatusChange?: () => void | Promise<void>,
+  onRelativeRead?: (
+    article: Article,
+    direction: RelativeReadDirection
+  ) => void | Promise<void>
 ) {
   const store = useAppStore();
+  const { settings } = useSettings();
 
   // Get effective view mode for an article based on feed settings and global settings
   function getEffectiveViewMode(article: Article): ViewMode {
@@ -42,7 +49,9 @@ export function useArticleActions(
       {
         label: article.is_read ? t('article.action.markAsUnread') : t('article.action.markAsRead'),
         action: 'toggleRead',
-        icon: article.is_read ? 'ph-envelope' : 'ph-envelope-open',
+        icon: 'ph-circle',
+        iconWeight: article.is_read ? 'regular' : 'fill',
+        iconColor: article.is_read ? '' : 'text-accent',
       },
       {
         label: t('article.action.markAboveAsRead'),
@@ -221,7 +230,8 @@ export function useArticleActions(
       }
     } else if (action === 'markAboveAsRead' || action === 'markBelowAsRead') {
       try {
-        const direction = action === 'markAboveAsRead' ? 'above' : 'below';
+        const direction: RelativeReadDirection =
+          action === 'markAboveAsRead' ? 'above' : 'below';
 
         // Show confirmation dialog
         const confirmTitle =
@@ -233,13 +243,15 @@ export function useArticleActions(
             ? t('article.action.markAboveReadConfirmMessage')
             : t('article.action.markBelowReadConfirmMessage');
 
-        const confirmed = await window.showConfirm({
-          title: confirmTitle,
-          message: confirmMessage,
-          confirmText: t('common.confirm'),
-          cancelText: t('common.cancel'),
-          isDanger: false,
-        });
+        const confirmed = settings.value.confirm_mark_as_read
+          ? await window.showConfirm({
+              title: confirmTitle,
+              message: confirmMessage,
+              confirmText: t('common.confirm'),
+              cancelText: t('common.cancel'),
+              isDanger: false,
+            })
+          : true;
 
         if (!confirmed) {
           return;
@@ -268,13 +280,14 @@ export function useArticleActions(
 
         const data = await res.json();
 
-        // Refresh the article list to show updated read status
-        if (onReadStatusChange) {
-          onReadStatusChange();
+        // Update the visible list in place so it never clears and loses its scroll position.
+        if (onRelativeRead) {
+          await onRelativeRead(article, direction);
         }
 
-        // Refresh articles from server
-        await store.fetchArticles();
+        if (onReadStatusChange) {
+          await onReadStatusChange();
+        }
 
         window.showToast(
           t('article.action.markedNArticlesAsRead', { count: data.count || 0 }),

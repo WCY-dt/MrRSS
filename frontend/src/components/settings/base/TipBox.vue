@@ -55,7 +55,8 @@ const boxClass = computed(() => {
 <style scoped>
 @reference "../../../style.css";
 .tip-box {
-  @apply py-2.5 px-3 rounded-lg border;
+  @apply py-2.5 px-3 border;
+  border-radius: var(--ui-radius-surface);
 }
 
 .tip-box-header {

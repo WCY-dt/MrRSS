@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { PhCursorClick, PhEyeSlash } from '@phosphor-icons/vue';
+import { PhCheckCircle, PhCursorClick, PhEyeSlash } from '@phosphor-icons/vue';
 import { SettingGroup, SettingWithToggle } from '@/components/settings';
 import '@/components/settings/styles.css';
 import type { SettingsData } from '@/types/settings';
@@ -33,6 +33,14 @@ function updateSetting(key: keyof SettingsData, value: any) {
       :description="t('setting.reading.hoverMarkAsReadDesc')"
       :model-value="settings.hover_mark_as_read"
       @update:model-value="updateSetting('hover_mark_as_read', $event)"
+    />
+
+    <SettingWithToggle
+      :icon="PhCheckCircle"
+      :title="t('setting.reading.confirmMarkAsRead')"
+      :description="t('setting.reading.confirmMarkAsReadDesc')"
+      :model-value="settings.confirm_mark_as_read"
+      @update:model-value="updateSetting('confirm_mark_as_read', $event)"
     />
 
     <SettingWithToggle

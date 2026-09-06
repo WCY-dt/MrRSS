@@ -36,6 +36,7 @@ var AllSettings = []SettingDef{
 	{Key: "baidu_app_id", Encrypted: false},
 	{Key: "baidu_secret_key", Encrypted: true},
 	{Key: "close_to_tray", Encrypted: false},
+	{Key: "confirm_mark_as_read", Encrypted: false},
 	{Key: "content_font_family", Encrypted: false},
 	{Key: "content_font_size", Encrypted: false},
 	{Key: "content_line_height", Encrypted: false},

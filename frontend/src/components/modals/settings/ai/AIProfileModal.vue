@@ -224,7 +224,7 @@ function handleClose() {
   <Teleport to="body">
     <BaseModal v-if="isOpen" :title="modalTitle" size="2xl" :z-index="60" @close="handleClose">
       <!-- Form Content -->
-      <div class="p-4 sm:p-6 space-y-4">
+      <div class="p-4 sm:p-6 space-y-4 text-text-primary">
         <!-- Profile Name -->
         <SettingItem
           :icon="PhRobot"
@@ -289,7 +289,9 @@ function handleClose() {
           <div class="flex items-center gap-2 sm:gap-3">
             <PhSliders :size="20" class="text-text-secondary shrink-0 sm:w-6 sm:h-6" />
             <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm">{{ t('setting.ai.aiCustomHeaders') }}</div>
+              <div class="font-medium text-sm text-text-primary">
+                {{ t('setting.ai.aiCustomHeaders') }}
+              </div>
               <div class="text-xs text-text-secondary hidden sm:block">
                 {{ t('setting.ai.aiCustomHeadersDesc') }}
               </div>

@@ -70,6 +70,25 @@ export function formatDate(
   }
 }
 
+/** Format an article timestamp with date and time, rounded to minute precision. */
+export function formatExactDateTime(dateStr: string, locale: string = 'en-US'): string {
+  if (!dateStr) return '';
+
+  try {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Format a timestamp as an absolute date (year-month-day)
  * @param timestamp - ISO timestamp string

@@ -18,6 +18,7 @@
   "baidu_app_id": "",
   "baidu_secret_key": "",
   "close_to_tray": true,
+  "confirm_mark_as_read": true,
   "content_font_family": "system",
   "content_font_size": 16,
   "content_line_height": "1.6",

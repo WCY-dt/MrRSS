@@ -8,8 +8,7 @@ import {
   PhX,
   PhGlobe,
   PhArticle,
-  PhEnvelopeOpen,
-  PhEnvelope,
+  PhCircle,
   PhStar,
   PhClockCountdown,
   PhArrowSquareOut,
@@ -129,8 +128,12 @@ async function copyLink(article: Article) {
         "
         @click="$emit('toggleRead')"
       >
-        <PhEnvelopeOpen v-if="article.is_read" :size="18" class="sm:w-5 sm:h-5" />
-        <PhEnvelope v-else :size="18" class="sm:w-5 sm:h-5" />
+        <PhCircle
+          :size="18"
+          class="sm:w-5 sm:h-5"
+          :class="{ 'text-accent': !article.is_read }"
+          :weight="article.is_read ? 'regular' : 'fill'"
+        />
       </button>
       <button
         :class="[

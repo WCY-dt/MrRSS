@@ -5,6 +5,34 @@ All notable changes to MrRSS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.30] - 2026-09-06
+
+### Added
+
+- Add bilingual settings search with ranked, keyboard-accessible results that open the exact setting without hiding navigation. (#1067)
+- Add an opt-out confirmation setting for bulk mark-as-read actions across article and sidebar menus. (#1063)
+- Add a floating back-to-top button for long articles. (#1057)
+- Show a live reading-progress bar while scrolling through an article. (#1058)
+
+### Changed
+
+- Replace the sidebar's boxed native sort field with a lightweight menu aligned with the surrounding navigation controls. (#1071)
+- Unify shared button, form-control, dropdown, settings-card and keyboard-focus styling. (#1071)
+- Standardize read and unread controls on hollow and filled circle icons across article views. (#1070)
+- Show publication timestamps to minute precision when hovering article dates. (#1066)
+- Let the up-to-date status card shrink to its content when no download action is present. (#1065)
+- Replace the misleading empty unread-list error copy with a clear all-caught-up state. (#1064)
+- Center article bodies at a readable 68-character line width with more consistent paragraph and list spacing. (#1059)
+
+### Fixed
+
+- Localize AI chat failures and feed update-status tooltips instead of exposing English backend values. (#1062)
+- Keep AI feature toggles anchored while their dependent settings expand or collapse. (#1061)
+- Use the theme's neutral primary text color consistently in AI profile forms and article chat. (#1060)
+- Keep the article-summary heading stationary when generated content and action buttons appear. (#1068)
+- Let collapsed article-summary cards shrink to their header instead of leaving a large blank area. (#1056)
+- Keep the article list anchored at the selected item after marking newer or older articles as read. (#1055)
+
 ## [1.3.29] - 2026-09-05
 
 ### Added
