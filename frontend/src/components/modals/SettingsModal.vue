@@ -316,14 +316,18 @@ function handleDiscoverAll() {
     <div
       class="bg-bg-primary w-full max-w-5xl h-full sm:h-[800px] sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in mx-2 sm:mx-4 my-2 sm:my-4"
     >
-      <div class="p-3 sm:p-5 border-b border-border flex items-center gap-3 shrink-0">
-        <h3 class="text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2">
+      <div
+        class="grid grid-cols-[minmax(0,1fr)_minmax(12rem,20rem)_minmax(0,1fr)] items-center gap-3 border-b border-border p-3 sm:p-5 shrink-0"
+      >
+        <h3
+          class="justify-self-start text-text-secondary sm:text-lg font-semibold m-0 flex items-center gap-2"
+        >
           <PhGear :size="20" :weight="'fill'" class="sm:w-6 sm:h-6" />
           {{ t('setting.tab.settingsTitle') }}
         </h3>
         <div
           ref="settingsSearchRef"
-          class="relative ml-auto w-full max-w-xs"
+          class="relative w-full justify-self-center"
           @focusout="handleSettingsSearchFocusOut"
         >
           <PhMagnifyingGlass
@@ -389,7 +393,7 @@ function handleDiscoverAll() {
           </div>
         </div>
         <span
-          class="text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
+          class="justify-self-end text-2xl cursor-pointer text-text-secondary hover:text-text-primary"
           @click="emit('close')"
           >&times;</span
         >
