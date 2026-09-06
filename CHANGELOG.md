@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.31] - 2026-09-06
+
+### Added
+
+- Add a copy-title action to the article toolbar. (#1088)
+- Add an option to disable restoring the last reading position for each article. (#1089)
+- Add AI chat profile switching, a shortcut to AI settings, and per-message copy actions. (#1092)
+- Add a reload action to the feed editing dialog. (#1093)
+- Add built-in summary and question suggestions to AI chat, plus user-managed custom prompts. (#1096)
+
+### Changed
+
+- Size toast notifications to their content while preserving a responsive maximum width. (#1074)
+- Center the settings search field independently of the surrounding header controls. (#1075)
+- Add clear hover feedback to selected dropdown options. (#1076)
+- Soften filled accent backgrounds in dark mode without muting accent-colored text. (#1079)
+- Align feed extraction options with the spacing used by other advanced settings. (#1081)
+- Use the shared dropdown control in statistics settings. (#1082)
+- Unify settings dropdown backgrounds. (#1087)
+- Widen AI profile selectors so profile names remain readable. (#1090)
+- Align article body content with its title and summary. (#1094)
+- Use consistent toolbar colors and pointer feedback in the multimedia gallery. (#1086, #1095)
+
+### Fixed
+
+- Preserve the AI settings scroll position when dependent controls expand or collapse. (#1072)
+- Use distinct, meaningful icons for article context-menu actions. (#1073)
+- Keep the selected article visible when returning to its feed and when closing card view. (#1077, #1078)
+- Refresh system-tray labels after changing the application language. (#1080)
+- Remove the duplicate native clear control from settings search. (#1083)
+- Remove duplicate discovery progress states and actions, correct selected-feed counts, and restore tertiary text styling. (#1084)
+- Open a feed's website homepage instead of its subscription document when metadata is available. (#1085)
+- Keep the settings modal above the floating AI chat panel. (#1091)
+
 ## [1.3.30] - 2026-09-06
 
 ### Added
