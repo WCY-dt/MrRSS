@@ -807,10 +807,17 @@ async function openCardModal(article: Article): Promise<void> {
   }
 }
 
-function closeCardModal(): void {
+async function closeCardModal(): Promise<void> {
+  const articleId = cardModalArticle.value?.id;
   showCardModal.value = false;
   cardModalArticle.value = null;
   cardModalContent.value = '';
+
+  if (!articleId || !listRef.value) return;
+  await nextTick();
+  listRef.value
+    .querySelector<HTMLElement>(`[data-article-id="${articleId}"]`)
+    ?.scrollIntoView({ block: 'nearest' });
 }
 
 function cardModalPrevious(): void {
